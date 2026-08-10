@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Samba Web UI - Подключение</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container" style="max-width: 500px; margin-top: 100px;">
+    <h1>🔌 Подключение к Samba серверу</h1>
+
+    <!-- Форма отправляет данные на /connect -->
+    <form th:action="@{/connect}" th:object="${connectionRequest}" method="post">
+
+        <!-- 1. ПОЛЕ ДЛЯ IP-АДРЕСА (добавлено!) -->
+        <div style="margin-bottom: 15px;">
+            <label for="host">IP адрес или домен сервера:</label>
+            <input type="text" id="host" th:field="*{host}" class="form-control"
+                   placeholder="Например: 192.168.1.100 или samba.myserver.ru" required>
+        </div>
+
+        <!-- 2. Имя пользователя -->
+        <div style="margin-bottom: 15px;">
+            <label for="username">Имя пользователя SSH:</label>
+            <input type="text" id="username" th:field="*{username}" class="form-control"
+                   placeholder="root или ваш пользователь" required>
+        </div>
+
+        <!-- 3. Пароль -->
+        <div style="margin-bottom: 15px;">
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" th:field="*{password}" class="form-control"
+                   placeholder="Ваш SSH пароль" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Подключиться</button>
+    </form>
+
+    <!-- Блок для ошибок -->
+    <div th:if="${error}" style="color: red; margin-top: 20px; background: #ffeeee; padding: 10px; border-radius: 5px;"
+         th:text="${error}"></div>
+
+    <!-- Подсказка по безопасности -->
+    <div style="margin-top: 30px; font-size: 0.9rem; color: #666; border-top: 1px solid #ddd; padding-top: 15px;">
+        <p>🔒 Ваши данные для подключения не сохраняются на сервере.</p>
+        <p>Они используются только для создания SSH-сессии и хранятся в памяти во время работы сессии.</p>
+    </div>
+</div>
+</body>
+</html>
