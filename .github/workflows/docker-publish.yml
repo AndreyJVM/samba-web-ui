@@ -65,37 +65,3 @@ jobs:
           tags: |
             ${{ env.DOCKER_IMAGE_NAME }}:latest
             ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
-
-  # ==========================================
-  # JOB 3: Деплой на VDS
-  # ==========================================
-  deploy-to-vds:
-    name: Deploy to VDS via Docker Compose
-    runs-on: ubuntu-latest
-    needs: docker-build-and-push
-    if: github.event_name != 'pull_request'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Copy docker-compose and nginx config to VDS
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USER }}
-          key: ${{ secrets.VDS_SSH_KEY }}
-          source: "docker-compose.yml,nginx/"
-          target: "/home/${{ secrets.VDS_USER }}/apps/my-app/"
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USER }}
-          key: ${{ secrets.VDS_SSH_KEY }}
-          script: |
-            cd /home/${{ secrets.VDS_USER }}/apps/my-app/
-            docker compose pull app
-            docker compose down
-            docker compose up -d      
-            docker system prune -f
