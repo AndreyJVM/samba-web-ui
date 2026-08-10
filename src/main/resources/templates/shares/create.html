@@ -4,59 +4,179 @@
     <meta charset="UTF-8">
     <title>Создать шару</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .help-block {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            border-left: 3px solid #007bff;
+            padding-left: 10px;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-control { width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px; }
+        .form-control:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25); }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; }
+        .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; }
+        .btn { padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #545b62; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .row { display: flex; gap: 20px; }
+        .col { flex: 1; }
+    </style>
 </head>
 <body>
-<div class="container" style="max-width: 600px; margin-top: 50px;">
+<div class="container" style="max-width: 800px; margin-top: 50px; padding: 20px;">
     <h1>➕ Создать новую шару</h1>
 
     <form th:action="@{/shares/create}" th:object="${share}" method="post">
-        <div style="margin-bottom: 15px;">
-            <label for="name">Имя шары:</label>
-            <input type="text" id="name" th:field="*{name}" class="form-control" required
-                   placeholder="Например: documents">
-            <small style="color: #6c757d;">Имя должно быть без пробелов и спецсимволов</small>
+
+        <!-- ===== ОСНОВНАЯ ИНФОРМАЦИЯ ===== -->
+        <div class="row">
+            <div class="col">
+                <div class="form-group">
+                    <label for="name">Имя шары *</label>
+                    <input type="text" id="name" th:field="*{name}" class="form-control" required>
+                    <div class="help-block">Только латинские буквы, цифры, подчеркивания и дефисы</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label for="path">Путь к папке *</label>
+                    <input type="text" id="path" th:field="*{path}" class="form-control" required>
+                    <div class="help-block">Абсолютный путь на сервере, например: /srv/samba/documents</div>
+                </div>
+            </div>
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <label for="path">Путь к папке:</label>
-            <input type="text" id="path" th:field="*{path}" class="form-control" required
-                   placeholder="Например: /srv/samba/documents">
+        <div class="form-group">
+            <label for="comment">Комментарий</label>
+            <input type="text" id="comment" th:field="*{comment}" class="form-control" placeholder="Описание шары">
+            <div class="help-block">Описание, которое увидят пользователи</div>
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <label for="comment">Комментарий:</label>
-            <input type="text" id="comment" th:field="*{comment}" class="form-control"
-                   placeholder="Описание шары">
+        <!-- ===== ДОСТУП И ПРАВА ===== -->
+        <h3>🔐 Доступ и права</h3>
+
+        <div class="row">
+            <div class="col">
+                <div class="checkbox-group">
+                    <input type="checkbox" th:field="*{readOnly}">
+                    <label for="readOnly">Только чтение</label>
+                </div>
+                <div class="help-block">Пользователи смогут только читать файлы</div>
+            </div>
+            <div class="col">
+                <div class="checkbox-group">
+                    <input type="checkbox" th:field="*{guestOk}">
+                    <label for="guestOk">Гостевой доступ</label>
+                </div>
+                <div class="help-block">Гостям не нужно вводить логин и пароль</div>
+            </div>
+            <div class="col">
+                <div class="checkbox-group">
+                    <input type="checkbox" th:field="*{browseable}">
+                    <label for="browseable">Видимая шара</label>
+                </div>
+                <div class="help-block">Отображать в списке общих папок (browseable)</div>
+            </div>
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <label>
-                <input type="checkbox" th:field="*{readOnly}"> Только чтение
-            </label>
-            <br>
-            <small style="color: #6c757d;">Если включено, пользователи не смогут изменять файлы</small>
+        <div class="row">
+            <div class="col">
+                <div class="form-group">
+                    <label for="validUsers">Разрешенные пользователи</label>
+                    <input type="text" id="validUsers" th:field="*{validUsers}" class="form-control" placeholder="user1, user2, admin">
+                    <div class="help-block">Список пользователей через запятую, которым разрешен доступ</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label for="writeList">Пользователи с записью</label>
+                    <input type="text" id="writeList" th:field="*{writeList}" class="form-control" placeholder="user1, user2">
+                    <div class="help-block">Пользователи, которые могут изменять файлы</div>
+                </div>
+            </div>
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <label>
-                <input type="checkbox" th:field="*{guestOk}"> Гостевой доступ
-            </label>
-            <br>
-            <small style="color: #6c757d;">Гостям не нужно вводить логин и пароль</small>
+        <!-- ===== ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ ===== -->
+        <h3>⚙️ Дополнительные настройки</h3>
+
+        <div class="row">
+            <div class="col">
+                <div class="form-group">
+                    <label for="createMask">Права на создаваемые файлы (create mask)</label>
+                    <input type="text" id="createMask" th:field="*{createMask}" class="form-control" placeholder="0644">
+                    <div class="help-block">Права доступа для новых файлов (в восьмеричном формате)</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label for="directoryMask">Права на создаваемые папки (directory mask)</label>
+                    <input type="text" id="directoryMask" th:field="*{directoryMask}" class="form-control" placeholder="0755">
+                    <div class="help-block">Права доступа для новых папок (в восьмеричном формате)</div>
+                </div>
+            </div>
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <label for="validUsers">Пользователи (через запятую):</label>
-            <input type="text" id="validUsers" th:field="*{validUsers}" class="form-control"
-                   placeholder="Например: user1, user2, admin">
-            <small style="color: #6c757d;">Только эти пользователи смогут получить доступ</small>
+        <div class="row">
+            <div class="col">
+                <div class="form-group">
+                    <label for="forceUser">Принудительный владелец (force user)</label>
+                    <input type="text" id="forceUser" th:field="*{forceUser}" class="form-control" placeholder="root">
+                    <div class="help-block">Все файлы будут принадлежать этому пользователю</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label for="forceGroup">Принудительная группа (force group)</label>
+                    <input type="text" id="forceGroup" th:field="*{forceGroup}" class="form-control" placeholder="users">
+                    <div class="help-block">Все файлы будут принадлежать этой группе</div>
+                </div>
+            </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">✅ Создать</button>
-        <a href="/shares" class="btn btn-secondary">⬅️ Отмена</a>
+        <div class="row">
+            <div class="col">
+                <div class="form-group">
+                    <label for="maxConnections">Максимум подключений</label>
+                    <input type="text" id="maxConnections" th:field="*{maxConnections}" class="form-control" placeholder="10">
+                    <div class="help-block">Ограничение на количество одновременных подключений</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <div class="form-group">
+                    <label for="hostsAllow">Разрешенные хосты (hosts allow)</label>
+                    <input type="text" id="hostsAllow" th:field="*{hostsAllow}" class="form-control" placeholder="192.168.1.0/24">
+                    <div class="help-block">IP-адреса или сети, которым разрешен доступ</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label for="hostsDeny">Запрещенные хосты (hosts deny)</label>
+                    <input type="text" id="hostsDeny" th:field="*{hostsDeny}" class="form-control" placeholder="10.0.0.1">
+                    <div class="help-block">IP-адреса или сети, которым запрещен доступ</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-primary">✅ Создать</button>
+            <a href="/shares" class="btn btn-secondary">⬅️ Отмена</a>
+        </div>
     </form>
 
-    <div th:if="${error}" style="color: red; margin-top: 20px;" th:text="${error}"></div>
+    <div th:if="${error}" style="color: red; margin-top: 20px; background: #f8d7da; padding: 15px; border-radius: 4px;" th:text="${error}"></div>
 </div>
 </body>
 </html>

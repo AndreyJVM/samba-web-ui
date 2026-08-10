@@ -2,6 +2,7 @@ package mari.samba.service;
 
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.Session;
+import mari.samba.dto.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
 import org.springframework.stereotype.Service;
 
@@ -46,16 +47,13 @@ public class SambaConfigService {
         for (String line : lines) {
             line = line.trim();
 
-            // Пропускаем комментарии и глобальную секцию [global]
             if (line.startsWith("#") || line.startsWith(";")) {
                 continue;
             }
 
-            // Начало новой секции (шары)
             if (line.startsWith("[") && line.endsWith("]")) {
                 String sectionName = line.substring(1, line.length() - 1);
                 if (!sectionName.equals("global") && !sectionName.equals("homes") && !sectionName.equals("printers")) {
-                    // Сохраняем предыдущую шару, если была
                     if (currentShare != null && currentShare.getName() != null) {
                         shares.add(currentShare);
                     }
@@ -69,42 +67,30 @@ public class SambaConfigService {
                 continue;
             }
 
-            // Парсим параметры внутри шары
             if (insideShare && currentShare != null && line.contains("=")) {
                 String[] parts = line.split("=", 2);
                 String key = parts[0].trim();
                 String value = parts[1].trim();
 
                 switch (key) {
-                    case "path":
-                        currentShare.setPath(value);
-                        break;
-                    case "comment":
-                        currentShare.setComment(value);
-                        break;
-                    case "read only":
-                        currentShare.setReadOnly("yes".equalsIgnoreCase(value) || "true".equalsIgnoreCase(value));
-                        break;
-                    case "guest ok":
-                        currentShare.setGuestOk("yes".equalsIgnoreCase(value) || "true".equalsIgnoreCase(value));
-                        break;
-                    case "valid users":
-                        currentShare.setValidUsers(value);
-                        break;
-                    case "write list":
-                        currentShare.setWriteList(value);
-                        break;
-                    case "create mask":
-                        currentShare.setCreateMask(value);
-                        break;
-                    case "directory mask":
-                        currentShare.setDirectoryMask(value);
-                        break;
+                    case "path": currentShare.setPath(value); break;
+                    case "comment": currentShare.setComment(value); break;
+                    case "read only": currentShare.setReadOnly("yes".equalsIgnoreCase(value)); break;
+                    case "guest ok": currentShare.setGuestOk("yes".equalsIgnoreCase(value)); break;
+                    case "browseable": currentShare.setBrowseable("yes".equalsIgnoreCase(value)); break;
+                    case "valid users": currentShare.setValidUsers(value); break;
+                    case "write list": currentShare.setWriteList(value); break;
+                    case "create mask": currentShare.setCreateMask(value); break;
+                    case "directory mask": currentShare.setDirectoryMask(value); break;
+                    case "force user": currentShare.setForceUser(value); break;
+                    case "force group": currentShare.setForceGroup(value); break;
+                    case "max connections": currentShare.setMaxConnections(value); break;
+                    case "hosts allow": currentShare.setHostsAllow(value); break;
+                    case "hosts deny": currentShare.setHostsDeny(value); break;
                 }
             }
         }
 
-        // Добавляем последнюю шару
         if (currentShare != null && currentShare.getName() != null) {
             shares.add(currentShare);
         }
@@ -138,5 +124,56 @@ public class SambaConfigService {
         }
 
         return output;
+    }
+    private String buildShareSection(SambaShareCreateDto dto) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[").append(dto.getName()).append("]\n");
+        sb.append("   path = ").append(dto.getPath()).append("\n");
+
+        if (dto.getComment() != null && !dto.getComment().isEmpty()) {
+            sb.append("   comment = ").append(dto.getComment()).append("\n");
+        }
+
+        sb.append("   read only = ").append(dto.isReadOnly() ? "yes" : "no").append("\n");
+        sb.append("   guest ok = ").append(dto.isGuestOk() ? "yes" : "no").append("\n");
+        sb.append("   browseable = ").append(dto.isBrowseable() ? "yes" : "no").append("\n");
+
+        if (dto.getValidUsers() != null && !dto.getValidUsers().isEmpty()) {
+            sb.append("   valid users = ").append(dto.getValidUsers()).append("\n");
+        }
+
+        if (dto.getWriteList() != null && !dto.getWriteList().isEmpty()) {
+            sb.append("   write list = ").append(dto.getWriteList()).append("\n");
+        }
+
+        if (dto.getCreateMask() != null && !dto.getCreateMask().isEmpty()) {
+            sb.append("   create mask = ").append(dto.getCreateMask()).append("\n");
+        }
+
+        if (dto.getDirectoryMask() != null && !dto.getDirectoryMask().isEmpty()) {
+            sb.append("   directory mask = ").append(dto.getDirectoryMask()).append("\n");
+        }
+
+        if (dto.getForceUser() != null && !dto.getForceUser().isEmpty()) {
+            sb.append("   force user = ").append(dto.getForceUser()).append("\n");
+        }
+
+        if (dto.getForceGroup() != null && !dto.getForceGroup().isEmpty()) {
+            sb.append("   force group = ").append(dto.getForceGroup()).append("\n");
+        }
+
+        if (dto.getMaxConnections() != null && !dto.getMaxConnections().isEmpty()) {
+            sb.append("   max connections = ").append(dto.getMaxConnections()).append("\n");
+        }
+
+        if (dto.getHostsAllow() != null && !dto.getHostsAllow().isEmpty()) {
+            sb.append("   hosts allow = ").append(dto.getHostsAllow()).append("\n");
+        }
+
+        if (dto.getHostsDeny() != null && !dto.getHostsDeny().isEmpty()) {
+            sb.append("   hosts deny = ").append(dto.getHostsDeny()).append("\n");
+        }
+
+        return sb.toString();
     }
 }
