@@ -1,17 +1,19 @@
 name: Build, Push and Deploy
 
 on:
-  push:
-    branches: [ master ]
-    paths:
-      - 'src/**'
-      - 'Dockerfile'
-      - 'docker-compose.yml'
-      - 'nginx/**'
-      - '.github/workflows/**'
+  workflow_dispatch: # ручной запуск
 
-  pull_request:
-    branches: [ master ]
+#  push:
+#    branches: [ master ]
+#    paths:
+#      - 'src/**'
+#      - 'Dockerfile'
+#      - 'docker-compose.yml'
+#      - 'nginx/**'
+#      - '.github/workflows/**'
+#
+#  pull_request:
+#    branches: [ master ]
 
 env:
   DOCKER_IMAGE_NAME: andreyvorobevaqa/samba-web-ui
