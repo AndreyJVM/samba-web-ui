@@ -22,7 +22,7 @@ jobs:
   # ==========================================
   # JOB 1: Сборка и тестирование (Maven)
   # ==========================================
-  build-and-test:
+  build:
     name: Build with Maven
     runs-on: ubuntu-latest
     steps:
