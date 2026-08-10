@@ -2,7 +2,6 @@ package mari.samba.controller;
 
 import com.jcraft.jsch.Session;
 import mari.samba.dto.SambaShareCreateDto;
-import mari.samba.dto.SshConnectionRequest;
 import mari.samba.model.SambaShare;
 import mari.samba.service.SambaShareService;
 import mari.samba.service.SshSessionManager;
@@ -11,14 +10,13 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @Controller
-public class SshController {
+@RequestMapping("/shares")  // Все методы этого контроллера будут доступны по пути /shares/...
+public class ShareController {
 
     @Autowired
     private SshSessionManager sessionManager;
@@ -27,52 +25,9 @@ public class SshController {
     private SambaShareService shareService;
 
     /**
-     * Главная страница — форма подключения к Samba серверу
-     */
-    @GetMapping("/")
-    public String home(Model model) {
-        model.addAttribute("connectionRequest", new SshConnectionRequest());
-        return "index";
-    }
-
-    /**
-     * Подключение к Samba серверу через SSH
-     */
-    @PostMapping("/connect")
-    public String connect(@Valid SshConnectionRequest request, HttpSession httpSession, Model model) {
-        try {
-            String sessionId = httpSession.getId();
-            sessionManager.createSession(sessionId, request.getHost(), request.getUsername(), request.getPassword());
-
-            httpSession.setAttribute("sambaHost", request.getHost());
-            httpSession.setAttribute("sambaUser", request.getUsername());
-
-            return "redirect:/shares";
-        } catch (Exception e) {
-            model.addAttribute("error", "Ошибка подключения: " + e.getMessage());
-            model.addAttribute("connectionRequest", request);
-            return "index";
-        }
-    }
-
-    /**
-     * Разорвать SSH-соединение
-     */
-    @GetMapping("/disconnect")
-    public String disconnect(HttpSession httpSession) {
-        String sessionId = httpSession.getId();
-        sessionManager.disconnect(sessionId);
-        httpSession.invalidate();
-        return "redirect:/";
-    }
-    @GetMapping("/login")
-    public String login() {
-        return "redirect:/";
-    }
-    /**
      * Список всех шар
      */
-    @GetMapping("/shares")
+    @GetMapping
     public String listShares(HttpSession httpSession, Model model) {
         String sessionId = httpSession.getId();
         if (!sessionManager.isConnected(sessionId)) {
