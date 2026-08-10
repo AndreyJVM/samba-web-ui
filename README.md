@@ -37,9 +37,8 @@ samba-web-ui/
 └── pom.xml                   
 ```
 
-## 🚀 Быстрый старт
 
-### Запуск через Docker
+## Запуск через Docker
 
 ```bash
 docker run -d \
@@ -49,4 +48,3 @@ docker run -d \
 ```
 
 - Откройте браузер: `http://localhost:8080`
-

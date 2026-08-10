@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Пользователи Samba</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>👥 Пользователи Samba</h1>
+        <div>
+            <a href="/users/create" class="btn btn-primary">➕ Добавить пользователя</a>
+            <a href="/shares" class="btn btn-secondary">⬅️ Назад к шарам</a>
+            <a href="/disconnect" class="btn btn-danger">🔌 Отключиться</a>
+        </div>
+    </div>
+
+    <!-- Сообщения об успехе -->
+    <div th:if="${param.created}" style="color: green; background: #d4edda; padding: 10px; border-radius: 5px; margin-top: 10px;">
+        ✅ Пользователь успешно создан!
+    </div>
+    <div th:if="${param.deleted}" style="color: green; background: #d4edda; padding: 10px; border-radius: 5px; margin-top: 10px;">
+        ✅ Пользователь успешно удален!
+    </div>
+    <div th:if="${param.passwordChanged}" style="color: green; background: #d4edda; padding: 10px; border-radius: 5px; margin-top: 10px;">
+        ✅ Пароль успешно изменен!
+    </div>
+
+    <!-- Таблица пользователей -->
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead style="background: #f8f9fa;">
+        <tr>
+            <th style="padding: 10px; text-align: left;">Имя пользователя</th>
+            <th style="padding: 10px; text-align: left;">Полное имя</th>
+            <th style="padding: 10px; text-align: center;">Статус</th>
+            <th style="padding: 10px; text-align: center;">Действия</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="user : ${users}" style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 10px;" th:text="${user.username}"></td>
+            <td style="padding: 10px;" th:text="${user.fullName}"></td>
+            <td style="padding: 10px; text-align: center;">
+                <span th:if="${user.accountEnabled}" style="color: #28a745;">✅ Активен</span>
+                <span th:unless="${user.accountEnabled}" style="color: #dc3545;">❌ Отключен</span>
+            </td>
+            <td style="padding: 10px; text-align: center;">
+                <a th:href="@{/users/change-password/{username}(username=${user.username})}"
+                   style="margin-right: 10px;">🔑</a>
+                <form th:action="@{/users/delete/{username}(username=${user.username})}"
+                      method="post" style="display: inline;">
+                    <button type="submit" style="background: none; border: none; cursor: pointer; color: #dc3545;"
+                            onclick="return confirm('Удалить пользователя ${user.username}?')">🗑️</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div th:if="${error}" style="color: red; margin-top: 20px;" th:text="${error}"></div>
+</div>
+</body>
+</html>

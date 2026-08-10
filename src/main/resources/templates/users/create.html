@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Создать пользователя</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container" style="max-width: 500px; margin-top: 50px;">
+    <h1>➕ Создать пользователя Samba</h1>
+
+    <form th:action="@{/users/create}" th:object="${user}" method="post">
+        <div style="margin-bottom: 15px;">
+            <label for="username">Имя пользователя:</label>
+            <input type="text" id="username" th:field="*{username}" class="form-control" required>
+            <small style="color: #6c757d;">От 3 до 20 символов, только латинские буквы и цифры</small>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="fullName">Полное имя:</label>
+            <input type="text" id="fullName" th:field="*{fullName}" class="form-control">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" th:field="*{password}" class="form-control" required>
+            <small style="color: #6c757d;">Минимум 6 символов</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">✅ Создать</button>
+        <a href="/users" class="btn btn-secondary">⬅️ Отмена</a>
+    </form>
+
+    <div th:if="${error}" style="color: red; margin-top: 20px; background: #f8d7da; padding: 15px; border-radius: 4px;" th:text="${error}"></div>
+</div>
+</body>
+</html>
