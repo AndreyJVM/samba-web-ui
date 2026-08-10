@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Создать шару</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container" style="max-width: 600px; margin-top: 50px;">
+    <h1>➕ Создать новую шару</h1>
+
+    <form th:action="@{/shares/create}" th:object="${share}" method="post">
+        <div style="margin-bottom: 15px;">
+            <label for="name">Имя шары:</label>
+            <input type="text" id="name" th:field="*{name}" class="form-control" required
+                   placeholder="Например: documents">
+            <small style="color: #6c757d;">Имя должно быть без пробелов и спецсимволов</small>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="path">Путь к папке:</label>
+            <input type="text" id="path" th:field="*{path}" class="form-control" required
+                   placeholder="Например: /srv/samba/documents">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="comment">Комментарий:</label>
+            <input type="text" id="comment" th:field="*{comment}" class="form-control"
+                   placeholder="Описание шары">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>
+                <input type="checkbox" th:field="*{readOnly}"> Только чтение
+            </label>
+            <br>
+            <small style="color: #6c757d;">Если включено, пользователи не смогут изменять файлы</small>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>
+                <input type="checkbox" th:field="*{guestOk}"> Гостевой доступ
+            </label>
+            <br>
+            <small style="color: #6c757d;">Гостям не нужно вводить логин и пароль</small>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="validUsers">Пользователи (через запятую):</label>
+            <input type="text" id="validUsers" th:field="*{validUsers}" class="form-control"
+                   placeholder="Например: user1, user2, admin">
+            <small style="color: #6c757d;">Только эти пользователи смогут получить доступ</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">✅ Создать</button>
+        <a href="/shares" class="btn btn-secondary">⬅️ Отмена</a>
+    </form>
+
+    <div th:if="${error}" style="color: red; margin-top: 20px;" th:text="${error}"></div>
+</div>
+</body>
+</html>

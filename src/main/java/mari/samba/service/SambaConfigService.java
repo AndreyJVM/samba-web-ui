@@ -8,8 +8,6 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class SambaConfigService {
@@ -123,6 +121,7 @@ public class SambaConfigService {
 
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         ByteArrayOutputStream errStream = new ByteArrayOutputStream();
+
         channel.setOutputStream(outStream);
         channel.setErrStream(errStream);
 
@@ -131,8 +130,8 @@ public class SambaConfigService {
             Thread.sleep(100);
         }
 
-        String output = outStream.toString();
-        String error = errStream.toString();
+        String output = outStream.toString("UTF-8");
+        String error = errStream.toString("UTF-8");
 
         if (!error.isEmpty()) {
             throw new RuntimeException("SSH Error: " + error);
