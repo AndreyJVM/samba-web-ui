@@ -2,49 +2,167 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Samba Web UI - Подключение</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samba Web UI</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Кастомные стили -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: none;
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.95);
+        }
+        .card-header {
+            background: transparent;
+            border-bottom: 2px solid #f0f0f0;
+            font-weight: 600;
+            font-size: 1.5rem;
+            padding: 1.5rem 2rem;
+        }
+        .card-header i {
+            color: #667eea;
+            margin-right: 10px;
+        }
+        .form-control {
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        .security-badge {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-left: 4px solid #28a745;
+        }
+        .security-badge i {
+            color: #28a745;
+            margin-right: 10px;
+        }
+        .logo-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .container-center {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
 </head>
 <body>
-<div class="container" style="max-width: 500px; margin-top: 100px;">
-    <h1>🔌 Подключение к Samba серверу</h1>
+<div class="container-center">
+    <div class="col-md-8 col-lg-6 col-xl-5">
+        <div class="card">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="fas fa-server logo-icon"></i>
+                    <h2 class="fw-bold">Samba Web UI</h2>
+                    <p class="text-muted">Управление Samba-сервером через веб-интерфейс</p>
+                </div>
 
-    <!-- Форма отправляет данные на /connect -->
-    <form th:action="@{/connect}" th:object="${connectionRequest}" method="post">
+                <!-- Сообщение об ошибке (если есть) -->
+                <div th:if="${error}" class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+                </div>
+                <div th:if="${param.disconnected}" class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle"></i> Вы отключены. Подключитесь заново.
+                </div>
 
-        <!-- 1. ПОЛЕ ДЛЯ IP-АДРЕСА (добавлено!) -->
-        <div style="margin-bottom: 15px;">
-            <label for="host">IP адрес или домен сервера:</label>
-            <input type="text" id="host" th:field="*{host}" class="form-control"
-                   placeholder="Например: 192.168.1.100 или samba.myserver.ru" required>
+                <!-- Форма подключения -->
+                <form th:action="@{/connect}" th:object="${connectionRequest}" method="post">
+                    <!-- IP адрес -->
+                    <div class="mb-3">
+                        <label for="host" class="form-label">
+                            <i class="fas fa-network-wired"></i> IP адрес сервера
+                        </label>
+                        <input type="text" id="host" th:field="*{host}"
+                               class="form-control"
+                               placeholder="Например: 192.168.1.100"
+                               required>
+                        <div class="form-text text-muted">
+                            <i class="fas fa-info-circle"></i> Введите IP или домен вашего Samba-сервера
+                        </div>
+                    </div>
+
+                    <!-- Имя пользователя -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user"></i> Имя пользователя SSH
+                        </label>
+                        <input type="text" id="username" th:field="*{username}"
+                               class="form-control"
+                               placeholder="root или ubuntu"
+                               required>
+                    </div>
+
+                    <!-- Пароль -->
+                    <div class="mb-4">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-key"></i> Пароль
+                        </label>
+                        <input type="password" id="password" th:field="*{password}"
+                               class="form-control"
+                               placeholder="Ваш SSH пароль"
+                               required>
+                    </div>
+
+                    <!-- Кнопка -->
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plug"></i> Подключиться
+                    </button>
+                </form>
+
+                <!-- Безопасность -->
+                <div class="security-badge">
+                    <i class="fas fa-shield-alt"></i>
+                    <small>
+                        <strong>Ваши данные не сохраняются.</strong>
+                        Пароль используется только для создания SSH-сессии и хранится в памяти.
+                    </small>
+                </div>
+            </div>
         </div>
-
-        <!-- 2. Имя пользователя -->
-        <div style="margin-bottom: 15px;">
-            <label for="username">Имя пользователя SSH:</label>
-            <input type="text" id="username" th:field="*{username}" class="form-control"
-                   placeholder="root или ваш пользователь" required>
-        </div>
-
-        <!-- 3. Пароль -->
-        <div style="margin-bottom: 15px;">
-            <label for="password">Пароль:</label>
-            <input type="password" id="password" th:field="*{password}" class="form-control"
-                   placeholder="Ваш SSH пароль" required>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Подключиться</button>
-    </form>
-
-    <!-- Блок для ошибок -->
-    <div th:if="${error}" style="color: red; margin-top: 20px; background: #ffeeee; padding: 10px; border-radius: 5px;"
-         th:text="${error}"></div>
-
-    <!-- Подсказка по безопасности -->
-    <div style="margin-top: 30px; font-size: 0.9rem; color: #666; border-top: 1px solid #ddd; padding-top: 15px;">
-        <p>🔒 Ваши данные для подключения не сохраняются на сервере.</p>
-        <p>Они используются только для создания SSH-сессии и хранятся в памяти во время работы сессии.</p>
     </div>
 </div>
+
+<!-- Bootstrap JS (для интерактивности) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
