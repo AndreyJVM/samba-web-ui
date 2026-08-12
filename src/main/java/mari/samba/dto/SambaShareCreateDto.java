@@ -9,7 +9,6 @@ import lombok.Setter;
 @Getter
 public class SambaShareCreateDto {
 
-    // ===== Геттеры и сеттеры =====
     @NotBlank(message = "Имя шары обязательно")
     @Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "Имя может содержать только буквы, цифры, подчеркивания и дефисы")
     private String name;

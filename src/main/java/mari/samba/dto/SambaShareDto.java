@@ -7,7 +7,6 @@ import lombok.Setter;
 @Getter
 public class SambaShareDto {
 
-    // === Геттеры и сеттеры ===
     private String name;
     private String path;
     private String comment;

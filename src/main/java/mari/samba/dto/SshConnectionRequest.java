@@ -9,7 +9,6 @@ import lombok.Setter;
 @Setter
 public class SshConnectionRequest {
 
-    // === Геттеры и сеттеры ===
     @NotBlank(message = "IP адрес обязателен")
     @Pattern(
             regexp = "^(([0-9]{1,3}\\.){3}[0-9]{1,3}|[a-zA-Z0-9.-]+)$",

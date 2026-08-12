@@ -7,7 +7,6 @@ import lombok.Setter;
 @Setter
 public class SambaShare {
 
-    // ===== Геттеры и сеттеры =====
     private String name;
     private String path;
     private String comment;
@@ -24,7 +23,6 @@ public class SambaShare {
     private String hostsAllow;
     private String hostsDeny;
 
-    // ===== Конструкторы =====
     public SambaShare() {}
 
     public SambaShare(String name, String path) {
