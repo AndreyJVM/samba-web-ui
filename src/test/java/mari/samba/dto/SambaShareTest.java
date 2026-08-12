@@ -6,7 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SambaShareAssertJTest {
+class SambaShareTest {
 
     @Test
     @DisplayName("Конструктор с name и path должен корректно инициализировать поля")
