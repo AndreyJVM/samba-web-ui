@@ -33,7 +33,6 @@ samba-web-ui/
 │           │       └── list.html
 │           └── application.properties
 ├── Dockerfile
-├── docker-compose.yml
 └── pom.xml                   
 ```
 
