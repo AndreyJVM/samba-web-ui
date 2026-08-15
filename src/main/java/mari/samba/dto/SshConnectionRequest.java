@@ -11,7 +11,7 @@ public class SshConnectionRequest {
 
     @NotBlank(message = "IP адрес обязателен")
     @Pattern(
-            regexp = "^(([0-9]{1,3}\\.){3}[0-9]{1,3}|[a-zA-Z0-9.-]+)$",
+            regexp = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\\.)+[a-zA-Z]{2,}$",
             message = "Введите корректный IP адрес или домен"
     )
     private String host;
@@ -22,6 +22,5 @@ public class SshConnectionRequest {
     @NotBlank(message = "Пароль обязателен")
     private String password;
 
-    private String privateKey; // опционально (для SSH ключей)
-
+    private String privateKey;
 }
