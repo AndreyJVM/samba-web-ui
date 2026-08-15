@@ -1,7 +1,7 @@
 name: Build, Push and Deploy
 
 on:
-  workflow_dispatch: # ручной запуск
+  workflow_dispatch:
 
 #  push:
 #    branches: [ master ]
