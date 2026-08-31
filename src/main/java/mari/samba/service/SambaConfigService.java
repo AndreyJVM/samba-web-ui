@@ -1,12 +1,11 @@
 package mari.samba.service;
 
-import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.Session;
 import mari.samba.dto.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,24 +14,113 @@ public class SambaConfigService {
 
     private static final String SMB_CONF_PATH = "/etc/samba/smb.conf";
 
+    @Autowired
+    private SshSessionManager sessionManager;
+
     /**
      * Получить содержимое smb.conf через SSH
      */
     public String getSmbConfContent(Session session) throws Exception {
-        String command = "cat " + SMB_CONF_PATH;
-        return executeCommand(session, command);
+        return sessionManager.executeCommand(session, "cat " + SMB_CONF_PATH);
     }
 
     /**
-     * Обновить smb.conf через SSH
+     * Безопасное обновление smb.conf с валидацией через testparm
      */
     public void updateSmbConf(Session session, String content) throws Exception {
-        // Создаем временный файл, затем заменяем
         String tempFile = "/tmp/smb.conf.tmp";
-        String writeCommand = "cat > " + tempFile + " << 'EOF'\n" + content + "\nEOF\n";
-        executeCommand(session, writeCommand);
-        executeCommand(session, "sudo mv " + tempFile + " " + SMB_CONF_PATH);
-        executeCommand(session, "sudo systemctl restart smbd");
+
+        // 1. Записываем новый контент во временный файл через stdin
+        sessionManager.executeCommand(session, "cat > " + tempFile, content);
+
+        // 2. Валидируем конфигурацию. Если testparm вернет код != 0, будет выброшен exception
+        sessionManager.executeCommand(session, "testparm -s " + tempFile + " > /dev/null");
+
+        // 3. Подменяем боевой конфиг и перезапускаем демон smbd
+        sessionManager.executeCommand(session, "sudo mv " + tempFile + " " + SMB_CONF_PATH);
+        sessionManager.executeCommand(session, "sudo systemctl restart smbd");
+    }
+
+    /**
+     * Сборка секции [share] из DTO со всеми полями
+     */
+    public String buildShareSection(SambaShareCreateDto dto) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[").append(dto.getName()).append("]\n");
+        sb.append("   path = ").append(dto.getPath()).append("\n");
+
+        if (dto.getComment() != null && !dto.getComment().isBlank()) {
+            sb.append("   comment = ").append(dto.getComment()).append("\n");
+        }
+
+        sb.append("   read only = ").append(dto.isReadOnly() ? "yes" : "no").append("\n");
+        sb.append("   guest ok = ").append(dto.isGuestOk() ? "yes" : "no").append("\n");
+        sb.append("   browseable = ").append(dto.isBrowseable() ? "yes" : "no").append("\n");
+
+        if (dto.getValidUsers() != null && !dto.getValidUsers().isBlank()) {
+            sb.append("   valid users = ").append(dto.getValidUsers()).append("\n");
+        }
+        if (dto.getWriteList() != null && !dto.getWriteList().isBlank()) {
+            sb.append("   write list = ").append(dto.getWriteList()).append("\n");
+        }
+        if (dto.getCreateMask() != null && !dto.getCreateMask().isBlank()) {
+            sb.append("   create mask = ").append(dto.getCreateMask()).append("\n");
+        }
+        if (dto.getDirectoryMask() != null && !dto.getDirectoryMask().isBlank()) {
+            sb.append("   directory mask = ").append(dto.getDirectoryMask()).append("\n");
+        }
+        if (dto.getForceUser() != null && !dto.getForceUser().isBlank()) {
+            sb.append("   force user = ").append(dto.getForceUser()).append("\n");
+        }
+        if (dto.getForceGroup() != null && !dto.getForceGroup().isBlank()) {
+            sb.append("   force group = ").append(dto.getForceGroup()).append("\n");
+        }
+        if (dto.getMaxConnections() != null && !dto.getMaxConnections().isBlank()) {
+            sb.append("   max connections = ").append(dto.getMaxConnections()).append("\n");
+        }
+        if (dto.getHostsAllow() != null && !dto.getHostsAllow().isBlank()) {
+            sb.append("   hosts allow = ").append(dto.getHostsAllow()).append("\n");
+        }
+        if (dto.getHostsDeny() != null && !dto.getHostsDeny().isBlank()) {
+            sb.append("   hosts deny = ").append(dto.getHostsDeny()).append("\n");
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Удаление секции конкретной шары из текста конфига
+     */
+    public String removeShareSection(String content, String shareName) {
+        String[] lines = content.split("\\r?\\n");
+        StringBuilder result = new StringBuilder();
+        boolean insideTargetSection = false;
+        boolean shareFound = false;
+
+        for (String line : lines) {
+            String trimmed = line.trim();
+
+            if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+                String sectionName = trimmed.substring(1, trimmed.length() - 1);
+                if (sectionName.equalsIgnoreCase(shareName)) {
+                    insideTargetSection = true;
+                    shareFound = true;
+                    continue;
+                } else {
+                    insideTargetSection = false;
+                }
+            }
+
+            if (!insideTargetSection) {
+                result.append(line).append("\n");
+            }
+        }
+
+        if (!shareFound) {
+            throw new RuntimeException("Шара с именем '" + shareName + "' не найдена в smb.conf");
+        }
+
+        return result.toString();
     }
 
     /**
@@ -40,20 +128,23 @@ public class SambaConfigService {
      */
     public List<SambaShare> parseShares(String content) {
         List<SambaShare> shares = new ArrayList<>();
-        String[] lines = content.split("\n");
+        String[] lines = content.split("\\r?\\n");
         SambaShare currentShare = null;
         boolean insideShare = false;
 
         for (String line : lines) {
-            line = line.trim();
+            String trimmed = line.trim();
 
-            if (line.startsWith("#") || line.startsWith(";")) {
+            if (trimmed.startsWith("#") || trimmed.startsWith(";")) {
                 continue;
             }
 
-            if (line.startsWith("[") && line.endsWith("]")) {
-                String sectionName = line.substring(1, line.length() - 1);
-                if (!sectionName.equals("global") && !sectionName.equals("homes") && !sectionName.equals("printers")) {
+            if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+                String sectionName = trimmed.substring(1, trimmed.length() - 1);
+                if (!sectionName.equalsIgnoreCase("global") &&
+                        !sectionName.equalsIgnoreCase("homes") &&
+                        !sectionName.equalsIgnoreCase("printers")) {
+
                     if (currentShare != null && currentShare.getName() != null) {
                         shares.add(currentShare);
                     }
@@ -61,15 +152,18 @@ public class SambaConfigService {
                     currentShare.setName(sectionName);
                     insideShare = true;
                 } else {
+                    if (currentShare != null && currentShare.getName() != null) {
+                        shares.add(currentShare);
+                    }
                     insideShare = false;
                     currentShare = null;
                 }
                 continue;
             }
 
-            if (insideShare && currentShare != null && line.contains("=")) {
-                String[] parts = line.split("=", 2);
-                String key = parts[0].trim();
+            if (insideShare && currentShare != null && trimmed.contains("=")) {
+                String[] parts = trimmed.split("=", 2);
+                String key = parts[0].trim().toLowerCase();
                 String value = parts[1].trim();
 
                 switch (key) {
@@ -96,84 +190,5 @@ public class SambaConfigService {
         }
 
         return shares;
-    }
-
-    /**
-     * Выполнить SSH-команду и вернуть результат
-     */
-    private String executeCommand(Session session, String command) throws Exception {
-        ChannelExec channel = (ChannelExec) session.openChannel("exec");
-        channel.setCommand(command);
-
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        ByteArrayOutputStream errStream = new ByteArrayOutputStream();
-
-        channel.setOutputStream(outStream);
-        channel.setErrStream(errStream);
-
-        channel.connect();
-        while (channel.isConnected()) {
-            Thread.sleep(100);
-        }
-
-        String output = outStream.toString("UTF-8");
-        String error = errStream.toString("UTF-8");
-
-        if (!error.isEmpty()) {
-            throw new RuntimeException("SSH Error: " + error);
-        }
-
-        return output;
-    }
-    private String buildShareSection(SambaShareCreateDto dto) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[").append(dto.getName()).append("]\n");
-        sb.append("   path = ").append(dto.getPath()).append("\n");
-
-        if (dto.getComment() != null && !dto.getComment().isEmpty()) {
-            sb.append("   comment = ").append(dto.getComment()).append("\n");
-        }
-
-        sb.append("   read only = ").append(dto.isReadOnly() ? "yes" : "no").append("\n");
-        sb.append("   guest ok = ").append(dto.isGuestOk() ? "yes" : "no").append("\n");
-        sb.append("   browseable = ").append(dto.isBrowseable() ? "yes" : "no").append("\n");
-
-        if (dto.getValidUsers() != null && !dto.getValidUsers().isEmpty()) {
-            sb.append("   valid users = ").append(dto.getValidUsers()).append("\n");
-        }
-
-        if (dto.getWriteList() != null && !dto.getWriteList().isEmpty()) {
-            sb.append("   write list = ").append(dto.getWriteList()).append("\n");
-        }
-
-        if (dto.getCreateMask() != null && !dto.getCreateMask().isEmpty()) {
-            sb.append("   create mask = ").append(dto.getCreateMask()).append("\n");
-        }
-
-        if (dto.getDirectoryMask() != null && !dto.getDirectoryMask().isEmpty()) {
-            sb.append("   directory mask = ").append(dto.getDirectoryMask()).append("\n");
-        }
-
-        if (dto.getForceUser() != null && !dto.getForceUser().isEmpty()) {
-            sb.append("   force user = ").append(dto.getForceUser()).append("\n");
-        }
-
-        if (dto.getForceGroup() != null && !dto.getForceGroup().isEmpty()) {
-            sb.append("   force group = ").append(dto.getForceGroup()).append("\n");
-        }
-
-        if (dto.getMaxConnections() != null && !dto.getMaxConnections().isEmpty()) {
-            sb.append("   max connections = ").append(dto.getMaxConnections()).append("\n");
-        }
-
-        if (dto.getHostsAllow() != null && !dto.getHostsAllow().isEmpty()) {
-            sb.append("   hosts allow = ").append(dto.getHostsAllow()).append("\n");
-        }
-
-        if (dto.getHostsDeny() != null && !dto.getHostsDeny().isEmpty()) {
-            sb.append("   hosts deny = ").append(dto.getHostsDeny()).append("\n");
-        }
-
-        return sb.toString();
     }
 }

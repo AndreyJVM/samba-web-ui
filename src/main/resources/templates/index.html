@@ -11,7 +11,6 @@
     <!-- FontAwesome 6 Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <!-- Кастомные стили -->
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -22,8 +21,8 @@
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             border: none;
-            backdrop-filter: blur(10px);
             background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
         }
         .card-header {
             background: transparent;
@@ -32,10 +31,7 @@
             font-size: 1.5rem;
             padding: 1.5rem 2rem;
         }
-        .card-header i {
-            color: #667eea;
-            margin-right: 10px;
-        }
+        .card-header i { color: #667eea; margin-right: 10px; }
         .form-control {
             border-radius: 12px;
             padding: 0.75rem 1rem;
@@ -58,6 +54,12 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
+        .btn-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .btn-link:hover { color: #764ba2; }
         .security-badge {
             background: #f8f9fa;
             border-radius: 12px;
@@ -65,24 +67,31 @@
             margin-top: 1.5rem;
             border-left: 4px solid #28a745;
         }
-        .security-badge i {
-            color: #28a745;
-            margin-right: 10px;
-        }
-        .logo-icon {
-            font-size: 3rem;
-            color: #667eea;
-            margin-bottom: 1rem;
-        }
-        .form-label {
-            font-weight: 600;
-            color: #495057;
-        }
+        .security-badge i { color: #28a745; margin-right: 10px; }
+        .logo-icon { font-size: 3rem; color: #667eea; margin-bottom: 1rem; }
+        .form-label { font-weight: 600; color: #495057; }
         .container-center {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        .help-text {
+            font-size: 0.9rem;
+        }
+        .help-text code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .modal-body pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
     </style>
 </head>
@@ -97,7 +106,7 @@
                     <p class="text-muted">Управление Samba-сервером через веб-интерфейс</p>
                 </div>
 
-                <!-- Сообщение об ошибке (если есть) -->
+                <!-- Сообщения -->
                 <div th:if="${error}" class="alert alert-danger" role="alert">
                     <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
                 </div>
@@ -107,7 +116,6 @@
 
                 <!-- Форма подключения -->
                 <form th:action="@{/connect}" th:object="${connectionRequest}" method="post">
-                    <!-- IP адрес -->
                     <div class="mb-3">
                         <label for="host" class="form-label">
                             <i class="fas fa-network-wired"></i> IP адрес сервера
@@ -121,7 +129,6 @@
                         </div>
                     </div>
 
-                    <!-- Имя пользователя -->
                     <div class="mb-3">
                         <label for="username" class="form-label">
                             <i class="fas fa-user"></i> Имя пользователя SSH
@@ -132,7 +139,6 @@
                                required>
                     </div>
 
-                    <!-- Пароль -->
                     <div class="mb-4">
                         <label for="password" class="form-label">
                             <i class="fas fa-key"></i> Пароль
@@ -143,26 +149,71 @@
                                required>
                     </div>
 
-                    <!-- Кнопка -->
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="fas fa-plug"></i> Подключиться
                     </button>
                 </form>
 
-                <!-- Безопасность -->
-                <div class="security-badge">
-                    <i class="fas fa-shield-alt"></i>
-                    <small>
-                        <strong>Ваши данные не сохраняются.</strong>
-                        Пароль используется только для создания SSH-сессии и хранится в памяти.
-                    </small>
+                <!-- Безопасность и инструкция -->
+                <div class="security-badge d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-shield-alt"></i>
+                        <small>
+                            <strong>Ваши данные не сохраняются.</strong>
+                            Пароль используется только для создания SSH-сессии.
+                        </small>
+                    </div>
+                    <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#helpModal">
+                        <i class="fas fa-question-circle"></i> Помощь
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Bootstrap JS (для интерактивности) -->
+<div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="helpModalLabel">
+                    <i class="fas fa-tools text-primary me-2"></i> Подготовка Samba сервера
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Для работы Samba Web UI выполните эти шаги на Samba-сервере.</p>
+
+                <ol class="help-text">
+                    <li>
+                        <strong>Создайте пользователя для управления:</strong>
+                        <code>sudo useradd -m -s /bin/bash samba-admin</code>
+                        <code>sudo passwd samba-admin</code>
+                    </li>
+                    <li>
+                        <strong>Добавьте пользователя в Samba:</strong>
+                        <code>sudo smbpasswd -a samba-admin</code>
+                    </li>
+                    <li>
+                        <strong>Настройте sudo без пароля для Samba-команд:</strong>
+                        <code>sudo visudo -f /etc/sudoers.d/samba-web-ui</code>
+                        <br>
+                        Добавьте строку:
+                        <pre>samba-admin ALL=(ALL) NOPASSWD: /usr/bin/pdbedit, /usr/bin/smbpasswd, /usr/sbin/useradd, /usr/sbin/userdel, /usr/bin/chpasswd, /usr/bin/passwd, /usr/sbin/service smbd restart, /bin/mv, /bin/cat</pre>
+                    </li>
+                </ol>
+                <p class="text-muted mt-2">
+                    <i class="fas fa-info-circle"></i> После настройки используйте логин <strong>samba-admin</strong> для подключения.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

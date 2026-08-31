@@ -95,14 +95,22 @@ public class ShareController {
             Session session = sessionManager.getSession(sessionId);
             SambaShare share = shareService.getShareByName(session, name);
 
-            // Конвертируем в DTO для формы
             SambaShareCreateDto dto = new SambaShareCreateDto();
             dto.setName(share.getName());
             dto.setPath(share.getPath());
             dto.setComment(share.getComment());
             dto.setReadOnly(share.isReadOnly());
             dto.setGuestOk(share.isGuestOk());
+            dto.setBrowseable(share.isBrowseable());
             dto.setValidUsers(share.getValidUsers());
+            dto.setWriteList(share.getWriteList());
+            dto.setCreateMask(share.getCreateMask());
+            dto.setDirectoryMask(share.getDirectoryMask());
+            dto.setForceUser(share.getForceUser());
+            dto.setForceGroup(share.getForceGroup());
+            dto.setMaxConnections(share.getMaxConnections());
+            dto.setHostsAllow(share.getHostsAllow());
+            dto.setHostsDeny(share.getHostsDeny());
 
             model.addAttribute("share", dto);
             model.addAttribute("originalName", name);
