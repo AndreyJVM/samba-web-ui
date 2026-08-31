@@ -1,21 +1,22 @@
 package mari.samba.controller;
 
 import com.jcraft.jsch.Session;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import mari.samba.dto.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
 import mari.samba.service.SambaShareService;
 import mari.samba.service.SshSessionManager;
-import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @Controller
-@RequestMapping("/shares")  // Все методы этого контроллера будут доступны по пути /shares/...
+@RequestMapping("/shares")
 public class ShareController {
 
     @Autowired
@@ -29,13 +30,8 @@ public class ShareController {
      */
     @GetMapping
     public String listShares(HttpSession httpSession, Model model) {
-        String sessionId = httpSession.getId();
-        if (!sessionManager.isConnected(sessionId)) {
-            return "redirect:/?disconnected=true";
-        }
-
         try {
-            Session session = sessionManager.getSession(sessionId);
+            Session session = sessionManager.getSession(httpSession.getId());
             List<SambaShare> shares = shareService.getAllShares(session);
 
             model.addAttribute("shares", shares);
@@ -60,21 +56,20 @@ public class ShareController {
      * Создание новой шары
      */
     @PostMapping("/create")
-    public String createShare(@Valid SambaShareCreateDto dto,
+    public String createShare(@Valid @ModelAttribute("share") SambaShareCreateDto dto,
+                              BindingResult bindingResult,
                               HttpSession httpSession,
                               Model model) {
-        String sessionId = httpSession.getId();
-        if (!sessionManager.isConnected(sessionId)) {
-            return "redirect:/?disconnected=true";
+        if (bindingResult.hasErrors()) {
+            return "shares/create";
         }
 
         try {
-            Session session = sessionManager.getSession(sessionId);
+            Session session = sessionManager.getSession(httpSession.getId());
             shareService.createShare(session, dto);
             return "redirect:/shares?created=true";
         } catch (Exception e) {
             model.addAttribute("error", "Ошибка создания шары: " + e.getMessage());
-            model.addAttribute("share", dto);
             return "shares/create";
         }
     }
@@ -86,13 +81,8 @@ public class ShareController {
     public String showEditForm(@PathVariable String name,
                                HttpSession httpSession,
                                Model model) {
-        String sessionId = httpSession.getId();
-        if (!sessionManager.isConnected(sessionId)) {
-            return "redirect:/?disconnected=true";
-        }
-
         try {
-            Session session = sessionManager.getSession(sessionId);
+            Session session = sessionManager.getSession(httpSession.getId());
             SambaShare share = shareService.getShareByName(session, name);
 
             SambaShareCreateDto dto = new SambaShareCreateDto();
@@ -126,21 +116,22 @@ public class ShareController {
      */
     @PostMapping("/edit/{name}")
     public String updateShare(@PathVariable String name,
-                              @Valid SambaShareCreateDto dto,
+                              @Valid @ModelAttribute("share") SambaShareCreateDto dto,
+                              BindingResult bindingResult,
                               HttpSession httpSession,
                               Model model) {
-        String sessionId = httpSession.getId();
-        if (!sessionManager.isConnected(sessionId)) {
-            return "redirect:/?disconnected=true";
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("originalName", name);
+            return "shares/edit";
         }
 
         try {
-            Session session = sessionManager.getSession(sessionId);
+            Session session = sessionManager.getSession(httpSession.getId());
             shareService.updateShare(session, name, dto);
             return "redirect:/shares?updated=true";
         } catch (Exception e) {
             model.addAttribute("error", "Ошибка обновления шары: " + e.getMessage());
-            model.addAttribute("share", dto);
+            model.addAttribute("originalName", name);
             return "shares/edit";
         }
     }
@@ -149,19 +140,12 @@ public class ShareController {
      * Удаление шары
      */
     @PostMapping("/delete/{name}")
-    public String deleteShare(@PathVariable String name,
-                              HttpSession httpSession) {
-        String sessionId = httpSession.getId();
-        if (!sessionManager.isConnected(sessionId)) {
-            return "redirect:/?disconnected=true";
-        }
-
+    public String deleteShare(@PathVariable String name, HttpSession httpSession) {
         try {
-            Session session = sessionManager.getSession(sessionId);
+            Session session = sessionManager.getSession(httpSession.getId());
             shareService.deleteShare(session, name);
             return "redirect:/shares?deleted=true";
         } catch (Exception e) {
-            // Логируем ошибку
             return "redirect:/shares?error=" + e.getMessage();
         }
     }

@@ -1,15 +1,16 @@
 package mari.samba.controller;
 
 import com.jcraft.jsch.Session;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import mari.samba.dto.SambaUserCreateDto;
 import mari.samba.model.SambaUser;
 import mari.samba.service.SambaUserService;
 import mari.samba.service.SshSessionManager;
-import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,13 +30,8 @@ public class UserController {
      */
     @GetMapping
     public String listUsers(HttpSession httpSession, Model model) {
-        String sessionId = httpSession.getId();
-        if (!sessionManager.isConnected(sessionId)) {
-            return "redirect:/?disconnected=true";
-        }
-
         try {
-            Session session = sessionManager.getSession(sessionId);
+            Session session = sessionManager.getSession(httpSession.getId());
             List<SambaUser> users = userService.getAllUsers(session);
 
             model.addAttribute("users", users);
@@ -59,21 +55,19 @@ public class UserController {
      * Создание пользователя
      */
     @PostMapping("/create")
-    public String createUser(@Valid SambaUserCreateDto dto,
+    public String createUser(@Valid @ModelAttribute("user") SambaUserCreateDto dto,
+                             BindingResult bindingResult,
                              HttpSession httpSession,
                              Model model) {
-        String sessionId = httpSession.getId();
-        if (!sessionManager.isConnected(sessionId)) {
-            return "redirect:/?disconnected=true";
+        if (bindingResult.hasErrors()) {
+            return "users/create";
         }
 
         try {
-            Session session = sessionManager.getSession(sessionId);
+            Session session = sessionManager.getSession(httpSession.getId());
 
-            // Проверяем, существует ли пользователь
             if (userService.userExists(session, dto.getUsername())) {
-                model.addAttribute("error", "Пользователь " + dto.getUsername() + " уже существует");
-                model.addAttribute("user", dto);
+                model.addAttribute("error", "Пользователь '" + dto.getUsername() + "' уже существует в системе");
                 return "users/create";
             }
 
@@ -81,7 +75,6 @@ public class UserController {
             return "redirect:/users?created=true";
         } catch (Exception e) {
             model.addAttribute("error", "Ошибка создания пользователя: " + e.getMessage());
-            model.addAttribute("user", dto);
             return "users/create";
         }
     }
@@ -91,13 +84,8 @@ public class UserController {
      */
     @PostMapping("/delete/{username}")
     public String deleteUser(@PathVariable String username, HttpSession httpSession) {
-        String sessionId = httpSession.getId();
-        if (!sessionManager.isConnected(sessionId)) {
-            return "redirect:/?disconnected=true";
-        }
-
         try {
-            Session session = sessionManager.getSession(sessionId);
+            Session session = sessionManager.getSession(httpSession.getId());
             userService.deleteUser(session, username);
             return "redirect:/users?deleted=true";
         } catch (Exception e) {
@@ -122,15 +110,16 @@ public class UserController {
                                  @RequestParam String newPassword,
                                  HttpSession httpSession,
                                  Model model) {
-        String sessionId = httpSession.getId();
-        if (!sessionManager.isConnected(sessionId)) {
-            return "redirect:/?disconnected=true";
+        if (newPassword == null || newPassword.trim().length() < 6) {
+            model.addAttribute("error", "Пароль должен быть не менее 6 символов");
+            model.addAttribute("username", username);
+            return "users/change-password";
         }
 
         try {
-            Session session = sessionManager.getSession(sessionId);
-            userService.changePassword(session, username, newPassword);
-            return "redirect:/users?password-changed=true";
+            Session session = sessionManager.getSession(httpSession.getId());
+            userService.changePassword(session, username, newPassword.trim());
+            return "redirect:/users?passwordChanged=true";
         } catch (Exception e) {
             model.addAttribute("error", "Ошибка смены пароля: " + e.getMessage());
             model.addAttribute("username", username);
