@@ -212,7 +212,7 @@
                         Создайте файл <code>/etc/sudoers.d/samba-web-ui</code>:
                         <pre>sudo visudo -f /etc/sudoers.d/samba-web-ui</pre>
                         Вставьте в него строку одной строкой:
-                        <pre>samba-admin ALL=(ALL) NOPASSWD: /usr/bin/pdbedit, /usr/bin/smbpasswd, /usr/sbin/useradd, /usr/sbin/userdel, /usr/bin/chpasswd, /usr/bin/passwd, /usr/sbin/service smbd restart, /bin/systemctl restart smbd, /usr/bin/systemctl restart smbd, /bin/mv, /bin/cat, /bin/mkdir, /bin/chmod, /bin/chown, /usr/bin/mkdir, /usr/bin/chmod, /usr/bin/chown</pre>
+                        <pre>samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/mkdir, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown</pre>
                     </li>
                 </ol>
                 <div class="alert alert-success mt-3 mb-0">

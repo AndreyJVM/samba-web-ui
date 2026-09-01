@@ -42,17 +42,26 @@ public class SambaUserService {
     }
 
     public void createUser(Session session, String username, String password, String fullName) throws Exception {
-        // 1. Создаем системного пользователя
-        String comment = (fullName != null && !fullName.isBlank()) ? fullName.replace("\"", "\\\"") : username;
-        String addUserCmd = String.format("sudo useradd -m -s /bin/bash -c \"%s\" %s", comment, username);
+        String cleanUsername = username.trim();
+        String cleanPassword = password.trim();
+
+        // 1. Создаем системного пользователя Linux
+        String comment = (fullName != null && !fullName.isBlank())
+                ? fullName.trim().replace("\"", "\\\"")
+                : cleanUsername;
+
+        String addUserCmd = String.format("sudo useradd -m -s /bin/bash -c \"%s\" %s", comment, cleanUsername);
         sessionManager.executeCommand(session, addUserCmd);
 
-        // 2. Устанавливаем системный пароль через stdin
-        sessionManager.executeCommand(session, "sudo chpasswd", username + ":" + password + "\n");
+        // 2. Устанавливаем системный пароль (chpasswd ждет: username:password\n)
+        sessionManager.executeCommand(session, "sudo chpasswd", cleanUsername + ":" + cleanPassword + "\n");
 
-        // 3. Добавляем и включаем в Samba
-        sessionManager.executeCommand(session, "sudo smbpasswd -s -a " + username, password + "\n" + password + "\n");
-        sessionManager.executeCommand(session, "sudo smbpasswd -e " + username);
+        // 3. Добавляем пользователя в базу Samba (smbpasswd -s -a ждет пароль дважды с новой строки)
+        String smbInput = cleanPassword + "\n" + cleanPassword + "\n";
+        sessionManager.executeCommand(session, "sudo smbpasswd -s -a " + cleanUsername, smbInput);
+
+        // 4. Активируем учетную запись в Samba
+        sessionManager.executeCommand(session, "sudo smbpasswd -e " + cleanUsername);
     }
 
     public void deleteUser(Session session, String username) throws Exception {
