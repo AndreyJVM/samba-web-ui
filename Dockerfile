@@ -1,5 +1,4 @@
 # STAGE 1: Build
-
 FROM eclipse-temurin:17-jdk-alpine AS builder
 
 RUN apk add --no-cache maven
@@ -10,10 +9,9 @@ COPY pom.xml .
 RUN mvn dependency:go-offline
 
 COPY src ./src
-RUN mvn clean package -DskipTestsdodo
+RUN mvn clean package -DskipTests
 
 # STAGE 2: Runtime
-
 FROM eclipse-temurin:17-jre-alpine
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
