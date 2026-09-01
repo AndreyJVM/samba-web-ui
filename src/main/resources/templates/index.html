@@ -7,7 +7,6 @@
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <!-- FontAwesome 6 Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -77,26 +76,35 @@
             justify-content: center;
         }
         .help-text {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            padding-left: 1.2rem;
+        }
+        .help-text li {
+            margin-bottom: 1rem;
         }
         .help-text code {
-            background: #f0f0f0;
-            padding: 2px 6px;
-            border-radius: 4px;
+            display: inline-block;
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 3px 8px;
+            border-radius: 6px;
             font-size: 0.85rem;
+            margin-top: 4px;
         }
         .modal-body pre {
-            background: #f8f9fa;
-            padding: 10px;
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 12px 16px;
             border-radius: 8px;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             white-space: pre-wrap;
-            word-break: break-word;
+            word-break: break-all;
+            margin-top: 6px;
         }
     </style>
 </head>
 <body>
-<div class="container-center">
+<div class="container-center py-4">
     <div class="col-md-8 col-lg-6 col-xl-5">
         <div class="card">
             <div class="card-body p-5">
@@ -108,10 +116,10 @@
 
                 <!-- Сообщения -->
                 <div th:if="${error}" class="alert alert-danger" role="alert">
-                    <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+                    <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${error}"></span>
                 </div>
                 <div th:if="${param.disconnected}" class="alert alert-info" role="alert">
-                    <i class="fas fa-info-circle"></i> Вы отключены. Подключитесь заново.
+                    <i class="fas fa-info-circle me-1"></i> Вы отключены. Подключитесь заново.
                 </div>
 
                 <!-- Форма подключения -->
@@ -135,13 +143,13 @@
                         </label>
                         <input type="text" id="username" th:field="*{username}"
                                class="form-control"
-                               placeholder="root или ubuntu"
+                               placeholder="samba-admin или ubuntu"
                                required>
                     </div>
 
                     <div class="mb-4">
                         <label for="password" class="form-label">
-                            <i class="fas fa-key"></i> Пароль
+                            <i class="fas fa-key"></i> Пароль SSH
                         </label>
                         <input type="password" id="password" th:field="*{password}"
                                class="form-control"
@@ -150,7 +158,7 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-plug"></i> Подключиться
+                        <i class="fas fa-plug me-2"></i> Подключиться
                     </button>
                 </form>
 
@@ -159,12 +167,12 @@
                     <div>
                         <i class="fas fa-shield-alt"></i>
                         <small>
-                            <strong>Ваши данные не сохраняются.</strong>
-                            Пароль используется только для создания SSH-сессии.
+                            <strong>Ваши данные не сохраняются в БД.</strong>
+                            Пароль хранится только в памяти активной сессии.
                         </small>
                     </div>
                     <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#helpModal">
-                        <i class="fas fa-question-circle"></i> Помощь
+                        <i class="fas fa-question-circle"></i> Настройка
                     </button>
                 </div>
             </div>
@@ -172,42 +180,47 @@
     </div>
 </div>
 
+<!-- Модальное окно настройки сервера -->
 <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="helpModalLabel">
-                    <i class="fas fa-tools text-primary me-2"></i> Подготовка Samba сервера
+                    <i class="fas fa-tools text-primary me-2"></i> Подготовка Samba-сервера
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Для работы Samba Web UI выполните эти шаги на Samba-сервере.</p>
+                <p class="text-muted">Перед подключением выполните следующие команды на вашем Linux-сервере под пользователем <code>root</code> или через <code>sudo</code>:</p>
 
                 <ol class="help-text">
                     <li>
-                        <strong>Создайте пользователя для управления:</strong>
-                        <code>sudo useradd -m -s /bin/bash samba-admin</code>
+                        <strong>Убедитесь, что Samba установлена:</strong><br>
+                        <code>sudo apt update && sudo apt install -y samba</code> <em>(Ubuntu/Debian)</em>
+                    </li>
+                    <li>
+                        <strong>Создайте системного администратора для панели:</strong><br>
+                        <code>sudo useradd -m -s /bin/bash samba-admin</code><br>
                         <code>sudo passwd samba-admin</code>
                     </li>
                     <li>
-                        <strong>Добавьте пользователя в Samba:</strong>
+                        <strong>Добавьте пользователя в базу Samba:</strong><br>
                         <code>sudo smbpasswd -a samba-admin</code>
                     </li>
                     <li>
-                        <strong>Настройте sudo без пароля для Samba-команд:</strong>
-                        <code>sudo visudo -f /etc/sudoers.d/samba-web-ui</code>
-                        <br>
-                        Добавьте строку:
-                        <pre>samba-admin ALL=(ALL) NOPASSWD: /usr/bin/pdbedit, /usr/bin/smbpasswd, /usr/sbin/useradd, /usr/sbin/userdel, /usr/bin/chpasswd, /usr/bin/passwd, /usr/sbin/service smbd restart, /bin/mv, /bin/cat</pre>
+                        <strong>Настройте права sudo без пароля для команд управления:</strong><br>
+                        Создайте файл <code>/etc/sudoers.d/samba-web-ui</code>:
+                        <pre>sudo visudo -f /etc/sudoers.d/samba-web-ui</pre>
+                        Вставьте в него строку одной строкой:
+                        <pre>samba-admin ALL=(ALL) NOPASSWD: /usr/bin/pdbedit, /usr/bin/smbpasswd, /usr/sbin/useradd, /usr/sbin/userdel, /usr/bin/chpasswd, /usr/bin/passwd, /usr/sbin/service smbd restart, /bin/systemctl restart smbd, /usr/bin/systemctl restart smbd, /bin/mv, /bin/cat, /bin/mkdir, /bin/chmod, /bin/chown, /usr/bin/mkdir, /usr/bin/chmod, /usr/bin/chown</pre>
                     </li>
                 </ol>
-                <p class="text-muted mt-2">
-                    <i class="fas fa-info-circle"></i> После настройки используйте логин <strong>samba-admin</strong> для подключения.
-                </p>
+                <div class="alert alert-success mt-3 mb-0">
+                    <i class="fas fa-check-circle me-1"></i> Готово! Теперь введите IP сервера, логин <strong>samba-admin</strong> и назначенный пароль в форму подключения.
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Понятно</button>
             </div>
         </div>
     </div>
