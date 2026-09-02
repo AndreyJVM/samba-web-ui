@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Мониторинг — Samba Web UI')}"></head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('status')}"></div>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0"><i class="fas fa-heartbeat text-primary me-2"></i>Статус сервера и мониторинг</h2>
+        <a href="/status" class="btn btn-outline-primary btn-sm"><i class="fas fa-sync-alt me-1"></i> Обновить</a>
+    </div>
+
+    <!-- Сообщения -->
+    <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-1"></i> Служба smbd успешно перезапущена!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${param.error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Карточка состояния службы -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold text-muted mb-1">Служба Samba (smbd)</h5>
+                        <div class="fs-4 fw-bold">
+                            <span th:if="${isRunning}" class="text-success">
+                                <i class="fas fa-circle fa-xs me-2"></i>Работает
+                            </span>
+                            <span th:unless="${isRunning}" class="text-danger">
+                                <i class="fas fa-circle fa-xs me-2"></i>Остановлена
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <form th:action="@{/status/control}" method="post" class="d-inline">
+                            <input type="hidden" name="action" value="restart">
+                            <button type="submit" class="btn btn-warning px-3 py-2 text-white">
+                                <i class="fas fa-redo me-1"></i> Перезапустить
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="fw-bold text-muted mb-1">Активные сессии</h5>
+                        <div class="number text-primary" th:text="${connections != null ? connections.size() : 0}">0</div>
+                    </div>
+                    <i class="fas fa-network-wired fa-2x text-muted opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица активных подключений -->
+    <div class="card">
+        <div class="card-header p-3">
+            <h5 class="mb-0 fw-bold"><i class="fas fa-users me-2"></i>Клиентские подключения (smbstatus)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th class="ps-3"><i class="fas id-card me-1"></i>PID процесса</th>
+                        <th><i class="fas fa-user me-1"></i>Пользователь</th>
+                        <th><i class="fas fa-desktop me-1"></i>Хост / IP клиента</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="conn : ${connections}" th:if="${connections}">
+                        <td class="ps-3 font-monospace" th:text="${conn.pid}"></td>
+                        <td class="fw-bold text-primary" th:text="${conn.user}"></td>
+                        <td><code class="bg-light px-2 py-1 rounded text-dark" th:text="${conn.machine}"></code></td>
+                    </tr>
+                    <tr th:if="${connections == null or connections.empty}">
+                        <td colspan="3" class="text-center py-4 text-muted">
+                            <i class="fas fa-info-circle me-1"></i> Активных сетевых подключений к шарáм не обнаружено
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

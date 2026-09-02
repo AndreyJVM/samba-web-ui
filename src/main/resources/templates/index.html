@@ -90,7 +90,7 @@
                     <li class="mb-2">Создайте пользователя: <code>sudo useradd -m -s /bin/bash samba-admin && sudo passwd samba-admin</code></li>
                     <li class="mb-2">Добавьте в Samba: <code>sudo smbpasswd -a samba-admin</code></li>
                     <li class="mb-2">Разрешите команды без пароля в <code>/etc/sudoers.d/samba-web-ui</code>:
-                        <pre class="bg-dark text-white p-2 rounded mt-1">samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/mkdir, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown</pre>
+                        <pre class="bg-dark text-white p-2 rounded mt-1">samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/mkdir, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown, /usr/bin/smbstatus, /usr/bin/systemctl is-active smbd</pre>
                     </li>
                 </ol>
             </div>
