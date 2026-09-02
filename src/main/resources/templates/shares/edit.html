@@ -1,175 +1,119 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="'Редактирование шары: ' + ${originalName}">Редактировать шару</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar-custom { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        .navbar-custom .navbar-brand { color: white; font-weight: 600; }
-        .navbar-custom .nav-link { color: rgba(255,255,255,0.85); }
-        .navbar-custom .nav-link:hover { color: white; }
-        .card { border-radius: 20px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.08); }
-        .card-header { background: transparent; border-bottom: 2px solid #f0f0f0; font-weight: 600; }
-        .form-control, .form-select { border-radius: 12px; border: 2px solid #e9ecef; padding: 0.7rem 1rem; }
-        .form-control:focus, .form-select:focus { border-color: #667eea; box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25); }
-        .form-label { font-weight: 600; color: #495057; }
-        .help-block { font-size: 0.85rem; color: #6c757d; margin-top: 0.3rem; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; padding: 0.6rem 2rem; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
-        .form-check-input:checked { background-color: #667eea; border-color: #667eea; }
-        .section-title { font-size: 1.1rem; font-weight: 600; color: #495057; padding-bottom: 0.5rem; border-bottom: 2px solid #f0f0f0; margin: 1.5rem 0 1rem 0; }
-    </style>
-</head>
+<head th:replace="~{fragments/layout :: header('Редактировать шару — Samba Web UI')}"></head>
 <body>
-<!-- Навигация -->
-<nav class="navbar navbar-expand-lg navbar-custom">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/shares"><i class="fas fa-server me-2"></i>Samba Web UI</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="/shares"><i class="fas fa-folder-open"></i> Шары</a></li>
-                <li class="nav-item"><a class="nav-link" href="/users"><i class="fas fa-users"></i> Пользователи</a></li>
-                <li class="nav-item"><a class="nav-link text-danger" href="/disconnect"><i class="fas fa-sign-out-alt"></i> Отключиться</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
+
+<div th:replace="~{fragments/layout :: navbar('shares')}"></div>
 
 <div class="container mt-4 mb-5">
     <div class="row justify-content-center">
         <div class="col-lg-10 col-xl-8">
             <div class="card">
                 <div class="card-header p-4 d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="fas fa-edit text-primary me-2"></i>
-                        Редактирование шары: <strong th:text="${originalName}">share</strong>
-                    </div>
-                    <a href="/shares" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i> К списку
-                    </a>
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-edit text-primary me-2"></i>Редактирование: <span class="text-primary" th:text="${originalName}"></span>
+                    </h5>
+                    <a href="/shares" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Назад</a>
                 </div>
                 <div class="card-body p-4">
                     <form th:action="@{/shares/edit/{name}(name=${originalName})}" th:object="${share}" method="post">
 
-                        <!-- Основная информация -->
                         <div class="section-title"><i class="fas fa-info-circle me-2"></i>Основная информация</div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="name" class="form-label">Имя шары <span class="text-danger">*</span></label>
                                 <input type="text" id="name" th:field="*{name}" class="form-control" required>
-                                <div class="help-block"><i class="fas fa-info-circle me-1"></i>Имя секции в smb.conf (будет переименовано при изменении)</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="path" class="form-label">Путь к папке <span class="text-danger">*</span></label>
                                 <input type="text" id="path" th:field="*{path}" class="form-control" required>
-                                <div class="help-block"><i class="fas fa-info-circle me-1"></i>Абсолютный путь на удаленном сервере</div>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label for="comment" class="form-label">Комментарий</label>
-                            <input type="text" id="comment" th:field="*{comment}" class="form-control" placeholder="Например: Общие документы бухгалтерии">
-                            <div class="help-block"><i class="fas fa-info-circle me-1"></i>Описание сетевого ресурса</div>
+                            <input type="text" id="comment" th:field="*{comment}" class="form-control">
                         </div>
 
-                        <!-- Доступ и флаги -->
-                        <div class="section-title"><i class="fas fa-lock me-2"></i>Параметры видимости и доступа</div>
+                        <div class="section-title"><i class="fas fa-lock me-2"></i>Доступ и видимость</div>
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <div class="form-check form-switch mt-2">
                                     <input type="checkbox" id="readOnly" th:field="*{readOnly}" class="form-check-input">
                                     <label for="readOnly" class="form-check-label fw-bold">Только чтение</label>
-                                    <div class="help-block">Запрещает запись для всех, кроме write list</div>
                                 </div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <div class="form-check form-switch mt-2">
                                     <input type="checkbox" id="guestOk" th:field="*{guestOk}" class="form-check-input">
                                     <label for="guestOk" class="form-check-label fw-bold">Гостевой доступ</label>
-                                    <div class="help-block">Разрешает анонимный вход без пароля</div>
                                 </div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <div class="form-check form-switch mt-2">
                                     <input type="checkbox" id="browseable" th:field="*{browseable}" class="form-check-input">
-                                    <label for="browseable" class="form-check-label fw-bold">Отображать в сети</label>
-                                    <div class="help-block">Шара видна в сетевом окружении (browseable)</div>
+                                    <label for="browseable" class="form-check-label fw-bold">Видимая в сети</label>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Пользователи и группы -->
-                        <div class="section-title"><i class="fas fa-users-cog me-2"></i>Пользователи и списки прав</div>
+                        <div class="section-title"><i class="fas fa-users-cog me-2"></i>Пользователи и права</div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="validUsers" class="form-label">Разрешенные пользователи (valid users)</label>
-                                <input type="text" id="validUsers" th:field="*{validUsers}" class="form-control" placeholder="user1, @group1">
-                                <div class="help-block">Список пользователей или @групп через запятую</div>
+                                <input type="text" id="validUsers" th:field="*{validUsers}" class="form-control" placeholder="user1, @group">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="writeList" class="form-label">Пользователи с правом записи (write list)</label>
+                                <label for="writeList" class="form-label">Право записи (write list)</label>
                                 <input type="text" id="writeList" th:field="*{writeList}" class="form-control" placeholder="admin, @admins">
-                                <div class="help-block">Имеют право на запись даже при включенном read only</div>
                             </div>
                         </div>
 
-                        <!-- Маски прав и Force-владельцы -->
-                        <div class="section-title"><i class="fas fa-shield-alt me-2"></i>Маски создания и владение файлами</div>
+                        <div class="section-title"><i class="fas fa-shield-alt me-2"></i>Маски и владельцы</div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="createMask" class="form-label">Права на файлы (create mask)</label>
-                                <input type="text" id="createMask" th:field="*{createMask}" class="form-control" placeholder="0644">
+                                <label for="createMask" class="form-label">Маска файлов (create mask)</label>
+                                <input type="text" id="createMask" th:field="*{createMask}" class="form-control">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="directoryMask" class="form-label">Права на папки (directory mask)</label>
-                                <input type="text" id="directoryMask" th:field="*{directoryMask}" class="form-control" placeholder="0755">
+                                <label for="directoryMask" class="form-label">Маска папок (directory mask)</label>
+                                <input type="text" id="directoryMask" th:field="*{directoryMask}" class="form-control">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="forceUser" class="form-label">Принудительный владелец (force user)</label>
-                                <input type="text" id="forceUser" th:field="*{forceUser}" class="form-control" placeholder="nobody / www-data">
+                                <label for="forceUser" class="form-label">Принудительный владелец</label>
+                                <input type="text" id="forceUser" th:field="*{forceUser}" class="form-control">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="forceGroup" class="form-label">Принудительная группа (force group)</label>
-                                <input type="text" id="forceGroup" th:field="*{forceGroup}" class="form-control" placeholder="nogroup / sambashare">
-                            </div>
-                        </div>
-
-                        <!-- Сетевые ограничения -->
-                        <div class="section-title"><i class="fas fa-network-wired me-2"></i>Сетевые ограничения</div>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="maxConnections" class="form-label">Макс. подключений</label>
-                                <input type="text" id="maxConnections" th:field="*{maxConnections}" class="form-control" placeholder="0 (без лимита)">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="hostsAllow" class="form-label">Разрешенные хосты (hosts allow)</label>
-                                <input type="text" id="hostsAllow" th:field="*{hostsAllow}" class="form-control" placeholder="192.168.1. 10.0.0.0/24">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="hostsDeny" class="form-label">Запрещенные хосты (hosts deny)</label>
-                                <input type="text" id="hostsDeny" th:field="*{hostsDeny}" class="form-control" placeholder="ALL EXCEPT 192.168.1.">
+                                <label for="forceGroup" class="form-label">Принудительная группа</label>
+                                <input type="text" id="forceGroup" th:field="*{forceGroup}" class="form-control">
                             </div>
                         </div>
 
-                        <!-- Кнопки действий -->
-                        <div class="mt-4 pt-3 border-top d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Сохранить изменения
-                            </button>
-                            <a href="/shares" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-2"></i>Отмена
-                            </a>
+                        <div class="section-title"><i class="fas fa-network-wired me-2"></i>Сетевые фильтры</div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="maxConnections" class="form-label">Макс. сессий</label>
+                                <input type="text" id="maxConnections" th:field="*{maxConnections}" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="hostsAllow" class="form-label">Разрешенные IP (hosts allow)</label>
+                                <input type="text" id="hostsAllow" th:field="*{hostsAllow}" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="hostsDeny" class="form-label">Запрещенные IP (hosts deny)</label>
+                                <input type="text" id="hostsDeny" th:field="*{hostsDeny}" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>Сохранить</button>
+                            <a href="/shares" class="btn btn-outline-secondary px-4">Отмена</a>
                         </div>
                     </form>
 
-                    <!-- Ошибки -->
                     <div th:if="${error}" class="alert alert-danger mt-3">
-                        <i class="fas fa-exclamation-circle me-2"></i> <span th:text="${error}"></span>
+                        <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${error}"></span>
                     </div>
                 </div>
             </div>
@@ -177,6 +121,6 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/layout :: scripts}"></div>
 </body>
 </html>

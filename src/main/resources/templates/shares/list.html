@@ -1,162 +1,21 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Samba Web UI — Шары</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <style>
-        body {
-            background: #f0f2f5;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .navbar-custom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        .navbar-custom .navbar-brand {
-            color: white;
-            font-weight: 600;
-        }
-        .navbar-custom .nav-link {
-            color: rgba(255,255,255,0.85);
-        }
-        .navbar-custom .nav-link:hover {
-            color: white;
-        }
-        .card {
-            border-radius: 16px;
-            border: none;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-        }
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 25px rgba(0,0,0,0.1);
-        }
-        .table th {
-            border-top: none;
-            font-weight: 600;
-            color: #495057;
-        }
-        .badge-status {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: 500;
-        }
-        .btn-outline-danger {
-            border-radius: 20px;
-        }
-        .btn-outline-primary {
-            border-radius: 20px;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 20px;
-            padding: 8px 20px;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-        .btn-success {
-            border-radius: 20px;
-        }
-        .btn-danger {
-            border-radius: 20px;
-        }
-        .container-fluid {
-            max-width: 1400px;
-        }
-        .stats-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            border-left: 4px solid #667eea;
-        }
-        .stats-card i {
-            font-size: 2rem;
-            color: #667eea;
-        }
-        .stats-card .number {
-            font-size: 2rem;
-            font-weight: 700;
-        }
-        .table-actions .btn {
-            margin: 0 3px;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .table-actions .btn i {
-            font-size: 0.9rem;
-        }
-    </style>
-</head>
+<head th:replace="~{fragments/layout :: header('Общие папки — Samba Web UI')}"></head>
 <body>
-<!-- Навигация -->
-<nav class="navbar navbar-expand-lg navbar-custom">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="#">
-            <i class="fas fa-server me-2"></i>Samba Web UI
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="/shares">
-                        <i class="fas fa-folder-open"></i> Шары
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/users">
-                        <i class="fas fa-users"></i> Пользователи
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/shares/create">
-                        <i class="fas fa-plus-circle"></i> Добавить шару
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-danger" href="/disconnect">
-                        <i class="fas fa-sign-out-alt"></i> Отключиться
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
+
+<div th:replace="~{fragments/layout :: navbar('shares')}"></div>
 
 <div class="container-fluid mt-4">
-    <!-- Заголовок -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold">
-                <i class="fas fa-folder-open text-primary me-2"></i>Общие папки
-            </h2>
-            <p class="text-muted">
-                <i class="fas fa-server me-1"></i>Сервер: <strong th:text="${sambaHost}"></strong>
-            </p>
+            <h2 class="fw-bold mb-0"><i class="fas fa-folder-open text-primary me-2"></i>Общие папки</h2>
         </div>
-        <div>
-            <a href="/shares/create" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i> Добавить шару
-            </a>
-        </div>
+        <a href="/shares/create" class="btn btn-primary px-3 py-2">
+            <i class="fas fa-plus me-1"></i> Добавить шару
+        </a>
     </div>
 
-    <!-- Статистика -->
+    <!-- Карточки со статистикой -->
     <div class="row mb-4" th:if="${shares}">
         <div class="col-md-3">
             <div class="stats-card">
@@ -176,7 +35,7 @@
                         <small class="text-muted">Гостевой доступ</small>
                         <div class="number" th:text="${shares.?[guestOk].size()}">0</div>
                     </div>
-                    <i class="fas fa-user-friends" style="color: #28a745;"></i>
+                    <i class="fas fa-user-friends text-success"></i>
                 </div>
             </div>
         </div>
@@ -187,7 +46,7 @@
                         <small class="text-muted">Только чтение</small>
                         <div class="number" th:text="${shares.?[readOnly].size()}">0</div>
                     </div>
-                    <i class="fas fa-eye" style="color: #ffc107;"></i>
+                    <i class="fas fa-eye text-warning"></i>
                 </div>
             </div>
         </div>
@@ -196,9 +55,9 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <small class="text-muted">С записью</small>
-                        <div class="number" th:text="${shares.?[readOnly].size()}">0</div>
+                        <div class="number" th:text="${shares.?[!readOnly].size()}">0</div>
                     </div>
-                    <i class="fas fa-pen" style="color: #17a2b8;"></i>
+                    <i class="fas fa-pen text-info"></i>
                 </div>
             </div>
         </div>
@@ -206,77 +65,63 @@
 
     <!-- Сообщения -->
     <div th:if="${param.created}" class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-2"></i> Шара успешно создана!
+        <i class="fas fa-check-circle me-1"></i> Шара успешно создана!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <div th:if="${param.updated}" class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-2"></i> Шара успешно обновлена!
+        <i class="fas fa-check-circle me-1"></i> Настройки шары сохранены!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <div th:if="${param.deleted}" class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-2"></i> Шара успешно удалена!
+        <i class="fas fa-check-circle me-1"></i> Шара удалена из smb.conf!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
-    <!-- Таблица шар -->
+    <!-- Таблица -->
     <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                     <tr>
-                        <th><i class="fas fa-tag me-1"></i>Имя</th>
+                        <th class="ps-3"><i class="fas fa-tag me-1"></i>Имя</th>
                         <th><i class="fas fa-folder me-1"></i>Путь</th>
                         <th><i class="fas fa-comment me-1"></i>Комментарий</th>
-                        <th class="text-center"><i class="fas fa-lock me-1"></i>Чтение</th>
+                        <th class="text-center"><i class="fas fa-lock me-1"></i>Режим</th>
                         <th class="text-center"><i class="fas fa-user-friends me-1"></i>Гость</th>
                         <th class="text-center"><i class="fas fa-tools me-1"></i>Действия</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:each="share : ${shares}" th:if="${shares}">
-                        <td class="fw-bold">
-                            <i class="fas fa-folder text-warning me-2"></i>
-                            <span th:text="${share.name}"></span>
+                        <td class="ps-3 fw-bold">
+                            <i class="fas fa-folder text-warning me-2"></i><span th:text="${share.name}"></span>
                         </td>
-                        <td>
-                            <code th:text="${share.path}"></code>
-                        </td>
+                        <td><code class="text-dark bg-light px-2 py-1 rounded" th:text="${share.path}"></code></td>
                         <td th:text="${share.comment ?: '-'}"></td>
                         <td class="text-center">
-                                    <span th:if="${share.readOnly}" class="badge bg-warning text-dark">
-                                        <i class="fas fa-eye me-1"></i>Да
-                                    </span>
-                            <span th:unless="${share.readOnly}" class="badge bg-success">
-                                        <i class="fas fa-pen me-1"></i>Нет
-                                    </span>
+                            <span th:if="${share.readOnly}" class="badge bg-warning text-dark">Чтение</span>
+                            <span th:unless="${share.readOnly}" class="badge bg-success">Чтение / Запись</span>
                         </td>
                         <td class="text-center">
-                                    <span th:if="${share.guestOk}" class="badge bg-info">
-                                        <i class="fas fa-check me-1"></i>Да
-                                    </span>
-                            <span th:unless="${share.guestOk}" class="badge bg-secondary">
-                                        <i class="fas fa-times me-1"></i>Нет
-                                    </span>
+                            <span th:if="${share.guestOk}" class="badge bg-info">Да</span>
+                            <span th:unless="${share.guestOk}" class="badge bg-secondary">Нет</span>
                         </td>
                         <td class="text-center table-actions">
-                            <a th:href="@{/shares/edit/{name}(name=${share.name})}"
-                               class="btn btn-outline-primary btn-sm">
+                            <a th:href="@{/shares/edit/{name}(name=${share.name})}" class="btn btn-outline-primary btn-sm" title="Редактировать">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <form th:action="@{/shares/delete/{name}(name=${share.name})}"
-                                  method="post" style="display: inline;">
-                                <button type="submit" class="btn btn-outline-danger btn-sm"
-                                        onclick="return confirm('Удалить шару ${share.name}?')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                    th:data-name="${share.name}"
+                                    onclick="openDeleteShareModal(this.getAttribute('data-name'))" title="Удалить">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </td>
                     </tr>
                     <tr th:if="${shares == null or shares.empty}">
-                        <td colspan="6" class="text-center py-4">
-                            <i class="fas fa-folder-open fa-2x text-muted mb-2 d-block"></i>
-                            <span class="text-muted">Нет общих папок</span>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fas fa-folder-open fa-3x mb-2 d-block opacity-50"></i>
+                            Список папок пуст
                         </td>
                     </tr>
                     </tbody>
@@ -285,12 +130,40 @@
         </div>
     </div>
 
-    <!-- Ошибка -->
     <div th:if="${error}" class="alert alert-danger mt-3">
-        <i class="fas fa-exclamation-circle me-2"></i> <span th:text="${error}"></span>
+        <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${error}"></span>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Модалка удаления -->
+<div class="modal fade" id="deleteShareModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Удаление ресурса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Вы действительно хотите удалить сетевую шару <strong id="deleteShareTarget"></strong>?<br>
+                <small class="text-muted">Конфигурация будет исключена из smb.conf. Файлы на диске затронуты не будут.</small>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Отмена</button>
+                <form id="deleteShareForm" method="post" action="">
+                    <button type="submit" class="btn btn-danger rounded-pill px-3">Удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+<script>
+    function openDeleteShareModal(name) {
+        document.getElementById('deleteShareTarget').textContent = name;
+        document.getElementById('deleteShareForm').action = '/shares/delete/' + encodeURIComponent(name);
+        new bootstrap.Modal(document.getElementById('deleteShareModal')).show();
+    }
+</script>
 </body>
 </html>

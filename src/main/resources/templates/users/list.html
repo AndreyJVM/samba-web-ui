@@ -1,70 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Samba Web UI — Пользователи</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <style>
-        body { background: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar-custom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        .navbar-custom .navbar-brand { color: white; font-weight: 600; }
-        .navbar-custom .nav-link { color: rgba(255,255,255,0.85); }
-        .navbar-custom .nav-link:hover { color: white; }
-        .navbar-custom .nav-link.text-danger { color: rgba(255, 200, 200, 0.9) !important; }
-        .card { border-radius: 16px; border: none; box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
-        .table-actions .btn {
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .stats-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            border-left: 4px solid #667eea;
-        }
-        .stats-card i { font-size: 2rem; color: #667eea; }
-        .stats-card .number { font-size: 2rem; font-weight: 700; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 20px; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
-    </style>
-</head>
+<head th:replace="~{fragments/layout :: header('Пользователи — Samba Web UI')}"></head>
 <body>
-<!-- Навигация -->
-<nav class="navbar navbar-expand-lg navbar-custom">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/shares">
-            <i class="fas fa-server me-2"></i>Samba Web UI
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="/shares"><i class="fas fa-folder-open"></i> Шары</a></li>
-                <li class="nav-item"><a class="nav-link active" href="/users"><i class="fas fa-users"></i> Пользователи</a></li>
-                <li class="nav-item"><a class="nav-link" href="/users/create"><i class="fas fa-user-plus"></i> Добавить</a></li>
-                <li class="nav-item"><a class="nav-link text-danger" href="/disconnect"><i class="fas fa-sign-out-alt"></i> Отключиться</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
 
-<div class="container-fluid mt-4" style="max-width: 1400px;">
-    <!-- Заголовок -->
+<div th:replace="~{fragments/layout :: navbar('users')}"></div>
+
+<div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold"><i class="fas fa-users text-primary me-2"></i>Пользователи Samba</h2>
+        <h2 class="fw-bold mb-0"><i class="fas fa-users text-primary me-2"></i>Пользователи Samba</h2>
         <a href="/users/create" class="btn btn-primary px-3 py-2"><i class="fas fa-plus me-1"></i> Добавить пользователя</a>
     </div>
 
@@ -88,7 +31,7 @@
                         <small class="text-muted">Активных</small>
                         <div class="number" th:text="${users.?[accountEnabled].size()}">0</div>
                     </div>
-                    <i class="fas fa-user-check" style="color: #28a745;"></i>
+                    <i class="fas fa-user-check text-success"></i>
                 </div>
             </div>
         </div>
@@ -99,7 +42,7 @@
                         <small class="text-muted">Отключенных</small>
                         <div class="number" th:text="${users.?[!accountEnabled].size()}">0</div>
                     </div>
-                    <i class="fas fa-user-slash" style="color: #dc3545;"></i>
+                    <i class="fas fa-user-slash text-danger"></i>
                 </div>
             </div>
         </div>
@@ -107,26 +50,26 @@
 
     <!-- Сообщения -->
     <div th:if="${param.created}" class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-2"></i> Пользователь успешно создан!
+        <i class="fas fa-check-circle me-1"></i> Пользователь успешно создан!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <div th:if="${param.deleted}" class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-2"></i> Пользователь успешно удален!
+        <i class="fas fa-check-circle me-1"></i> Пользователь удален!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <div th:if="${param.passwordChanged}" class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-2"></i> Пароль успешно изменен!
+        <i class="fas fa-check-circle me-1"></i> Пароль успешно изменен!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
-    <!-- Таблица пользователей -->
+    <!-- Таблица -->
     <div class="card">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                     <tr>
-                        <th><i class="fas fa-user me-1"></i>Имя пользователя</th>
+                        <th class="ps-3"><i class="fas fa-user me-1"></i>Логин</th>
                         <th><i class="fas fa-id-card me-1"></i>Полное имя</th>
                         <th class="text-center"><i class="fas fa-circle me-1"></i>Статус</th>
                         <th class="text-center"><i class="fas fa-tools me-1"></i>Действия</th>
@@ -134,18 +77,13 @@
                     </thead>
                     <tbody>
                     <tr th:each="user : ${users}" th:if="${users}">
-                        <td class="fw-bold">
-                            <i class="fas fa-user-circle text-primary me-2"></i>
-                            <span th:text="${user.username}"></span>
+                        <td class="ps-3 fw-bold">
+                            <i class="fas fa-user-circle text-primary me-2"></i><span th:text="${user.username}"></span>
                         </td>
                         <td th:text="${user.fullName ?: '-'}"></td>
                         <td class="text-center">
-                            <span th:if="${user.accountEnabled}" class="badge bg-success">
-                                <i class="fas fa-check-circle me-1"></i>Активен
-                            </span>
-                            <span th:unless="${user.accountEnabled}" class="badge bg-secondary">
-                                <i class="fas fa-times-circle me-1"></i>Отключен
-                            </span>
+                            <span th:if="${user.accountEnabled}" class="badge bg-success">Активен</span>
+                            <span th:unless="${user.accountEnabled}" class="badge bg-secondary">Отключен</span>
                         </td>
                         <td class="text-center table-actions">
                             <a th:href="@{/users/change-password/{username}(username=${user.username})}"
@@ -154,15 +92,15 @@
                             </a>
                             <button type="button" class="btn btn-outline-danger btn-sm"
                                     th:data-username="${user.username}"
-                                    onclick="openDeleteModal(this.getAttribute('data-username'))" title="Удалить">
+                                    onclick="openDeleteUserModal(this.getAttribute('data-username'))" title="Удалить">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
                     </tr>
                     <tr th:if="${users == null or users.empty}">
-                        <td colspan="4" class="text-center py-4">
-                            <i class="fas fa-users fa-2x text-muted mb-2 d-block"></i>
-                            <span class="text-muted">Нет пользователей</span>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class="fas fa-users fa-3x mb-2 d-block opacity-50"></i>
+                            Список пользователей пуст
                         </td>
                     </tr>
                     </tbody>
@@ -172,43 +110,39 @@
     </div>
 
     <div th:if="${error}" class="alert alert-danger mt-3">
-        <i class="fas fa-exclamation-circle me-2"></i> <span th:text="${error}"></span>
+        <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${error}"></span>
     </div>
 </div>
 
-<!-- Модальное окно подтверждения удаления -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+<!-- Модалка удаления -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 16px; border: none;">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Удаление пользователя
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Удаление пользователя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body py-4">
-                Вы уверены, что хотите удалить пользователя <strong id="deleteTargetUser" class="text-dark"></strong>?<br>
-                <small class="text-muted">Это действие удалит системный аккаунт Linux и доступ к Samba.</small>
+            <div class="modal-body">
+                Удалить учетную запись <strong id="deleteTargetUser"></strong>?<br>
+                <small class="text-muted">Аккаунт будет удален из системы Linux и базы Samba.</small>
             </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Отмена</button>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Отмена</button>
                 <form id="deleteUserForm" method="post" action="">
-                    <button type="submit" class="btn btn-danger rounded-pill px-4">
-                        <i class="fas fa-trash me-1"></i> Удалить
-                    </button>
+                    <button type="submit" class="btn btn-danger rounded-pill px-3">Удалить</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
+<div th:replace="~{fragments/layout :: scripts}"></div>
 <script>
-    function openDeleteModal(username) {
+    function openDeleteUserModal(username) {
         document.getElementById('deleteTargetUser').textContent = username;
         document.getElementById('deleteUserForm').action = '/users/delete/' + encodeURIComponent(username);
-        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
     }
 </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
