@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import mari.samba.dto.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
+import mari.samba.service.SambaMonitoringService;
 import mari.samba.service.SambaShareService;
 import mari.samba.service.SshSessionManager;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,9 @@ public class ShareController {
     @Autowired
     private SambaShareService shareService;
 
+    @Autowired
+    private SambaMonitoringService monitoringService;
+
     /**
      * Список всех шар
      */
@@ -33,8 +37,10 @@ public class ShareController {
         try {
             Session session = sessionManager.getSession(httpSession.getId());
             List<SambaShare> shares = shareService.getAllShares(session);
+            boolean isRunning = monitoringService.isServiceRunning(session);
 
             model.addAttribute("shares", shares);
+            model.addAttribute("isRunning", isRunning);
             model.addAttribute("sambaHost", httpSession.getAttribute("sambaHost"));
             return "shares/list";
         } catch (Exception e) {

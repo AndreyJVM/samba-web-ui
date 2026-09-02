@@ -8,11 +8,29 @@
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold mb-0"><i class="fas fa-folder-open text-primary me-2"></i>Общие папки</h2>
+            <h2 class="fw-bold mb-1"><i class="fas fa-folder-open text-primary me-2"></i>Общие папки</h2>
+            <div class="d-flex align-items-center gap-3">
+                <small class="text-muted"><i class="fas fa-server me-1"></i><span th:text="${sambaHost}"></span></small>
+                <!-- Виджет статуса демона -->
+                <span th:if="${isRunning}" class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                <i class="fas fa-circle fa-xs me-1"></i>smbd active
+            </span>
+                <span th:unless="${isRunning}" class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                <i class="fas fa-circle fa-xs me-1"></i>smbd inactive
+            </span>
+            </div>
         </div>
-        <a href="/shares/create" class="btn btn-primary px-3 py-2">
-            <i class="fas fa-plus me-1"></i> Добавить шару
-        </a>
+        <div class="d-flex gap-2">
+            <form th:action="@{/status/control}" method="post" class="d-inline">
+                <input type="hidden" name="action" value="restart">
+                <button type="submit" class="btn btn-outline-secondary" title="Перезапустить smbd">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </form>
+            <a href="/shares/create" class="btn btn-primary px-3">
+                <i class="fas fa-plus me-1"></i> Добавить шару
+            </a>
+        </div>
     </div>
 
     <!-- Карточки со статистикой -->
