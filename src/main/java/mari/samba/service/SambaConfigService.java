@@ -1,6 +1,7 @@
 package mari.samba.service;
 
 import mari.samba.dto.SambaBackupDto;
+import mari.samba.dto.SambaGlobalConfigDto;
 import mari.samba.dto.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,5 +96,16 @@ public class SambaConfigService {
         commandExecutor.execute(sessionId, "testparm -s " + tempFile + " > /dev/null");
         commandExecutor.execute(sessionId, "sudo mv " + tempFile + " " + SMB_CONF_PATH);
         commandExecutor.execute(sessionId, "sudo systemctl restart smbd");
+    }
+
+    public SambaGlobalConfigDto getGlobalConfig(String sessionId) throws Exception {
+        String content = getSmbConfContent(sessionId);
+        return smbConfParser.parseGlobalConfig(content);
+    }
+
+    public void updateGlobalConfig(String sessionId, SambaGlobalConfigDto dto) throws Exception {
+        String currentContent = getSmbConfContent(sessionId);
+        String updatedContent = smbConfParser.updateGlobalSection(currentContent, dto);
+        updateSmbConf(sessionId, updatedContent);
     }
 }

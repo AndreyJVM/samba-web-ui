@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Глобальные настройки — Samba Web UI')}"></head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('global-settings')}"></div>
+
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-8">
+            <div class="card">
+                <div class="card-header p-4 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-sliders-h text-primary me-2"></i>Глобальные настройки сервера [global]
+                    </h5>
+                    <a href="/config" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-file-code me-1"></i> Просмотр smb.conf
+                    </a>
+                </div>
+                <div class="card-body p-4">
+
+                    <!-- Уведомления -->
+                    <div th:if="${param.saved}" class="alert alert-success alert-dismissible fade show">
+                        <i class="fas fa-check-circle me-1"></i> Глобальные настройки успешно применены, служба smbd перезапущена!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <div th:if="${error}" class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${error}"></span>
+                    </div>
+
+                    <form th:action="@{/config/global}" th:object="${globalConfig}" method="post">
+
+                        <!-- Секция: Идентификация -->
+                        <div class="section-title"><i class="fas fa-network-wired me-2"></i>Сетевая идентификация</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="workgroup" class="form-label">Рабочая группа (workgroup) <span class="text-danger">*</span></label>
+                                <input type="text" id="workgroup" th:field="*{workgroup}" class="form-control" required>
+                                <div class="help-block">Обычно <code>WORKGROUP</code> или доменное имя</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="netbiosName" class="form-label">Имя сервера NetBIOS (netbios name)</label>
+                                <input type="text" id="netbiosName" th:field="*{netbiosName}" class="form-control" placeholder="Оставьте пустым для имени хоста">
+                                <div class="help-block">Сетевое имя машины, видимое в проводнике Windows</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="serverString" class="form-label">Описание сервера (server string)</label>
+                            <input type="text" id="serverString" th:field="*{serverString}" class="form-control" placeholder="Samba Server %v">
+                            <div class="help-block">Текстовый комментарий к серверу в сетевом окружении</div>
+                        </div>
+
+                        <!-- Секция: Безопасность -->
+                        <div class="section-title"><i class="fas fa-user-shield me-2"></i>Аутентификация и безопасность</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="security" class="form-label">Режим безопасности (security)</label>
+                                <select id="security" th:field="*{security}" class="form-select">
+                                    <option value="user">USER (Локальные пользователи / Стандарт)</option>
+                                    <option value="ads">ADS (Active Directory Domain)</option>
+                                </select>
+                                <div class="help-block">Для подавляющего большинства файловых серверов используется <code>user</code></div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="mapToGuest" class="form-label">Гостевой вход (map to guest)</label>
+                                <select id="mapToGuest" th:field="*{mapToGuest}" class="form-select">
+                                    <option value="Bad User">Bad User (Неизвестные входят как гость)</option>
+                                    <option value="Never">Never (Гостевой вход без пароля запрещен)</option>
+                                </select>
+                                <div class="help-block">Определяет поведение при вводе неверного или неизвестного логина</div>
+                            </div>
+                        </div>
+
+                        <!-- Секция: Сеть и адаптеры -->
+                        <div class="section-title"><i class="fas fa-ethernet me-2"></i>Сетевые интерфейсы</div>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="interfaces" class="form-label">Интерфейсы (interfaces)</label>
+                                <input type="text" id="interfaces" th:field="*{interfaces}" class="form-control" placeholder="127.0.0.1/8 eth0 192.168.1.0/24">
+                                <div class="help-block">Список IP-адресов, сетей CIDR или названий сетевых карт через пробел</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label d-block">Привязка</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input type="checkbox" id="bindInterfacesOnly" th:field="*{bindInterfacesOnly}" class="form-check-input">
+                                    <label for="bindInterfacesOnly" class="form-check-label fw-bold">bind interfaces only</label>
+                                </div>
+                                <div class="help-block">Слушать строго на указанных интерфейсах</div>
+                            </div>
+                        </div>
+
+                        <!-- Секция: Протоколы SMB -->
+                        <div class="section-title"><i class="fas fa-shield-virus me-2"></i>Версии протокола SMB</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="serverMinProtocol" class="form-label">Минимальный протокол</label>
+                                <select id="serverMinProtocol" th:field="*{serverMinProtocol}" class="form-select">
+                                    <option value="SMB2">SMB2 (Рекомендуется для безопасности)</option>
+                                    <option value="SMB2_02">SMB2_02</option>
+                                    <option value="SMB3">SMB3</option>
+                                    <option value="NT1">NT1 (SMB1 устаревший, небезопасный)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="serverMaxProtocol" class="form-label">Максимальный протокол</label>
+                                <select id="serverMaxProtocol" th:field="*{serverMaxProtocol}" class="form-select">
+                                    <option value="SMB3">SMB3 (Современный стандарт)</option>
+                                    <option value="SMB2">SMB2</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Секция: Твики и оптимизация -->
+                        <div class="section-title"><i class="fas fa-cogs me-2"></i>Оптимизация и службы</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" id="loadPrinters" th:field="*{loadPrinters}" class="form-check-input">
+                                    <label for="loadPrinters" class="form-check-label fw-bold">Загружать принтеры (load printers)</label>
+                                </div>
+                                <div class="help-block">Отключите для чистого файлового сервера без CUPS</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch">
+                                    <input type="checkbox" id="disableNetbios" th:field="*{disableNetbios}" class="form-check-input">
+                                    <label for="disableNetbios" class="form-check-label fw-bold">Отключить устаревший NetBIOS</label>
+                                </div>
+                                <div class="help-block">Оставляет работу только через прямой порт SMB 445</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-save me-2"></i>Применить настройки
+                            </button>
+                            <a href="/config" class="btn btn-outline-secondary px-4">Отмена</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>
