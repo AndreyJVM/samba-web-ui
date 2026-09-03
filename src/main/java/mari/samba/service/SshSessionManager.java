@@ -13,11 +13,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-public class SshSessionManager {
+public class SshSessionManager implements CommandExecutor {
 
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
-    public Session createSession(String sessionId, String host, String username, String password) throws Exception {
+    public void createSession(String sessionId, String host, String username, String password) throws Exception {
         JSch jsch = new JSch();
         Session session = jsch.getSession(username, host, 22);
         session.setPassword(password);
@@ -25,11 +25,6 @@ public class SshSessionManager {
         session.connect(5000);
 
         sessions.put(sessionId, session);
-        return session;
-    }
-
-    public Session getSession(String sessionId) {
-        return sessions.get(sessionId);
     }
 
     public boolean isConnected(String sessionId) {
@@ -48,12 +43,16 @@ public class SshSessionManager {
         sessions.entrySet().removeIf(entry -> !entry.getValue().isConnected());
     }
 
-    /**
-     * Выполнение shell-команды на удаленном сервере с опциональной передачей данных через stdin
-     */
-    public String executeCommand(Session session, String command, String inputData) throws Exception {
+    @Override
+    public String execute(String sessionId, String command) throws Exception {
+        return execute(sessionId, command, null);
+    }
+
+    @Override
+    public String execute(String sessionId, String command, String inputData) throws Exception {
+        Session session = sessions.get(sessionId);
         if (session == null || !session.isConnected()) {
-            throw new IllegalStateException("SSH-сессия не активна");
+            throw new IllegalStateException("SSH-сессия не найдена или отключена");
         }
 
         ChannelExec channel = (ChannelExec) session.openChannel("exec");
@@ -97,13 +96,9 @@ public class SshSessionManager {
         String error = errStream.toString(StandardCharsets.UTF_8);
 
         if (exitStatus != 0) {
-            throw new RuntimeException("Команда завершилась с ошибкой (code " + exitStatus + "): " + (error.isBlank() ? output : error));
+            throw new RuntimeException("Команда завершилась с кодом " + exitStatus + ": " + (error.isBlank() ? output : error));
         }
 
         return output;
-    }
-
-    public String executeCommand(Session session, String command) throws Exception {
-        return executeCommand(session, command, null);
     }
 }

@@ -1,6 +1,5 @@
 package mari.samba.service;
 
-import com.jcraft.jsch.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,34 +12,26 @@ import java.util.Map;
 public class SambaMonitoringService {
 
     @Autowired
-    private SshSessionManager sessionManager;
+    private CommandExecutor commandExecutor;
 
-    /**
-     * Проверяет статус службы smbd (active/inactive)
-     */
-    public boolean isServiceRunning(Session session) {
+    public boolean isServiceRunning(String sessionId) {
         try {
-            String output = sessionManager.executeCommand(session, "sudo systemctl is-active smbd");
+            String output = commandExecutor.execute(sessionId, "sudo systemctl is-active smbd");
             return "active".equalsIgnoreCase(output.trim());
         } catch (Exception e) {
             return false;
         }
     }
 
-    /**
-     * Получает список активных подключений через smbstatus -b (brief)
-     */
-    public List<Map<String, String>> getActiveConnections(Session session) {
+    public List<Map<String, String>> getActiveConnections(String sessionId) {
         List<Map<String, String>> connections = new ArrayList<>();
         try {
-            // smbstatus -b выводит краткую информацию о соединениях
-            String output = sessionManager.executeCommand(session, "sudo smbstatus -b");
+            String output = commandExecutor.execute(sessionId, "sudo smbstatus -b");
             String[] lines = output.split("\\r?\\n");
 
             boolean parsingSessions = false;
             for (String line : lines) {
                 line = line.trim();
-                // Ищем начало секции сессий в выводе smbstatus
                 if (line.startsWith("Samba version")) continue;
                 if (line.contains("PID") && line.contains("User") && line.contains("Machine")) {
                     parsingSessions = true;
@@ -53,7 +44,6 @@ public class SambaMonitoringService {
                 }
 
                 if (parsingSessions) {
-                    // Пример строки: 12345   user1   192.168.1.50   IPv4     (unix charset)
                     String[] parts = line.split("\\s+");
                     if (parts.length >= 3) {
                         Map<String, String> conn = new HashMap<>();
@@ -64,19 +54,15 @@ public class SambaMonitoringService {
                     }
                 }
             }
-        } catch (Exception e) {
-            // Если smbstatus недоступен или нет активных подключений
+        } catch (Exception ignored) {
         }
         return connections;
     }
 
-    /**
-     * Управление службой (restart / start / stop)
-     */
-    public void controlService(Session session, String action) throws Exception {
+    public void controlService(String sessionId, String action) throws Exception {
         if (!action.matches("restart|start|stop")) {
-            throw new IllegalArgumentException("Недопустимое действие для службы");
+            throw new IllegalArgumentException("Недопустимое действие для службы: " + action);
         }
-        sessionManager.executeCommand(session, "sudo systemctl " + action + " smbd");
+        commandExecutor.execute(sessionId, "sudo systemctl " + action + " smbd");
     }
 }

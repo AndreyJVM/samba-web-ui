@@ -1,6 +1,5 @@
 package mari.samba.service;
 
-import com.jcraft.jsch.Session;
 import mari.samba.dto.SambaBackupDto;
 import mari.samba.dto.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
@@ -19,44 +18,33 @@ public class SambaConfigService {
     private static final String BACKUP_DIR = "/etc/samba/backups";
 
     @Autowired
-    private SshSessionManager sessionManager;
+    private CommandExecutor commandExecutor;
 
-    public String getSmbConfContent(Session session) throws Exception {
-        return sessionManager.executeCommand(session, "cat " + SMB_CONF_PATH);
+    public String getSmbConfContent(String sessionId) throws Exception {
+        return commandExecutor.execute(sessionId, "cat " + SMB_CONF_PATH);
     }
 
-    /**
-     * Создает бэкап текущего smb.conf перед изменением
-     */
-    public void createBackup(Session session) throws Exception {
-        sessionManager.executeCommand(session, "sudo mkdir -p " + BACKUP_DIR);
+    public void createBackup(String sessionId) throws Exception {
+        commandExecutor.execute(sessionId, "sudo mkdir -p " + BACKUP_DIR);
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String backupFile = BACKUP_DIR + "/smb.conf.backup_" + timestamp;
 
-        // Копируем боевой конфиг в архивную директорию
-        sessionManager.executeCommand(session, "sudo cp " + SMB_CONF_PATH + " " + backupFile);
-
-        // Храним не более 10 последних бэкапов
-        sessionManager.executeCommand(session,
+        commandExecutor.execute(sessionId, "sudo cp " + SMB_CONF_PATH + " " + backupFile);
+        commandExecutor.execute(sessionId,
                 "ls -t " + BACKUP_DIR + "/smb.conf.backup_* 2>/dev/null | tail -n +11 | xargs -r sudo rm --");
     }
 
-    /**
-     * Получение списка доступных бэкапов
-     */
-    public List<SambaBackupDto> listBackups(Session session) {
+    public List<SambaBackupDto> listBackups(String sessionId) {
         List<SambaBackupDto> backups = new ArrayList<>();
         try {
-            // Выводим: права, размер, дата, время, имя файла
             String cmd = "ls -lh --time-style=\"+%Y-%m-%d %H:%M:%S\" " + BACKUP_DIR + "/smb.conf.backup_* 2>/dev/null";
-            String output = sessionManager.executeCommand(session, cmd);
+            String output = commandExecutor.execute(sessionId, cmd);
             String[] lines = output.split("\\r?\\n");
 
             for (String line : lines) {
                 line = line.trim();
                 if (line.isEmpty() || line.startsWith("total")) continue;
 
-                // Пример: -rw-r--r-- 1 root root 2.1K 2026-09-03 14:20:00 /etc/samba/backups/smb.conf.backup_...
                 String[] parts = line.split("\\s+");
                 if (parts.length >= 7) {
                     String size = parts[4];
@@ -68,48 +56,30 @@ public class SambaConfigService {
                 }
             }
         } catch (Exception ignored) {
-            // Если бэкапов пока нет
         }
         return backups;
     }
 
-    /**
-     * Откат конфига до выбранного бэкапа
-     */
-    public void restoreBackup(Session session, String filename) throws Exception {
-        // Проверяем имя файла на безопасность
+    public void restoreBackup(String sessionId, String filename) throws Exception {
         if (!filename.matches("^smb\\.conf\\.backup_\\d{8}_\\d{6}$")) {
             throw new IllegalArgumentException("Некорректное имя файла бэкапа");
         }
 
         String backupFile = BACKUP_DIR + "/" + filename;
+        createBackup(sessionId);
 
-        // 1. Создаем контрольный бэкап текущего состояния перед откатом
-        createBackup(session);
-
-        // 2. Восстанавливаем файл и перезапускаем Samba
-        sessionManager.executeCommand(session, "sudo cp " + backupFile + " " + SMB_CONF_PATH);
-        sessionManager.executeCommand(session, "sudo systemctl restart smbd");
+        commandExecutor.execute(sessionId, "sudo cp " + backupFile + " " + SMB_CONF_PATH);
+        commandExecutor.execute(sessionId, "sudo systemctl restart smbd");
     }
 
-    /**
-     * Безопасное обновление smb.conf: бэкап -> запись -> проверка testparm -> замена -> перезапуск
-     */
-    public void updateSmbConf(Session session, String content) throws Exception {
+    public void updateSmbConf(String sessionId, String content) throws Exception {
         String tempFile = "/tmp/smb.conf.tmp";
 
-        // 1. Создаем бэкап существующего файла
-        createBackup(session);
-
-        // 2. Пишем во временный файл
-        sessionManager.executeCommand(session, "cat > " + tempFile, content);
-
-        // 3. Валидируем через testparm
-        sessionManager.executeCommand(session, "testparm -s " + tempFile + " > /dev/null");
-
-        // 4. Подменяем рабочий конфиг
-        sessionManager.executeCommand(session, "sudo mv " + tempFile + " " + SMB_CONF_PATH);
-        sessionManager.executeCommand(session, "sudo systemctl restart smbd");
+        createBackup(sessionId);
+        commandExecutor.execute(sessionId, "cat > " + tempFile, content);
+        commandExecutor.execute(sessionId, "testparm -s " + tempFile + " > /dev/null");
+        commandExecutor.execute(sessionId, "sudo mv " + tempFile + " " + SMB_CONF_PATH);
+        commandExecutor.execute(sessionId, "sudo systemctl restart smbd");
     }
 
     public String buildShareSection(SambaShareCreateDto dto) {
