@@ -9,7 +9,7 @@ COPY pom.xml .
 RUN mvn dependency:go-offline
 
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn clean package
 
 # STAGE 2: Runtime
 FROM eclipse-temurin:17-jre-alpine
