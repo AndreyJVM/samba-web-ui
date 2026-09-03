@@ -1,49 +1,117 @@
 package mari.samba.service;
 
 import com.jcraft.jsch.Session;
+import mari.samba.dto.SambaBackupDto;
 import mari.samba.dto.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Service
 public class SambaConfigService {
 
     private static final String SMB_CONF_PATH = "/etc/samba/smb.conf";
+    private static final String BACKUP_DIR = "/etc/samba/backups";
 
     @Autowired
     private SshSessionManager sessionManager;
 
-    /**
-     * Получить содержимое smb.conf через SSH
-     */
     public String getSmbConfContent(Session session) throws Exception {
         return sessionManager.executeCommand(session, "cat " + SMB_CONF_PATH);
     }
 
     /**
-     * Безопасное обновление smb.conf с валидацией через testparm
+     * Создает бэкап текущего smb.conf перед изменением
      */
-    public void updateSmbConf(Session session, String content) throws Exception {
-        String tempFile = "/tmp/smb.conf.tmp";
+    public void createBackup(Session session) throws Exception {
+        sessionManager.executeCommand(session, "sudo mkdir -p " + BACKUP_DIR);
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String backupFile = BACKUP_DIR + "/smb.conf.backup_" + timestamp;
 
-        // 1. Записываем новый контент во временный файл через stdin
-        sessionManager.executeCommand(session, "cat > " + tempFile, content);
+        // Копируем боевой конфиг в архивную директорию
+        sessionManager.executeCommand(session, "sudo cp " + SMB_CONF_PATH + " " + backupFile);
 
-        // 2. Валидируем конфигурацию. Если testparm вернет код != 0, будет выброшен exception
-        sessionManager.executeCommand(session, "testparm -s " + tempFile + " > /dev/null");
+        // Храним не более 10 последних бэкапов
+        sessionManager.executeCommand(session,
+                "ls -t " + BACKUP_DIR + "/smb.conf.backup_* 2>/dev/null | tail -n +11 | xargs -r sudo rm --");
+    }
 
-        // 3. Подменяем боевой конфиг и перезапускаем демон smbd
-        sessionManager.executeCommand(session, "sudo mv " + tempFile + " " + SMB_CONF_PATH);
+    /**
+     * Получение списка доступных бэкапов
+     */
+    public List<SambaBackupDto> listBackups(Session session) {
+        List<SambaBackupDto> backups = new ArrayList<>();
+        try {
+            // Выводим: права, размер, дата, время, имя файла
+            String cmd = "ls -lh --time-style=\"+%Y-%m-%d %H:%M:%S\" " + BACKUP_DIR + "/smb.conf.backup_* 2>/dev/null";
+            String output = sessionManager.executeCommand(session, cmd);
+            String[] lines = output.split("\\r?\\n");
+
+            for (String line : lines) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("total")) continue;
+
+                // Пример: -rw-r--r-- 1 root root 2.1K 2026-09-03 14:20:00 /etc/samba/backups/smb.conf.backup_...
+                String[] parts = line.split("\\s+");
+                if (parts.length >= 7) {
+                    String size = parts[4];
+                    String date = parts[5] + " " + parts[6];
+                    String fullPath = parts[parts.length - 1];
+                    String filename = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+
+                    backups.add(new SambaBackupDto(filename, date, size));
+                }
+            }
+        } catch (Exception ignored) {
+            // Если бэкапов пока нет
+        }
+        return backups;
+    }
+
+    /**
+     * Откат конфига до выбранного бэкапа
+     */
+    public void restoreBackup(Session session, String filename) throws Exception {
+        // Проверяем имя файла на безопасность
+        if (!filename.matches("^smb\\.conf\\.backup_\\d{8}_\\d{6}$")) {
+            throw new IllegalArgumentException("Некорректное имя файла бэкапа");
+        }
+
+        String backupFile = BACKUP_DIR + "/" + filename;
+
+        // 1. Создаем контрольный бэкап текущего состояния перед откатом
+        createBackup(session);
+
+        // 2. Восстанавливаем файл и перезапускаем Samba
+        sessionManager.executeCommand(session, "sudo cp " + backupFile + " " + SMB_CONF_PATH);
         sessionManager.executeCommand(session, "sudo systemctl restart smbd");
     }
 
     /**
-     * Сборка секции [share] из DTO со всеми полями
+     * Безопасное обновление smb.conf: бэкап -> запись -> проверка testparm -> замена -> перезапуск
      */
+    public void updateSmbConf(Session session, String content) throws Exception {
+        String tempFile = "/tmp/smb.conf.tmp";
+
+        // 1. Создаем бэкап существующего файла
+        createBackup(session);
+
+        // 2. Пишем во временный файл
+        sessionManager.executeCommand(session, "cat > " + tempFile, content);
+
+        // 3. Валидируем через testparm
+        sessionManager.executeCommand(session, "testparm -s " + tempFile + " > /dev/null");
+
+        // 4. Подменяем рабочий конфиг
+        sessionManager.executeCommand(session, "sudo mv " + tempFile + " " + SMB_CONF_PATH);
+        sessionManager.executeCommand(session, "sudo systemctl restart smbd");
+    }
+
     public String buildShareSection(SambaShareCreateDto dto) {
         StringBuilder sb = new StringBuilder();
         sb.append("[").append(dto.getName()).append("]\n");
@@ -88,9 +156,6 @@ public class SambaConfigService {
         return sb.toString();
     }
 
-    /**
-     * Удаление секции конкретной шары из текста конфига
-     */
     public String removeShareSection(String content, String shareName) {
         String[] lines = content.split("\\r?\\n");
         StringBuilder result = new StringBuilder();
@@ -123,9 +188,6 @@ public class SambaConfigService {
         return result.toString();
     }
 
-    /**
-     * Парсинг smb.conf и извлечение списка шар
-     */
     public List<SambaShare> parseShares(String content) {
         List<SambaShare> shares = new ArrayList<>();
         String[] lines = content.split("\\r?\\n");
