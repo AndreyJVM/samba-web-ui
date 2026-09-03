@@ -14,9 +14,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
-                // Защищаем все маршруты управления
-                .addPathPatterns("/shares/**", "/users/**")
-                // Исключаем публичные эндпоинты и статические ресурсы
+                .addPathPatterns("/shares/**", "/users/**", "/config/**", "/status/**")
                 .excludePathPatterns(
                         "/",
                         "/connect",

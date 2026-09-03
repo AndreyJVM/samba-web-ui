@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Конфигурация — Samba Web UI')}"></head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('config')}"></div>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0"><i class="fas fa-file-code text-primary me-2"></i>Конфигурация smb.conf</h2>
+            <small class="text-muted">Просмотр текущего файла и восстановление из автоматических снимков</small>
+        </div>
+        <a href="/config" class="btn btn-outline-secondary btn-sm"><i class="fas fa-sync-alt me-1"></i> Обновить</a>
+    </div>
+
+    <!-- Сообщения -->
+    <div th:if="${param.restored}" class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-1"></i> Конфигурация успешно восстановлена из бэкапа, служба smbd перезапущена!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${param.error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger">
+        <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${error}"></span>
+    </div>
+
+    <div class="row">
+        <!-- Левая колонка: Просмотр smb.conf -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header p-3 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold"><i class="fas fa-terminal text-muted me-2"></i>Текущий /etc/samba/smb.conf</span>
+                    <span class="badge bg-secondary">Только чтение</span>
+                </div>
+                <div class="card-body p-0">
+                    <pre class="m-0 p-3 bg-dark text-light rounded-bottom"
+                         style="max-height: 600px; overflow-y: auto; font-family: monospace; font-size: 0.85rem;"
+                         th:text="${currentConfig ?: 'Не удалось прочитать конфигурационный файл'}"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая колонка: История бэкапов -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header p-3">
+                    <span class="fw-bold"><i class="fas fa-history text-muted me-2"></i>История снимков (до 10 шт.)</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" th:if="${backups != null and !backups.empty}">
+                        <div th:each="backup : ${backups}" class="list-group-item p-3 d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold small" th:text="${backup.createdAt}">2026-09-03 14:00:00</div>
+                                <code class="text-muted small" th:text="${backup.filename}">smb.conf.backup_...</code>
+                                <span class="badge bg-light text-dark border ms-1" th:text="${backup.size}">2.1K</span>
+                            </div>
+                            <button type="button" class="btn btn-outline-warning btn-sm"
+                                    th:data-file="${backup.filename}"
+                                    th:data-date="${backup.createdAt}"
+                                    onclick="openRestoreModal(this.getAttribute('data-file'), this.getAttribute('data-date'))"
+                                    title="Откатить конфиг к этой версии">
+                                <i class="fas fa-undo-alt me-1"></i> Откат
+                            </button>
+                        </div>
+                    </div>
+                    <div th:if="${backups == null or backups.empty}" class="p-4 text-center text-muted">
+                        <i class="fas fa-archive fa-2x mb-2 d-block opacity-50"></i>
+                        Снимков конфигурации пока нет.<br>
+                        <small>Они создаются автоматически перед каждой сменой настроек.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка отката -->
+<div class="modal fade" id="restoreModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Подтверждение отката</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Вы уверены, что хотите откатить конфигурацию к состоянию от <strong id="restoreDate"></strong>?<br>
+                <small class="text-muted">Текущий файл будет сохранен в отдельный снимок, после чего применится выбранный архив и служба smbd перезапустится.</small>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Отмена</button>
+                <form th:action="@{/config/restore}" method="post" class="d-inline">
+                    <input type="hidden" name="filename" id="restoreFilename">
+                    <button type="submit" class="btn btn-warning rounded-pill px-3 text-dark">
+                        <i class="fas fa-undo-alt me-1"></i> Применить снимок
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+<script>
+    function openRestoreModal(filename, date) {
+        document.getElementById('restoreFilename').value = filename;
+        document.getElementById('restoreDate').textContent = date;
+        new bootstrap.Modal(document.getElementById('restoreModal')).show();
+    }
+</script>
+</body>
+</html>
