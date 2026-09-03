@@ -1,0 +1,49 @@
+site_name: Samba Web UI
+site_description: Современный веб-интерфейс для управления сервером Samba на Spring Boot и Linux
+site_author: Andrey Vorobev
+repo_url: https://github.com/andreyvorobevaqa/samba-web-ui
+repo_name: andreyvorobevaqa/samba-web-ui
+
+theme:
+  name: material
+  language: ru
+  palette:
+    # Переключатель светлая/тёмная тема
+    - scheme: default
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Включить темную тему
+    - scheme: slate
+      primary: deep purple
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Включить светлую тему
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+  - attr_list
+
+nav:
+  - О проекте: index.md
+  - Быстрый старт: quickstart.md
+  - Подготовка сервера: server-setup.md
+  - Архитектура: architecture.md
