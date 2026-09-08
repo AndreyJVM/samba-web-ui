@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Системные логи — Samba Web UI')}"></head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar('logs')}"></div>
+
+<div class="container-fluid mt-4 mb-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div>
+            <h2 class="fw-bold mb-0">
+                <i class="fas fa-terminal text-primary me-2"></i>Системные логи Samba
+            </h2>
+            <small class="text-muted">Мониторинг журнала событий <code>/var/log/samba/log.smbd</code></small>
+        </div>
+
+        <!-- Панель управления логами -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Количество строк -->
+            <div class="input-group input-group-sm" style="width: auto;">
+                <span class="input-group-text"><i class="fas fa-list-ol me-1"></i>Строк</span>
+                <select id="linesSelect" class="form-select form-select-sm">
+                    <option value="50" th:selected="${selectedLines == 50}">50</option>
+                    <option value="100" th:selected="${selectedLines == 100}">100</option>
+                    <option value="200" th:selected="${selectedLines == 200}">200</option>
+                    <option value="500" th:selected="${selectedLines == 500}">500</option>
+                </select>
+            </div>
+
+            <!-- Автообновление -->
+            <div class="form-check form-switch d-flex align-items-center gap-2 mb-0 ms-2">
+                <input class="form-check-input" type="checkbox" id="autoRefreshSwitch">
+                <label class="form-check-label small fw-bold" for="autoRefreshSwitch">Автообновление (3с)</label>
+            </div>
+
+            <!-- Кнопка ручного обновления -->
+            <button id="refreshBtn" class="btn btn-outline-primary btn-sm ms-2">
+                <i class="fas fa-sync-alt me-1"></i> Обновить
+            </button>
+
+            <!-- Прокрутка в самый низ -->
+            <button id="scrollBottomBtn" class="btn btn-outline-secondary btn-sm" title="Прокрутить в конец">
+                <i class="fas fa-arrow-down"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Консоль логов -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2 px-3">
+            <span class="small font-monospace text-secondary">
+                <i class="fas fa-circle text-danger me-1"></i>
+                <i class="fas fa-circle text-warning me-1"></i>
+                <i class="fas fa-circle text-success me-2"></i>
+                log.smbd
+            </span>
+            <span id="lastUpdated" class="badge bg-secondary font-monospace">Загружено</span>
+        </div>
+        <div class="card-body p-0 bg-dark">
+            <pre id="logTerminal" class="m-0 p-3 text-light"
+                 style="height: 650px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.45; white-space: pre-wrap; word-break: break-all;"
+                 th:text="${logs}"></pre>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script>
+    const logTerminal = document.getElementById('logTerminal');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const linesSelect = document.getElementById('linesSelect');
+    const autoRefreshSwitch = document.getElementById('autoRefreshSwitch');
+    const lastUpdated = document.getElementById('lastUpdated');
+    const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+
+    let refreshTimer = null;
+
+    function scrollToBottom() {
+        logTerminal.scrollTop = logTerminal.scrollHeight;
+    }
+
+    // Первичная прокрутка вниз при загрузке
+    scrollToBottom();
+
+    function fetchLogs() {
+        const lines = linesSelect.value;
+        const icon = refreshBtn.querySelector('i');
+        icon.classList.add('fa-spin');
+
+        fetch(`/logs/raw?lines=${lines}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.logs !== undefined) {
+                    logTerminal.textContent = data.logs;
+                    const now = new Date();
+                    lastUpdated.textContent = 'Обновлено: ' + now.toLocaleTimeString();
+                    if (autoRefreshSwitch.checked) {
+                        scrollToBottom();
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка обновления логов:', err);
+            })
+            .finally(() => {
+                icon.classList.remove('fa-spin');
+            });
+    }
+
+    refreshBtn.addEventListener('click', fetchLogs);
+
+    linesSelect.addEventListener('change', () => {
+        fetchLogs();
+    });
+
+    scrollBottomBtn.addEventListener('click', scrollToBottom);
+
+    autoRefreshSwitch.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            fetchLogs();
+            refreshTimer = setInterval(fetchLogs, 3000);
+        } else {
+            if (refreshTimer) clearInterval(refreshTimer);
+        }
+    });
+</script>
+</body>
+</html>
