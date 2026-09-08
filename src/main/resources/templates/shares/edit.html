@@ -25,8 +25,14 @@
                                 <input type="text" id="name" th:field="*{name}" class="form-control" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="path" class="form-label">Путь к папке <span class="text-danger">*</span></label>
-                                <input type="text" id="path" th:field="*{path}" class="form-control" required>
+                                <label for="path" class="form-label fw-bold">Абсолютный путь (path) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" id="path" th:field="*{path}" class="form-control" placeholder="/srv/samba/share" required>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="openDirectoryBrowser('path')">
+                                        <i class="fas fa-folder-open me-1"></i> Обзор...
+                                    </button>
+                                </div>
+                                <div class="form-text">Путь к каталогу на сервере Linux</div>
                             </div>
                         </div>
                         <div class="mb-3">
@@ -121,6 +127,11 @@
     </div>
 </div>
 
+<!-- Модалка выбора каталога -->
+<div th:replace="~{fragments/dir-modal :: directoryBrowserModal}"></div>
+
 <div th:replace="~{fragments/layout :: scripts}"></div>
+<div th:replace="~{fragments/dir-modal :: directoryBrowserScript}"></div>
+
 </body>
 </html>
