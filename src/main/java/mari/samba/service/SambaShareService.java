@@ -1,7 +1,8 @@
 package mari.samba.service;
 
-import mari.samba.dto.SambaShareCreateDto;
+import mari.samba.dto.share.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
+import mari.samba.service.infra.CommandExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -1,6 +1,7 @@
 package mari.samba.service;
 
 import mari.samba.model.SambaUser;
+import mari.samba.service.infra.CommandExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

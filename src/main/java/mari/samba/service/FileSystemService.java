@@ -1,7 +1,8 @@
 package mari.samba.service;
 
-import mari.samba.dto.DirectoryBrowseResultDto;
-import mari.samba.dto.DirectoryItemDto;
+import mari.samba.dto.fs.DirectoryBrowseResultDto;
+import mari.samba.dto.fs.DirectoryItemDto;
+import mari.samba.service.infra.CommandExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -9,7 +10,6 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Service

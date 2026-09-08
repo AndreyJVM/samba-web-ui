@@ -1,4 +1,4 @@
-package mari.samba.dto;
+package mari.samba.dto.fs;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

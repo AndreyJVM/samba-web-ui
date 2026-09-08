@@ -66,64 +66,7 @@
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
 
-<script>
-    const logTerminal = document.getElementById('logTerminal');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const linesSelect = document.getElementById('linesSelect');
-    const autoRefreshSwitch = document.getElementById('autoRefreshSwitch');
-    const lastUpdated = document.getElementById('lastUpdated');
-    const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+<script th:src="@{/js/logs-viewer.js}"></script>
 
-    let refreshTimer = null;
-
-    function scrollToBottom() {
-        logTerminal.scrollTop = logTerminal.scrollHeight;
-    }
-
-    // Первичная прокрутка вниз при загрузке
-    scrollToBottom();
-
-    function fetchLogs() {
-        const lines = linesSelect.value;
-        const icon = refreshBtn.querySelector('i');
-        icon.classList.add('fa-spin');
-
-        fetch(`/logs/raw?lines=${lines}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.logs !== undefined) {
-                    logTerminal.textContent = data.logs;
-                    const now = new Date();
-                    lastUpdated.textContent = 'Обновлено: ' + now.toLocaleTimeString();
-                    if (autoRefreshSwitch.checked) {
-                        scrollToBottom();
-                    }
-                }
-            })
-            .catch(err => {
-                console.error('Ошибка обновления логов:', err);
-            })
-            .finally(() => {
-                icon.classList.remove('fa-spin');
-            });
-    }
-
-    refreshBtn.addEventListener('click', fetchLogs);
-
-    linesSelect.addEventListener('change', () => {
-        fetchLogs();
-    });
-
-    scrollBottomBtn.addEventListener('click', scrollToBottom);
-
-    autoRefreshSwitch.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            fetchLogs();
-            refreshTimer = setInterval(fetchLogs, 3000);
-        } else {
-            if (refreshTimer) clearInterval(refreshTimer);
-        }
-    });
-</script>
 </body>
 </html>
