@@ -2,6 +2,7 @@ package mari.samba.service;
 
 import mari.samba.model.SambaUser;
 import mari.samba.service.infra.CommandExecutor;
+import mari.samba.service.infra.LinuxCommands;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +16,7 @@ public class SambaUserService {
     private CommandExecutor commandExecutor;
 
     public List<SambaUser> getAllUsers(String sessionId) throws Exception {
-        String output = commandExecutor.execute(sessionId, "sudo pdbedit -L");
+        String output = commandExecutor.execute(sessionId, LinuxCommands.listSambaUsers());
 
         List<SambaUser> users = new ArrayList<>();
         String[] lines = output.split("\\r?\\n");
@@ -39,33 +40,30 @@ public class SambaUserService {
     public void createUser(String sessionId, String username, String password, String fullName) throws Exception {
         String cleanUsername = username.trim();
         String cleanPassword = password.trim();
+        String comment = (fullName != null && !fullName.isBlank()) ? fullName.trim() : cleanUsername;
 
-        String comment = (fullName != null && !fullName.isBlank())
-                ? fullName.trim().replace("\"", "\\\"")
-                : cleanUsername;
-
-        commandExecutor.execute(sessionId, String.format("sudo useradd -m -s /bin/bash -c \"%s\" %s", comment, cleanUsername));
-        commandExecutor.execute(sessionId, "sudo chpasswd", cleanUsername + ":" + cleanPassword + "\n");
-        commandExecutor.execute(sessionId, "sudo smbpasswd -s -a " + cleanUsername, cleanPassword + "\n" + cleanPassword + "\n");
-        commandExecutor.execute(sessionId, "sudo smbpasswd -e " + cleanUsername);
+        commandExecutor.execute(sessionId, LinuxCommands.addSystemUserWithHome(cleanUsername, comment));
+        commandExecutor.execute(sessionId, LinuxCommands.chpasswd(), cleanUsername + ":" + cleanPassword + "\n");
+        commandExecutor.execute(sessionId, LinuxCommands.addSambaUser(cleanUsername), cleanPassword + "\n" + cleanPassword + "\n");
+        commandExecutor.execute(sessionId, LinuxCommands.enableSambaUser(cleanUsername));
     }
 
     public void deleteUser(String sessionId, String username) throws Exception {
         try {
-            commandExecutor.execute(sessionId, "sudo smbpasswd -x " + username);
+            commandExecutor.execute(sessionId, LinuxCommands.deleteSambaUser(username));
         } catch (Exception ignored) {
         }
-        commandExecutor.execute(sessionId, "sudo userdel -r " + username);
+        commandExecutor.execute(sessionId, LinuxCommands.deleteSystemUser(username));
     }
 
     public void changePassword(String sessionId, String username, String newPassword) throws Exception {
-        commandExecutor.execute(sessionId, "sudo chpasswd", username + ":" + newPassword + "\n");
-        commandExecutor.execute(sessionId, "sudo smbpasswd -s " + username, newPassword + "\n" + newPassword + "\n");
+        commandExecutor.execute(sessionId, LinuxCommands.chpasswd(), username + ":" + newPassword + "\n");
+        commandExecutor.execute(sessionId, LinuxCommands.changeSambaPassword(username), newPassword + "\n" + newPassword + "\n");
     }
 
     public boolean userExists(String sessionId, String username) {
         try {
-            commandExecutor.execute(sessionId, "id " + username);
+            commandExecutor.execute(sessionId, LinuxCommands.checkUserExists(username));
             return true;
         } catch (Exception e) {
             return false;

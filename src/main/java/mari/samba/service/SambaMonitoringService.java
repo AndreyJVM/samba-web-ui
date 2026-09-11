@@ -1,6 +1,7 @@
 package mari.samba.service;
 
 import mari.samba.service.infra.CommandExecutor;
+import mari.samba.service.infra.LinuxCommands;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +18,7 @@ public class SambaMonitoringService {
 
     public boolean isServiceRunning(String sessionId) {
         try {
-            String output = commandExecutor.execute(sessionId, "sudo systemctl is-active smbd");
+            String output = commandExecutor.execute(sessionId, LinuxCommands.systemctl("is-active", "smbd"));
             return "active".equalsIgnoreCase(output.trim());
         } catch (Exception e) {
             return false;
@@ -27,7 +28,7 @@ public class SambaMonitoringService {
     public List<Map<String, String>> getActiveConnections(String sessionId) {
         List<Map<String, String>> connections = new ArrayList<>();
         try {
-            String output = commandExecutor.execute(sessionId, "sudo smbstatus -b");
+            String output = commandExecutor.execute(sessionId, LinuxCommands.smbstatus("-b"));
             String[] lines = output.split("\\r?\\n");
 
             boolean parsingSessions = false;
@@ -64,6 +65,6 @@ public class SambaMonitoringService {
         if (!action.matches("restart|start|stop")) {
             throw new IllegalArgumentException("Недопустимое действие для службы: " + action);
         }
-        commandExecutor.execute(sessionId, "sudo systemctl " + action + " smbd");
+        commandExecutor.execute(sessionId, LinuxCommands.systemctl(action, "smbd"));
     }
 }

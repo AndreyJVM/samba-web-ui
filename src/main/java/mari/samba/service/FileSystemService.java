@@ -4,6 +4,7 @@ import mari.samba.dto.fs.DirectoryBrowseResultDto;
 import mari.samba.dto.fs.DirectoryItemDto;
 import mari.samba.dto.fs.DiskUsageDto;
 import mari.samba.service.infra.CommandExecutor;
+import mari.samba.service.infra.LinuxCommands;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,9 +32,7 @@ public class FileSystemService {
         String parentPath = parentObj != null ? parentObj.toString() : "/";
 
         // Читаем только папки с глубиной 1, исключая скрытые
-        String escapedPath = safePath.replace("'", "'\\''");
-        String cmd = String.format("sudo find '%s' -mindepth 1 -maxdepth 1 -type d ! -name '.*' 2>/dev/null | sort", escapedPath);
-
+        String cmd = LinuxCommands.findDirectories(safePath);
         String output = commandExecutor.execute(sessionId, cmd);
         List<DirectoryItemDto> items = new ArrayList<>();
 
@@ -63,10 +62,8 @@ public class FileSystemService {
         }
 
         String fullPath = safeParent.endsWith("/") ? (safeParent + cleanName) : (safeParent + "/" + cleanName);
-        String escaped = fullPath.replace("'", "'\\''");
-
-        commandExecutor.execute(sessionId, "sudo mkdir -p '" + escaped + "'");
-        commandExecutor.execute(sessionId, "sudo chmod 0775 '" + escaped + "'");
+        commandExecutor.execute(sessionId, LinuxCommands.mkdir(fullPath));
+        commandExecutor.execute(sessionId, LinuxCommands.chmod("0775", fullPath));
     }
 
     /**
@@ -96,10 +93,8 @@ public class FileSystemService {
      */
     public DiskUsageDto getDiskUsage(String sessionId, String path) throws Exception {
         String safePath = normalizePath(path);
-        String escapedPath = safePath.replace("'", "'\\''");
 
-        // Убрали pipe (|), так как JSch ChannelExec не поддерживает его напрямую
-        String cmd = String.format("sudo df -kP '%s'", escapedPath);
+        String cmd = LinuxCommands.df(safePath);
         String output = commandExecutor.execute(sessionId, cmd);
 
         if (output == null || output.isBlank()) {

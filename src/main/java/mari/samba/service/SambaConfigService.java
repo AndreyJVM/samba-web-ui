@@ -5,6 +5,7 @@ import mari.samba.dto.config.SambaGlobalConfigDto;
 import mari.samba.dto.share.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
 import mari.samba.service.infra.CommandExecutor;
+import mari.samba.service.infra.LinuxCommands;
 import mari.samba.service.parser.SmbConfParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ public class SambaConfigService {
     private SmbConfParser smbConfParser;
 
     public String getSmbConfContent(String sessionId) throws Exception {
-        return commandExecutor.execute(sessionId, "cat " + SMB_CONF_PATH);
+        return commandExecutor.execute(sessionId, LinuxCommands.cat(SMB_CONF_PATH));
     }
 
     public List<SambaShare> parseShares(String content) {
@@ -43,19 +44,18 @@ public class SambaConfigService {
     }
 
     public void createBackup(String sessionId) throws Exception {
-        commandExecutor.execute(sessionId, "sudo mkdir -p " + BACKUP_DIR);
+        commandExecutor.execute(sessionId, LinuxCommands.mkdir(BACKUP_DIR));
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String backupFile = BACKUP_DIR + "/smb.conf.backup_" + timestamp;
 
-        commandExecutor.execute(sessionId, "sudo cp " + SMB_CONF_PATH + " " + backupFile);
-        commandExecutor.execute(sessionId,
-                "ls -t " + BACKUP_DIR + "/smb.conf.backup_* 2>/dev/null | tail -n +11 | xargs -r sudo rm --");
+        commandExecutor.execute(sessionId, LinuxCommands.copy(SMB_CONF_PATH, backupFile));
+        commandExecutor.execute(sessionId, LinuxCommands.cleanupOldBackups(BACKUP_DIR, 10));
     }
 
     public List<SambaBackupDto> listBackups(String sessionId) {
         List<SambaBackupDto> backups = new ArrayList<>();
         try {
-            String cmd = "ls -lh --time-style=\"+%Y-%m-%d %H:%M:%S\" " + BACKUP_DIR + "/smb.conf.backup_* 2>/dev/null";
+            String cmd = LinuxCommands.listBackupsDetailed(BACKUP_DIR);
             String output = commandExecutor.execute(sessionId, cmd);
             String[] lines = output.split("\\r?\\n");
 
@@ -86,18 +86,18 @@ public class SambaConfigService {
         String backupFile = BACKUP_DIR + "/" + filename;
         createBackup(sessionId);
 
-        commandExecutor.execute(sessionId, "sudo cp " + backupFile + " " + SMB_CONF_PATH);
-        commandExecutor.execute(sessionId, "sudo systemctl restart smbd");
+        commandExecutor.execute(sessionId, LinuxCommands.copy(backupFile, SMB_CONF_PATH));
+        commandExecutor.execute(sessionId, LinuxCommands.systemctl("restart", "smbd"));
     }
 
     public void updateSmbConf(String sessionId, String content) throws Exception {
         String tempFile = "/tmp/smb.conf.tmp";
 
         createBackup(sessionId);
-        commandExecutor.execute(sessionId, "cat > " + tempFile, content);
-        commandExecutor.execute(sessionId, "testparm -s " + tempFile + " > /dev/null");
-        commandExecutor.execute(sessionId, "sudo mv " + tempFile + " " + SMB_CONF_PATH);
-        commandExecutor.execute(sessionId, "sudo systemctl restart smbd");
+        commandExecutor.execute(sessionId, LinuxCommands.writeToFileStdin(tempFile), content);
+        commandExecutor.execute(sessionId, LinuxCommands.testparmSilent(tempFile));
+        commandExecutor.execute(sessionId, LinuxCommands.move(tempFile, SMB_CONF_PATH));
+        commandExecutor.execute(sessionId, LinuxCommands.systemctl("restart", "smbd"));
     }
 
     public SambaGlobalConfigDto getGlobalConfig(String sessionId) throws Exception {

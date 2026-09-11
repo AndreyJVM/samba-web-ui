@@ -3,6 +3,7 @@ package mari.samba.service;
 import mari.samba.dto.share.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
 import mari.samba.service.infra.CommandExecutor;
+import mari.samba.service.infra.LinuxCommands;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -71,15 +72,14 @@ public class SambaShareService {
             throw new IllegalArgumentException("Путь к шаре должен быть абсолютным: " + path);
         }
 
-        String safePath = path.replace("'", "'\\''");
-        commandExecutor.execute(sessionId, "sudo mkdir -p '" + safePath + "'");
+        commandExecutor.execute(sessionId, LinuxCommands.mkdir(path));
 
         String permissions = resolveDirectoryPermissions(dto);
-        commandExecutor.execute(sessionId, "sudo chmod " + permissions + " '" + safePath + "'");
+        commandExecutor.execute(sessionId, LinuxCommands.chmod(permissions, path));
 
         String owner = resolveOwner(dto);
         if (owner != null && !owner.isBlank()) {
-            commandExecutor.execute(sessionId, "sudo chown -R " + owner + " '" + safePath + "'");
+            commandExecutor.execute(sessionId, LinuxCommands.chownRecursive(owner, path));
         }
     }
 

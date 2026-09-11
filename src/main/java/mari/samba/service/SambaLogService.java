@@ -1,6 +1,7 @@
 package mari.samba.service;
 
 import mari.samba.service.infra.CommandExecutor;
+import mari.samba.service.infra.LinuxCommands;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +22,7 @@ public class SambaLogService {
      */
     public String getRecentLogs(String sessionId, int linesCount) throws Exception {
         int safeLines = ALLOWED_LINE_COUNTS.contains(linesCount) ? linesCount : 100;
-        String command = String.format("sudo tail -n %d %s", safeLines, DEFAULT_LOG_PATH);
+        String command = LinuxCommands.tail(DEFAULT_LOG_PATH, safeLines);
 
         try {
             return commandExecutor.execute(sessionId, command);
