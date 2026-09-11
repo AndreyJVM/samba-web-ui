@@ -2,6 +2,7 @@ package mari.samba.service;
 
 import mari.samba.dto.fs.DirectoryBrowseResultDto;
 import mari.samba.dto.fs.DirectoryItemDto;
+import mari.samba.dto.fs.DiskUsageDto;
 import mari.samba.service.infra.CommandExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -68,12 +69,86 @@ public class FileSystemService {
         commandExecutor.execute(sessionId, "sudo chmod 0775 '" + escaped + "'");
     }
 
+    /**
+     * Нормализация путей строго для Linux (замена слешей и удаление дублей),
+     * независимо от того, на какой ОС запущен сам Spring Boot.
+     */
     private String normalizePath(String path) {
         if (path == null || path.isBlank()) {
             return "/";
         }
-        Path normalized = Paths.get(path.trim()).normalize();
-        String res = normalized.toString();
-        return res.startsWith("/") ? res : "/" + res;
+
+        // 1. Меняем виндовые слеши на линуксовые, если они вдруг есть
+        String unixPath = path.trim().replace("\\", "/");
+
+        // 2. Убираем двойные слеши (например, /srv//samba -> /srv/samba)
+        unixPath = unixPath.replaceAll("/+", "/");
+
+        // 3. Гарантируем, что путь начинается с корня (абсолютный путь)
+        return unixPath.startsWith("/") ? unixPath : "/" + unixPath;
     }
+
+    /**
+     * Получение информации о свободном месте на диске по указанному пути
+     */
+    /**
+     * Получение информации о свободном месте на диске по указанному пути
+     */
+    public DiskUsageDto getDiskUsage(String sessionId, String path) throws Exception {
+        String safePath = normalizePath(path);
+        String escapedPath = safePath.replace("'", "'\\''");
+
+        // Убрали pipe (|), так как JSch ChannelExec не поддерживает его напрямую
+        String cmd = String.format("sudo df -kP '%s'", escapedPath);
+        String output = commandExecutor.execute(sessionId, cmd);
+
+        if (output == null || output.isBlank()) {
+            throw new RuntimeException("Пустой ответ от df для пути " + path);
+        }
+
+        // Разбиваем вывод на строки
+        String[] lines = output.trim().split("\\r?\\n");
+        if (lines.length < 2) {
+            throw new RuntimeException("Неожиданный вывод df: " + output);
+        }
+
+        // Берем последнюю строку (в первой строке идут заголовки Filesystem, 1024-blocks и т.д.)
+        String dataLine = lines[lines.length - 1];
+        String[] parts = dataLine.trim().split("\\s+");
+
+        if (parts.length >= 6) {
+            try {
+                long totalKb = Long.parseLong(parts[1]);
+                long usedKb = Long.parseLong(parts[2]);
+                long availKb = Long.parseLong(parts[3]);
+                String capacityStr = parts[4].replace("%", "");
+                int usePercent = Integer.parseInt(capacityStr);
+                String mountPoint = parts[5];
+
+                return new DiskUsageDto(
+                        safePath,
+                        formatSize(totalKb * 1024L),
+                        formatSize(usedKb * 1024L),
+                        formatSize(availKb * 1024L),
+                        usePercent,
+                        mountPoint
+                );
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("Ошибка парсинга чисел из вывода df: " + dataLine);
+            }
+        }
+
+        throw new RuntimeException("Некорректный формат строки данных: " + dataLine);
+    }
+
+    /**
+     * Преобразование байтов в читаемый вид (KB, MB, GB, TB)
+     */
+    private String formatSize(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(1024));
+        String pre = "KMGTPE".charAt(exp - 1) + "B";
+        return String.format("%.1f %s", bytes / Math.pow(1024, exp), pre).replace(",", ".");
+    }
+
 }

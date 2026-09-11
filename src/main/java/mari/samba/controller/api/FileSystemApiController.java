@@ -3,6 +3,7 @@ package mari.samba.controller.api;
 import jakarta.servlet.http.HttpSession;
 import mari.samba.dto.common.ApiResponse;
 import mari.samba.dto.fs.DirectoryBrowseResultDto;
+import mari.samba.dto.fs.DiskUsageDto;
 import mari.samba.service.FileSystemService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,17 @@ public class FileSystemApiController {
         try {
             fileSystemService.createDirectory(httpSession.getId(), parentPath, name);
             return ResponseEntity.ok(ApiResponse.ok("Каталог успешно создан", null));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/disk-usage")
+    public ResponseEntity<ApiResponse<DiskUsageDto>> getDiskUsage(@RequestParam String path,
+                                                                  HttpSession httpSession) {
+        try {
+            DiskUsageDto result = fileSystemService.getDiskUsage(httpSession.getId(), path);
+            return ResponseEntity.ok(ApiResponse.ok(result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
