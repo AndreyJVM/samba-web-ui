@@ -1,39 +1,58 @@
-name: Release & Changelog
+changelog:
+  categories:
+    - title: "Новые функции и возможности"
+      labels:
+        - "enhancement"
+        - "feature"
+      prefixes:
+        - "feat:"
+        - "feat("
+        - "feat"
 
-on:
-  push:
-    tags:
-      - 'v*.*.*'
+    - title: "Исправления ошибок"
+      labels:
+        - "bug"
+        - "fix"
+      prefixes:
+        - "fix:"
+        - "fix("
+        - "fix"
 
-permissions:
-  contents: write
+    - title: "Архитектура и рефакторинг"
+      labels:
+        - "refactor"
+      prefixes:
+        - "refactor:"
+        - "refactor("
+        - "refactor"
 
-jobs:
-  build-and-release:
-    runs-on: ubuntu-latest
+    - title: "Пользовательский интерфейс (UI/UX)"
+      labels:
+        - "ui"
+        - "style"
+      prefixes:
+        - "style:"
+        - "style("
+        - "ui:"
+        - "ui("
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    - title: "CI/CD, сборка и зависимости"
+      labels:
+        - "ci"
+        - "chore"
+        - "dependencies"
+      prefixes:
+        - "ci:"
+        - "ci("
+        - "chore:"
+        - "chore("
+        - "build:"
+        - "build("
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Build JAR package
-        run: ./mvnw clean package -DskipTests
-
-      - name: Generate Changelog & Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          generate_release_notes: true
-          files: target/*.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # Исключаем из чейнджлога чисто служебные коммиты
+  exclude:
+    labels:
+      - "ignore-for-release"
+    prefixes:
+      - "Merge branch"
+      - "Merge pull request"
