@@ -11,18 +11,14 @@
 Позволяет системным администраторам централизованно управлять каталогами, учетными записями,
 правами доступа и глобальными параметрами `smb.conf` без установки агентов на сервер (Zero-Agent via SSH).
 
----
-
 ## Документация
 
 Полное руководство пользователя, инструкции по настройке `sudoers` и описание архитектуры доступны на нашем сайте:  
-👉 **[https://AndreyJVM.github.io/samba-web-ui/](https://AndreyJVM.github.io/samba-web-ui/)**
-
----
+**[https://AndreyJVM.github.io/samba-web-ui/](https://AndreyJVM.github.io/samba-web-ui/)**
 
 ## Быстрый старт с Docker
 
-```bash
+```dockerfile
 docker run -d \
   --name samba-web-ui \
   -p 8080:8080 \
