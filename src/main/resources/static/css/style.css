@@ -3,50 +3,143 @@
     --bg-main: #f0f2f5;
     --card-radius: 16px;
     --border-soft: #e9ecef;
+    --sidebar-width: 260px;
 }
 
 body {
     background-color: var(--bg-main);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #333;
+    transition: padding-left 0.3s ease;
 }
 
 .container-fluid {
     max-width: 1400px;
 }
 
-/* Навбар */
-.navbar-custom {
+/* === САЙДБАР (Боковое меню) === */
+.sidebar {
+    width: var(--sidebar-width);
     background: var(--primary-gradient);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.navbar-custom .navbar-brand {
     color: #fff;
-    font-weight: 600;
-    font-size: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease-in-out;
 }
 
-.navbar-custom .nav-link {
+/* Десктоп: Меню фиксировано слева */
+@media (min-width: 992px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 1040;
+    }
+}
+
+/* Мобильные экраны: Выезжающее меню */
+@media (max-width: 991.98px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 1050;
+        transform: translateX(-100%);
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    .mobile-header {
+        background: var(--primary-gradient);
+    }
+}
+
+.sidebar-header {
+    padding: 1.5rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-brand {
+    color: #fff;
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sidebar-nav {
+    flex-grow: 1;
+    padding: 1.5rem 1rem;
+    list-style: none;
+    margin: 0;
+    overflow-y: auto;
+}
+
+.sidebar-nav .nav-item {
+    margin-bottom: 0.4rem;
+}
+
+.sidebar-nav .nav-link {
     color: rgba(255, 255, 255, 0.85);
     font-weight: 500;
-    transition: color 0.2s ease;
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-.navbar-custom .nav-link:hover,
-.navbar-custom .nav-link.active {
-    color: #ffffff !important;
+.sidebar-nav .nav-link:hover,
+.sidebar-nav .nav-link.active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-nav .nav-link i {
+    font-size: 1.15rem;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebar-footer {
+    padding: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .navbar-host-badge {
     background: rgba(255, 255, 255, 0.18);
     border-radius: 20px;
-    padding: 0.35rem 0.8rem;
+    padding: 0.4rem 0.8rem;
     font-size: 0.85rem;
     color: #fff;
+    display: inline-block;
+    width: 100%;
+    text-align: center;
 }
 
-/* Карточки и элементы интерфейса */
+/* Затемнение фона при открытом меню на мобилках */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 1045;
+    display: none;
+}
+.sidebar-backdrop.show {
+    display: block;
+}
+
+/* === Карточки и элементы интерфейса === */
 .card {
     border-radius: var(--card-radius);
     border: none;
