@@ -22,11 +22,15 @@ public class MonitoringController {
     public String statusDashboard(HttpSession httpSession, Model model) {
         String sessionId = httpSession.getId();
         try {
+            // Собираем все метрики
             boolean isRunning = monitoringService.isServiceRunning(sessionId);
             List<Map<String, String>> connections = monitoringService.getActiveConnections(sessionId);
+            List<Map<String, String>> openFiles = monitoringService.getOpenFiles(sessionId);
 
             model.addAttribute("isRunning", isRunning);
             model.addAttribute("connections", connections);
+            model.addAttribute("openFiles", openFiles);
+
             return "status/dashboard";
         } catch (Exception e) {
             model.addAttribute("error", "Ошибка получения статуса сервера: " + e.getMessage());
@@ -41,6 +45,16 @@ public class MonitoringController {
             return "redirect:/status?success=true";
         } catch (Exception e) {
             return "redirect:/status?error=" + e.getMessage();
+        }
+    }
+
+    @PostMapping("/status/kill")
+    public String killSession(@RequestParam String pid, HttpSession httpSession) {
+        try {
+            monitoringService.killSession(httpSession.getId(), pid);
+            return "redirect:/status?killSuccess=true&pid=" + pid;
+        } catch (Exception e) {
+            return "redirect:/status?error=Ошибка завершения процесса: " + e.getMessage();
         }
     }
 }

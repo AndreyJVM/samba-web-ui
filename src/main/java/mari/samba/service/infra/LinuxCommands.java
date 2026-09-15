@@ -129,4 +129,12 @@ public final class LinuxCommands {
     public static String smbstatus(String flag) {
         return "sudo smbstatus " + flag;
     }
+
+    /**
+     * Команда для принудительного завершения процесса (SIGKILL)
+     */
+    public static String kill(String pid) {
+        // Завершаем процесс с сигналом 9 (SIGKILL) для гарантированного обрыва сессии
+        return "sudo kill -9 " + pid;
+    }
 }
