@@ -39,30 +39,86 @@
                     <div th:if="${error}" class="alert alert-danger py-2 small" role="alert">
                         <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${error}"></span>
                     </div>
-                    <div th:if="${param.disconnected}" class="alert alert-info py-2 small" role="alert">
-                        <i class="fas fa-info-circle me-1"></i> Сессия завершена. Войдите заново.
+                    <div th:if="${param.disconnected}" class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Сессия SSH была завершена или истекло время ожидания. Пожалуйста, войдите снова.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
 
                     <form th:action="@{/connect}" th:object="${connectionRequest}" method="post">
-                        <div class="mb-3">
-                            <label for="host" class="form-label">IP сервера / Хост</label>
-                            <input type="text" id="host" th:field="*{host}" class="form-control" placeholder="192.168.1.100" required>
+                        <!-- Скрытое поле для типа авторизации -->
+                        <input type="hidden" id="authType" th:field="*{authType}" value="password">
+
+                        <!-- Хост и порт в одну строку -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-8">
+                                <label for="host" class="form-label small fw-bold">IP / Хост</label>
+                                <input type="text" id="host" th:field="*{host}" class="form-control" placeholder="192.168.1.100" required>
+                            </div>
+                            <div class="col-4">
+                                <label for="port" class="form-label small fw-bold">Порт SSH</label>
+                                <input type="number" id="port" th:field="*{port}" class="form-control" placeholder="22" min="1" max="65535">
+                            </div>
                         </div>
 
+                        <!-- Имя пользователя -->
                         <div class="mb-3">
-                            <label for="username" class="form-label">Пользователь SSH</label>
+                            <label for="username" class="form-label small fw-bold">Пользователь SSH</label>
                             <input type="text" id="username" th:field="*{username}" class="form-control" placeholder="samba-admin" required>
                         </div>
 
-                        <div class="mb-4">
-                            <label for="password" class="form-label">Пароль SSH</label>
-                            <input type="password" id="password" th:field="*{password}" class="form-control" placeholder="••••••••" required>
+                        <!-- Вкладки выбора способа авторизации -->
+                        <ul class="nav nav-pills nav-fill mb-3" id="authTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active py-1 small" id="password-tab" data-bs-toggle="pill" data-bs-target="#password-pane" type="button" role="tab" onclick="setAuthType('password')">
+                                    <i class="fas fa-key me-1"></i>Пароль
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link py-1 small" id="key-tab" data-bs-toggle="pill" data-bs-target="#key-pane" type="button" role="tab" onclick="setAuthType('key')">
+                                    <i class="fas fa-id-badge me-1"></i>SSH-ключ
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content mb-4" id="authTabContent">
+                            <!-- Блок пароля -->
+                            <div class="tab-pane fade show active" id="password-pane" role="tabpanel">
+                                <label for="password" class="form-label small fw-bold">Пароль SSH</label>
+                                <input type="password" id="password" th:field="*{password}" class="form-control" placeholder="••••••••">
+                            </div>
+
+                            <!-- Блок SSH ключа -->
+                            <div class="tab-pane fade" id="key-pane" role="tabpanel">
+                                <div class="mb-2">
+                                    <label for="privateKey" class="form-label small fw-bold">Приватный ключ (OpenSSH / RSA / Ed25519)</label>
+                                    <textarea id="privateKey" th:field="*{privateKey}" rows="4" class="form-control font-monospace small" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"></textarea>
+                                </div>
+                                <div>
+                                    <label for="passphrase" class="form-label small text-muted">Кодовая фраза ключа (если задана)</label>
+                                    <input type="password" id="passphrase" th:field="*{passphrase}" class="form-control form-control-sm" placeholder="Passphrase к ключу">
+                                </div>
+                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 py-2">
                             <i class="fas fa-plug me-1"></i> Подключиться
                         </button>
                     </form>
+
+                    <script>
+                        function setAuthType(type) {
+                            document.getElementById('authType').value = type;
+                            const pwdInput = document.getElementById('password');
+                            const keyInput = document.getElementById('privateKey');
+
+                            if (type === 'key') {
+                                pwdInput.value = '';
+                            } else {
+                                keyInput.value = '';
+                            }
+                        }
+                    </script>
 
                     <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
                         <small class="text-muted"><i class="fas fa-shield-alt text-success me-1"></i>Безопасный SSH</small>

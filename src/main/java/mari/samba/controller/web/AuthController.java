@@ -7,7 +7,9 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
@@ -29,19 +31,31 @@ public class AuthController {
      * Подключение к Samba серверу через SSH
      */
     @PostMapping("/connect")
-    public String connect(@Valid ConnectionRequestDto request, HttpSession httpSession, Model model) {
+    public String connect(@Valid @ModelAttribute("connectionRequest") ConnectionRequestDto request,
+                          BindingResult bindingResult,
+                          HttpSession httpSession,
+                          Model model) {
+        // Проверка базовой валидации (хост, логин, порт)
+        if (bindingResult.hasErrors()) {
+            return "index";
+        }
+
+        // Проверка обязательности пароля или ключа
+        if (!request.isKeyAuth() && (request.getPassword() == null || request.getPassword().isBlank())) {
+            model.addAttribute("error", "Введите пароль для подключения");
+            return "index";
+        }
+
         try {
             String sessionId = httpSession.getId();
-            sessionManager.createSession(sessionId, request.getHost(), request.getUsername(), request.getPassword());
+            sessionManager.createSession(sessionId, request);
 
-            httpSession.setAttribute("sambaHost", request.getHost());
+            httpSession.setAttribute("sambaHost", request.getHost() + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : ""));
             httpSession.setAttribute("sambaUser", request.getUsername());
 
-            // После успешного подключения перенаправляем на список шар
             return "redirect:/shares";
         } catch (Exception e) {
             model.addAttribute("error", "Ошибка подключения: " + e.getMessage());
-            model.addAttribute("connectionRequest", request);
             return "index";
         }
     }

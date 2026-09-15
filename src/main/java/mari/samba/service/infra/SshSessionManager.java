@@ -3,6 +3,8 @@ package mari.samba.service.infra;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
+import mari.samba.dto.auth.ConnectionRequestDto;
+import mari.samba.exception.SshSessionExpiredException;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -17,12 +19,40 @@ public class SshSessionManager implements CommandExecutor {
 
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
-    public void createSession(String sessionId, String host, String username, String password) throws Exception {
+    public void createSession(String sessionId, ConnectionRequestDto request) throws Exception {
         JSch jsch = new JSch();
-        Session session = jsch.getSession(username, host, 22);
-        session.setPassword(password);
+
+        // 1. Настройка аутентификации по ключу, если передан ключ
+        if (request.isKeyAuth()) {
+            if (request.getPrivateKey() == null || request.getPrivateKey().isBlank()) {
+                throw new IllegalArgumentException("Приватный SSH-ключ не может быть пустым");
+            }
+
+            byte[] prvkey = request.getPrivateKey().trim().getBytes(StandardCharsets.UTF_8);
+            byte[] passphraseBytes = (request.getPassphrase() != null && !request.getPassphrase().isBlank())
+                    ? request.getPassphrase().getBytes(StandardCharsets.UTF_8)
+                    : null;
+
+            // Регистрируем ключ в JSch в памяти (без временных файлов на диске)
+            jsch.addIdentity("custom-key-" + sessionId, prvkey, null, passphraseBytes);
+        }
+
+        int port = request.getResolvedPort();
+        Session session = jsch.getSession(request.getUsername(), request.getHost(), port);
+
+        // 2. Если используется пароль
+        if (!request.isKeyAuth() && request.getPassword() != null && !request.getPassword().isBlank()) {
+            session.setPassword(request.getPassword());
+        }
+
         session.setConfig("StrictHostKeyChecking", "no");
-        session.connect(5000);
+
+        // Keep-Alive пинг каждые 30 секунд
+        session.setServerAliveInterval(30_000);
+        session.setServerAliveCountMax(3);
+
+        // Таймаут подключения 7 секунд
+        session.connect(7000);
 
         sessions.put(sessionId, session);
     }
@@ -52,7 +82,11 @@ public class SshSessionManager implements CommandExecutor {
     public String execute(String sessionId, String command, String inputData) throws Exception {
         Session session = sessions.get(sessionId);
         if (session == null || !session.isConnected()) {
-            throw new IllegalStateException("SSH-сессия не найдена или отключена");
+            // Удаляем зависший ключ из мапы, если он там остался
+            if (sessionId != null) {
+                sessions.remove(sessionId);
+            }
+            throw new SshSessionExpiredException("SSH-сессия истекла или была разорвана сервером");
         }
 
         ChannelExec channel = (ChannelExec) session.openChannel("exec");
