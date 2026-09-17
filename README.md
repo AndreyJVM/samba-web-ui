@@ -1,8 +1,8 @@
 # Samba Web UI
 
 <p>
-  <img src="https://img.shields.io/badge/Java-17-orange.svg" alt="Java 17">
-  <img src="https://img.shields.io/badge/Spring%20Boot-3.3-brightgreen.svg" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/Java-21-orange.svg" alt="Java 17">
+  <img src="https://img.shields.io/badge/Spring%20Boot-4.1-brightgreen.svg" alt="Spring Boot">
   <img src="https://img.shields.io/badge/Docker-Ready-blue.svg" alt="Docker Ready">
   <img src="https://img.shields.io/badge/Docs-MkDocs%20Material-purple.svg" alt="Documentation">
 </p>
