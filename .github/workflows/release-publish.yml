@@ -1,4 +1,4 @@
-name: Release & Changelog
+name: Release & Publish (GitHub + Docker Hub)
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
       - name: Build JAR package
         run: ./mvnw clean package -DskipTests
 
-      - name: Generate Changelog & Publish GitHub Release
+      - name: Generate Changelog & Publish GitHub Release (JAR)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -37,3 +37,35 @@ jobs:
           files: target/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-publish:
+    runs-on: ubuntu-latest
+    needs: build-and-release # Запускаем только если GitHub Release прошел успешно
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: andreyvorobevaqa/samba-web-ui
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=true
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
