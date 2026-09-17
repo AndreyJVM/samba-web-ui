@@ -1,5 +1,6 @@
-# STAGE 1: Build
-FROM eclipse-temurin:17-jdk-alpine AS builder
+# STAGE 1: Builder
+# Если используешь образ maven, то: FROM maven:3.9-eclipse-temurin-21 AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 RUN apk add --no-cache maven
 
@@ -12,7 +13,7 @@ COPY src ./src
 RUN mvn clean package
 
 # STAGE 2: Runtime
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
