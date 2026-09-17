@@ -2,7 +2,7 @@ package mari.samba.controller.advice;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import mari.samba.dto.api.ApiResponse;
+import mari.samba.dto.common.ApiResponse;
 import mari.samba.exception.SshSessionExpiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
