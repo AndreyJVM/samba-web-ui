@@ -1,6 +1,7 @@
 package mari.samba.controller.web;
 
 import jakarta.servlet.http.HttpSession;
+import mari.samba.dto.config.SambaBackupDto;
 import mari.samba.dto.config.SambaGlobalConfigDto;
 import mari.samba.service.SambaConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.List;
+
 @Controller
 @RequestMapping("/config")
 public class ConfigController {
@@ -23,8 +26,11 @@ public class ConfigController {
     @GetMapping
     public String viewConfig(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
         String content = configService.getSmbConfContent(sessionId);
-        model.addAttribute("configContent", content);
-        return "config/view"; // Исправлено: раньше было 'editor'
+        List<SambaBackupDto> backups = configService.listBackups(sessionId);
+        
+        model.addAttribute("currentConfig", content); // Исправлено: шаблон ожидает currentConfig
+        model.addAttribute("backups", backups); // Исправлено: добавляем список бэкапов для шаблона
+        return "config/view";
     }
 
     @PostMapping("/save")
