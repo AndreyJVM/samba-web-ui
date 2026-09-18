@@ -21,7 +21,7 @@ public class UserController {
     public String loadUsersDashboard(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
         List<SambaUser> users = userService.getAllUsers(sessionId);
         model.addAttribute("users", users);
-        return "users/dashboard";
+        return "users/list"; // Правильный путь шаблона
     }
 
     @PostMapping("/create")

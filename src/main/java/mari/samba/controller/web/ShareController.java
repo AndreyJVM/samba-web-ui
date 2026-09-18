@@ -31,7 +31,7 @@ public class ShareController {
     public String sharesDashboard(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
         List<SambaShare> shares = shareService.getAllShares(sessionId);
         model.addAttribute("shares", shares);
-        return "shares/dashboard";
+        return "shares/list"; // Имя файла шаблона - list.html
     }
 
     @GetMapping("/create")
@@ -39,7 +39,7 @@ public class ShareController {
         model.addAttribute("share", new SambaShareCreateDto());
         model.addAttribute("users", userService.getAllUsers(sessionId));
         model.addAttribute("groups", groupService.getAllGroups(sessionId));
-        return "shares/form";
+        return "shares/create"; // Имя файла шаблона - create.html
     }
 
     @PostMapping("/create")
@@ -74,7 +74,7 @@ public class ShareController {
         model.addAttribute("groups", groupService.getAllGroups(sessionId));
         model.addAttribute("isEdit", true);
 
-        return "shares/form";
+        return "shares/edit"; // Имя файла шаблона - edit.html
     }
 
     @PostMapping("/edit/{name}")
