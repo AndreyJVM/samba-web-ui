@@ -1,16 +1,16 @@
 package mari.samba.controller.web;
 
 import jakarta.servlet.http.HttpSession;
-import jakarta.validation.Valid;
 import mari.samba.dto.share.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
-import mari.samba.service.SambaMonitoringService;
+import mari.samba.service.SambaGroupService;
 import mari.samba.service.SambaShareService;
+import mari.samba.service.SambaUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
@@ -22,108 +22,77 @@ public class ShareController {
     private SambaShareService shareService;
 
     @Autowired
-    private SambaMonitoringService monitoringService;
+    private SambaUserService userService;
+    
+    @Autowired
+    private SambaGroupService groupService;
 
     @GetMapping
-    public String listShares(HttpSession httpSession, Model model) {
-        String sessionId = httpSession.getId();
-        try {
-            List<SambaShare> shares = shareService.getAllShares(sessionId);
-            boolean isRunning = monitoringService.isServiceRunning(sessionId);
-
-            model.addAttribute("shares", shares);
-            model.addAttribute("isRunning", isRunning);
-            model.addAttribute("sambaHost", httpSession.getAttribute("sambaHost"));
-            return "shares/list";
-        } catch (Exception e) {
-            model.addAttribute("error", "Ошибка получения списка шар: " + e.getMessage());
-            return "shares/list";
-        }
+    public String sharesDashboard(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
+        List<SambaShare> shares = shareService.getAllShares(sessionId);
+        model.addAttribute("shares", shares);
+        return "shares/dashboard";
     }
 
     @GetMapping("/create")
-    public String showCreateForm(Model model) {
+    public String showCreateForm(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
         model.addAttribute("share", new SambaShareCreateDto());
-        return "shares/create";
+        model.addAttribute("users", userService.getAllUsers(sessionId));
+        model.addAttribute("groups", groupService.getAllGroups(sessionId));
+        return "shares/form";
     }
 
     @PostMapping("/create")
-    public String createShare(@Valid @ModelAttribute("share") SambaShareCreateDto dto,
-                              BindingResult bindingResult,
-                              HttpSession httpSession,
-                              Model model) {
-        if (bindingResult.hasErrors()) {
-            return "shares/create";
-        }
-
-        try {
-            shareService.createShare(httpSession.getId(), dto);
-            return "redirect:/shares?created=true";
-        } catch (Exception e) {
-            model.addAttribute("error", "Ошибка создания шары: " + e.getMessage());
-            return "shares/create";
-        }
+    public String createShare(@RequestAttribute("sessionId") String sessionId,
+                              @ModelAttribute("share") SambaShareCreateDto dto,
+                              RedirectAttributes redirectAttributes) throws Exception {
+        shareService.createShare(sessionId, dto);
+        redirectAttributes.addFlashAttribute("successMessage", "Шара '" + dto.getName() + "' успешно создана!");
+        return "redirect:/shares";
     }
 
     @GetMapping("/edit/{name}")
-    public String showEditForm(@PathVariable String name, HttpSession httpSession, Model model) {
-        try {
-            SambaShare share = shareService.getShareByName(httpSession.getId(), name);
-
-            SambaShareCreateDto dto = new SambaShareCreateDto();
-            dto.setName(share.getName());
-            dto.setPath(share.getPath());
-            dto.setComment(share.getComment());
-            dto.setReadOnly(share.isReadOnly());
-            dto.setGuestOk(share.isGuestOk());
-            dto.setBrowseable(share.isBrowseable());
-            dto.setValidUsers(share.getValidUsers());
-            dto.setWriteList(share.getWriteList());
-            dto.setCreateMask(share.getCreateMask());
-            dto.setDirectoryMask(share.getDirectoryMask());
-            dto.setForceUser(share.getForceUser());
-            dto.setForceGroup(share.getForceGroup());
-            dto.setMaxConnections(share.getMaxConnections());
-            dto.setHostsAllow(share.getHostsAllow());
-            dto.setHostsDeny(share.getHostsDeny());
-
-            model.addAttribute("share", dto);
-            model.addAttribute("originalName", name);
-            return "shares/edit";
-        } catch (Exception e) {
-            model.addAttribute("error", "Ошибка загрузки шары: " + e.getMessage());
-            return "redirect:/shares";
+    public String showEditForm(@RequestAttribute("sessionId") String sessionId,
+                               @PathVariable String name,
+                               Model model) throws Exception {
+        SambaShare share = shareService.getShareByName(sessionId, name);
+        if (share == null) {
+            throw new IllegalArgumentException("Шара с именем '" + name + "' не найдена.");
         }
+
+        SambaShareCreateDto dto = new SambaShareCreateDto();
+        dto.setName(share.getName());
+        dto.setPath(share.getPath());
+        dto.setComment(share.getComment());
+        dto.setBrowseable(share.isBrowseable());
+        dto.setReadOnly(share.isReadOnly());
+        dto.setValidUsers(share.getValidUsers());
+        dto.setForceUser(share.getForceUser());
+
+        model.addAttribute("share", dto);
+        model.addAttribute("users", userService.getAllUsers(sessionId));
+        model.addAttribute("groups", groupService.getAllGroups(sessionId));
+        model.addAttribute("isEdit", true);
+
+        return "shares/form";
     }
 
     @PostMapping("/edit/{name}")
-    public String updateShare(@PathVariable String name,
-                              @Valid @ModelAttribute("share") SambaShareCreateDto dto,
-                              BindingResult bindingResult,
-                              HttpSession httpSession,
-                              Model model) {
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("originalName", name);
-            return "shares/edit";
-        }
-
-        try {
-            shareService.updateShare(httpSession.getId(), name, dto);
-            return "redirect:/shares?updated=true";
-        } catch (Exception e) {
-            model.addAttribute("error", "Ошибка обновления шары: " + e.getMessage());
-            model.addAttribute("originalName", name);
-            return "shares/edit";
-        }
+    public String updateShare(@RequestAttribute("sessionId") String sessionId,
+                              @PathVariable String name,
+                              @ModelAttribute("share") SambaShareCreateDto dto,
+                              RedirectAttributes redirectAttributes) throws Exception {
+        shareService.updateShare(sessionId, name, dto);
+        redirectAttributes.addFlashAttribute("successMessage", "Шара '" + name + "' успешно обновлена!");
+        return "redirect:/shares";
     }
 
     @PostMapping("/delete/{name}")
-    public String deleteShare(@PathVariable String name, HttpSession httpSession) {
-        try {
-            shareService.deleteShare(httpSession.getId(), name);
-            return "redirect:/shares?deleted=true";
-        } catch (Exception e) {
-            return "redirect:/shares?error=" + e.getMessage();
-        }
+    public String deleteShare(@RequestAttribute("sessionId") String sessionId,
+                              @PathVariable String name,
+                              RedirectAttributes redirectAttributes) throws Exception {
+        shareService.deleteShare(sessionId, name);
+        redirectAttributes.addFlashAttribute("successMessage", "Шара '" + name + "' успешно удалена!");
+        return "redirect:/shares";
     }
 }

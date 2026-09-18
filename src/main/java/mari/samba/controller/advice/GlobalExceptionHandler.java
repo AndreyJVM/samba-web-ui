@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -40,9 +41,27 @@ public class GlobalExceptionHandler {
         return "redirect:/?disconnected=true";
     }
 
+    // Обрабатываем IllegalArgumentException для передачи безопасных сообщений об ошибках
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Object handleIllegalArgumentException(IllegalArgumentException ex,
+                                                 HttpServletRequest request,
+                                                 RedirectAttributes redirectAttributes) {
+        log.warn("Ошибка валидации для URI [{}]: {}", request.getRequestURI(), ex.getMessage());
+
+        if (request.getRequestURI().startsWith("/api/")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(ex.getMessage()));
+        }
+
+        // Если это POST/GET запрос из браузера, перенаправляем на предыдущую страницу
+        redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        return "redirect:" + getPreviousPageByRequest(request).orElse("/shares");
+    }
+
     @ExceptionHandler(Exception.class)
     public Object handleGeneralException(Exception ex,
                                          HttpServletRequest request,
+                                         RedirectAttributes redirectAttributes,
                                          Model model) {
         log.error("Непредвиденная ошибка при обработке [{}]: ", request.getRequestURI(), ex);
 
@@ -52,7 +71,22 @@ public class GlobalExceptionHandler {
                     .body(ApiResponse.error(ex.getMessage() != null ? ex.getMessage() : "Внутренняя ошибка сервера"));
         }
 
+        // Используем HTTP Referer, чтобы вернуть пользователя на ту же страницу с ошибкой
+        String referer = request.getHeader("Referer");
+        if (referer != null && !referer.isEmpty() && request.getMethod().equalsIgnoreCase("POST")) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+            return "redirect:" + referer;
+        }
+
+        // Если это GET-запрос и произошла ошибка рендера страницы
         model.addAttribute("error", ex.getMessage());
         return "error";
+    }
+
+    /**
+     * Пытается найти URL предыдущей страницы, чтобы вернуть пользователя туда после ошибки.
+     */
+    private java.util.Optional<String> getPreviousPageByRequest(HttpServletRequest request) {
+        return java.util.Optional.ofNullable(request.getHeader("Referer"));
     }
 }
