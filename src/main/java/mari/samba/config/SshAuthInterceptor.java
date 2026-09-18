@@ -19,6 +19,9 @@ public class SshAuthInterceptor implements HandlerInterceptor {
         HttpSession session = request.getSession(false);
 
         if (session != null && sessionManager.isConnected(session.getId())) {
+            // Передаем SessionId дальше в контроллеры как RequestAttribute 
+            // Это избавляет нас от необходимости извлекать его руками в каждом контроллере
+            request.setAttribute("sessionId", session.getId());
             return true;
         }
 
