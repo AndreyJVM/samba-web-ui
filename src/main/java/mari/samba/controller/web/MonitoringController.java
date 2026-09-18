@@ -26,10 +26,12 @@ public class MonitoringController {
             boolean isRunning = monitoringService.isServiceRunning(sessionId);
             List<Map<String, String>> connections = monitoringService.getActiveConnections(sessionId);
             List<Map<String, String>> openFiles = monitoringService.getOpenFiles(sessionId);
+            Map<String, String> diskUsage = monitoringService.getDiskUsage(sessionId);
 
             model.addAttribute("isRunning", isRunning);
             model.addAttribute("connections", connections);
             model.addAttribute("openFiles", openFiles);
+            model.addAttribute("diskUsage", diskUsage);
 
             return "status/dashboard";
         } catch (Exception e) {

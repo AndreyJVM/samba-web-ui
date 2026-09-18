@@ -61,9 +61,6 @@ public class SambaMonitoringService {
         return connections;
     }
 
-    /**
-     * Получает список открытых/заблокированных файлов (smbstatus -L)
-     */
     public List<Map<String, String>> getOpenFiles(String sessionId) {
         List<Map<String, String>> openFiles = new ArrayList<>();
         try {
@@ -82,17 +79,13 @@ public class SambaMonitoringService {
 
                 if (parsingFiles) {
                     String[] parts = line.split("\\s+");
-                    // Вывод smbstatus -L содержит много колонок, PID - 0-я, R/W режим - 4-я.
-                    // Путь к файлу начинается примерно с 6-й колонки
                     if (parts.length >= 8) {
                         Map<String, String> file = new HashMap<>();
                         file.put("pid", parts[0]);
                         file.put("rw", parts[4]); // RDONLY, WRONLY, RDWR
 
-                        // Собираем путь к файлу (учитываем возможные пробелы в названиях)
                         StringBuilder filePath = new StringBuilder();
                         for (int i = 6; i < parts.length; i++) {
-                            // Отсекаем дату в конце строки (обычно начинается с дня недели - Mon, Tue...)
                             if (parts[i].matches("Mon|Tue|Wed|Thu|Fri|Sat|Sun")) {
                                 break;
                             }
@@ -115,14 +108,34 @@ public class SambaMonitoringService {
         commandExecutor.execute(sessionId, LinuxCommands.systemctl(action, "smbd"));
     }
 
-    /**
-     * Принудительно завершает сессию пользователя (Kill Switch)
-     */
     public void killSession(String sessionId, String pid) throws Exception {
-        // Жесткая валидация: PID должен состоять только из цифр
         if (!pid.matches("^\\d+$")) {
             throw new IllegalArgumentException("Некорректный PID процесса: " + pid);
         }
         commandExecutor.execute(sessionId, LinuxCommands.kill(pid));
+    }
+
+    /**
+     * Получает статистику свободного места на дисках (/srv/samba или корня)
+     */
+    public Map<String, String> getDiskUsage(String sessionId) {
+        Map<String, String> stats = new HashMap<>();
+        try {
+            // Выполняем df -h, ищем строку с / или монтированием /srv
+            String output = commandExecutor.execute(sessionId, "df -h / | tail -n 1");
+            String[] parts = output.trim().split("\\s+");
+            if (parts.length >= 5) {
+                stats.put("total", parts[1]);
+                stats.put("used", parts[2]);
+                stats.put("free", parts[3]);
+                stats.put("percent", parts[4].replace("%", ""));
+            }
+        } catch (Exception e) {
+            stats.put("total", "N/A");
+            stats.put("used", "N/A");
+            stats.put("free", "N/A");
+            stats.put("percent", "0");
+        }
+        return stats;
     }
 }
