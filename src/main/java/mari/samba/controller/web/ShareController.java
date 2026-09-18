@@ -6,6 +6,7 @@ import mari.samba.model.SambaShare;
 import mari.samba.service.SambaGroupService;
 import mari.samba.service.SambaShareService;
 import mari.samba.service.SambaUserService;
+import mari.samba.service.SambaMonitoringService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,9 +28,17 @@ public class ShareController {
     @Autowired
     private SambaGroupService groupService;
 
+    @Autowired
+    private SambaMonitoringService monitoringService;
+
     @GetMapping
     public String sharesDashboard(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
         List<SambaShare> shares = shareService.getAllShares(sessionId);
+        
+        // Передаем статус службы smbd для виджета в шапке
+        boolean isRunning = monitoringService.isServiceRunning(sessionId); 
+        model.addAttribute("isRunning", isRunning);
+        
         model.addAttribute("shares", shares);
         return "shares/list"; 
     }
@@ -40,7 +49,7 @@ public class ShareController {
         model.addAttribute("users", userService.getAllUsers(sessionId));
         model.addAttribute("groups", groupService.getAllGroups(sessionId));
         model.addAttribute("isEdit", false);
-        return "shares/form"; // unified form template
+        return "shares/form"; 
     }
 
     @PostMapping("/create")
@@ -75,7 +84,7 @@ public class ShareController {
         model.addAttribute("groups", groupService.getAllGroups(sessionId));
         model.addAttribute("isEdit", true);
 
-        return "shares/form"; // unified form template
+        return "shares/form"; 
     }
 
     @PostMapping("/edit/{name}")
