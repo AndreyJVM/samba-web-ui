@@ -80,9 +80,18 @@
         </ul>
 
         <div class="sidebar-footer">
-            <div class="navbar-host-badge mb-3 text-truncate" th:if="${session.sambaHost}" title="Текущий сервер">
-                <i class="fas fa-network-wired me-1"></i> <span th:text="${session.sambaHost}"></span>
+            <!-- Отображение текущего хоста и пользователя -->
+            <div class="navbar-host-badge mb-3 text-truncate" th:if="${session.sambaHost}" title="Текущее подключение">
+                <div class="d-flex align-items-center mb-1">
+                    <i class="fas fa-network-wired me-2 text-info"></i>
+                    <span th:text="${session.sambaHost}" class="fw-bold"></span>
+                </div>
+                <div class="d-flex align-items-center text-muted small" th:if="${session.sambaUser}">
+                    <i class="fas fa-user-circle me-2"></i>
+                    <span th:text="${session.sambaUser}"></span>
+                </div>
             </div>
+            
             <a class="btn btn-outline-light w-100" href="/disconnect">
                 <i class="fas fa-sign-out-alt me-1"></i> Отключиться
             </a>
