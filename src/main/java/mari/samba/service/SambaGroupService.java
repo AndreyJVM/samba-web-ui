@@ -20,31 +20,28 @@ public class SambaGroupService {
 
     public List<SambaGroup> getAllGroups(String sessionId) throws Exception {
         List<SambaGroup> groups = new ArrayList<>();
-        // Выполняем getent group для получения списка системных групп
+        // Выполняем getent group. getent выводит данные в формате: groupname:password:gid:userlist
         String output = commandExecutor.execute(sessionId, "getent group");
         if (output == null || output.isBlank()) {
-            return groups; // Если ничего не вернулось, отдаем пустой список
+            return groups; 
         }
 
         String[] lines = output.split("\\r?\\n");
         for (String line : lines) {
-            String[] parts = line.split(":");
-            if (parts.length >= 4) {
+            String[] parts = line.split(":", -1); // Важно: используем -1, чтобы не отсекать пустые элементы в конце (список пользователей может быть пустым)
+            if (parts.length >= 3) { // Минимальная длина 3 для получения имени и GID, 4-й элемент - юзеры
                 String groupName = parts[0];
                 
-                // Вариант 2: Строгая привязка к префиксу smb_
-                // Показываем в UI только те группы, которыми управляет наше приложение
                 if (!groupName.startsWith(GROUP_PREFIX)) {
                     continue;
                 }
 
-                // Для UI мы можем отрезать префикс, чтобы было красиво (smb_managers -> managers)
                 String displayName = groupName.substring(GROUP_PREFIX.length());
 
-                String usersRaw = parts[3];
                 List<String> userList = new ArrayList<>();
-                if (!usersRaw.isBlank()) {
-                    userList = Arrays.asList(usersRaw.split(","));
+                // parts[3] может не существовать, если в группе никто не состоит, но если мы парсим с split(":", -1), он должен быть пустой строкой
+                if (parts.length >= 4 && !parts[3].isBlank()) {
+                    userList = Arrays.asList(parts[3].split(","));
                 }
                 
                 groups.add(new SambaGroup(displayName, userList));
@@ -54,7 +51,6 @@ public class SambaGroupService {
     }
 
     public void createGroup(String sessionId, SambaGroupCreateDto dto) throws Exception {
-        // Добавляем префикс перед созданием
         String fullGroupName = GROUP_PREFIX + dto.groupName();
         String command = String.format("sudo groupadd %s", escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
