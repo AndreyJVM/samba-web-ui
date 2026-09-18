@@ -13,6 +13,8 @@ import java.util.List;
 @Service
 public class SambaGroupService {
 
+    private static final String GROUP_PREFIX = "smb_";
+
     @Autowired
     private CommandExecutor commandExecutor;
 
@@ -30,20 +32,14 @@ public class SambaGroupService {
             if (parts.length >= 4) {
                 String groupName = parts[0];
                 
-                // Фильтруем. Обычно пользовательские группы начинаются с GID >= 1000, 
-                // но для Samba-веба нас интересуют любые группы, созданные вручную.
-                // Для начала давайте возвращать стандартные пользовательские группы + созданные нами.
-                int gid;
-                try {
-                    gid = Integer.parseInt(parts[2]);
-                } catch (NumberFormatException e) {
+                // Вариант 2: Строгая привязка к префиксу smb_
+                // Показываем в UI только те группы, которыми управляет наше приложение
+                if (!groupName.startsWith(GROUP_PREFIX)) {
                     continue;
                 }
-                
-                // Пропускаем служебные системные группы (GID < 1000)
-                if (gid < 1000 && gid != 0) {
-                   continue;
-                }
+
+                // Для UI мы можем отрезать префикс, чтобы было красиво (smb_managers -> managers)
+                String displayName = groupName.substring(GROUP_PREFIX.length());
 
                 String usersRaw = parts[3];
                 List<String> userList = new ArrayList<>();
@@ -51,30 +47,34 @@ public class SambaGroupService {
                     userList = Arrays.asList(usersRaw.split(","));
                 }
                 
-                groups.add(new SambaGroup(groupName, userList));
+                groups.add(new SambaGroup(displayName, userList));
             }
         }
         return groups;
     }
 
     public void createGroup(String sessionId, SambaGroupCreateDto dto) throws Exception {
-        // Команда добавления группы в ОС
-        String command = String.format("sudo groupadd %s", escape(dto.groupName()));
+        // Добавляем префикс перед созданием
+        String fullGroupName = GROUP_PREFIX + dto.groupName();
+        String command = String.format("sudo groupadd %s", escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
     }
 
     public void deleteGroup(String sessionId, String groupName) throws Exception {
-        String command = String.format("sudo groupdel %s", escape(groupName));
+        String fullGroupName = GROUP_PREFIX + groupName;
+        String command = String.format("sudo groupdel %s", escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
     }
 
     public void addUserToGroup(String sessionId, String username, String groupName) throws Exception {
-        String command = String.format("sudo gpasswd -a %s %s", escape(username), escape(groupName));
+        String fullGroupName = GROUP_PREFIX + groupName;
+        String command = String.format("sudo gpasswd -a %s %s", escape(username), escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
     }
 
     public void removeUserFromGroup(String sessionId, String username, String groupName) throws Exception {
-        String command = String.format("sudo gpasswd -d %s %s", escape(username), escape(groupName));
+        String fullGroupName = GROUP_PREFIX + groupName;
+        String command = String.format("sudo gpasswd -d %s %s", escape(username), escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
     }
 

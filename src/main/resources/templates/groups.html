@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: header('Samba Web UI - Группы')}"></head>
+<body class="bg-light">
+
+<div th:replace="~{fragments/layout :: navbar('groups')}"></div>
+
+<div class="container-fluid content px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0 text-primary fw-bold">
+            <i class="fas fa-users me-2"></i>Группы OS Linux / Samba
+        </h2>
+        <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+            <i class="fas fa-plus me-1"></i> Создать группу
+        </button>
+    </div>
+
+    <!-- Alert placeholder -->
+    <div id="alertContainer"></div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Имя группы</th>
+                    <th>Пользователи</th>
+                    <th class="text-end pe-4">Действия</th>
+                </tr>
+                </thead>
+                <tbody>
+                <!-- Итерация по группам -->
+                <tr th:each="group : ${groups}">
+                    <td class="ps-4 fw-medium text-dark" th:text="${group.name}"></td>
+                    <td>
+                        <span th:if="${group.members == null || group.members.isEmpty()}" class="text-muted small">Нет пользователей</span>
+                        <div th:unless="${group.members == null || group.members.isEmpty()}">
+                            <span th:each="member : ${group.members}" class="badge bg-secondary me-1" th:text="${member}"></span>
+                        </div>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-outline-primary me-2" th:onclick="openManageModal([[${group.name}]], [[${group.members}]])">
+                            <i class="fas fa-user-edit"></i> Управление
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" th:onclick="deleteGroup([[${group.name}]])">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr th:if="${groups.isEmpty()}">
+                    <td colspan="3" class="text-center py-4 text-muted">Группы не найдены. Создайте первую группу.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка: Создать группу -->
+<div class="modal fade" id="createGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Создать новую группу</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Имя группы <span class="text-danger">*</span></label>
+                    <input type="text" id="newGroupName" class="form-control" placeholder="Например: developers" required>
+                    <div class="form-text">Только a-z, 0-9, _ и -</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="createGroup()">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка: Управление пользователями в группе -->
+<div class="modal fade" id="manageMembersModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title">Управление группой: <span id="manageGroupName" class="text-primary fw-bold"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <input type="hidden" id="currentManageGroup">
+                
+                <!-- Список текущих мемберов -->
+                <div class="mb-4">
+                    <h6 class="fw-bold small text-muted text-uppercase mb-2">Состав группы</h6>
+                    <ul class="list-group list-group-flush border rounded border-light" id="membersList">
+                        <!-- JS injects members here -->
+                    </ul>
+                </div>
+
+                <hr>
+
+                <!-- Форма добавления мембера -->
+                <div class="input-group mt-3">
+                    <select id="newUserSelect" class="form-select">
+                        <option value="">Выберите пользователя...</option>
+                        <option th:each="user : ${allUsernames}" th:value="${user}" th:text="${user}"></option>
+                    </select>
+                    <button class="btn btn-outline-success" type="button" onclick="addUserToGroup()">
+                        <i class="fas fa-plus"></i> Добавить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+
+<script>
+    function showAlert(message, type = 'success') {
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        const html = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="fas ${icon} me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        document.getElementById('alertContainer').innerHTML = html;
+        window.scrollTo(0, 0);
+    }
+
+    async function createGroup() {
+        const nameInput = document.getElementById('newGroupName');
+        const name = nameInput.value.trim();
+
+        if (!name) {
+            alert('Укажите имя группы');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/groups', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName: name })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                showAlert(data.message || 'Ошибка создания', 'danger');
+            }
+        } catch (e) {
+            showAlert('Сетевая ошибка: ' + e.message, 'danger');
+        }
+    }
+
+    async function deleteGroup(name) {
+        if (!confirm(`Точно удалить группу '${name}'?\nЭто действие может затронуть права существующих общих папок.`)) return;
+
+        try {
+            const res = await fetch(`/api/groups/${name}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        } catch (e) {
+            showAlert('Ошибка удаления: ' + e.message, 'danger');
+        }
+    }
+
+    let currentManageMembers = [];
+
+    // Открытие модалки управления и отрисовка пользователей
+    function openManageModal(groupName, membersStr) {
+        document.getElementById('currentManageGroup').value = groupName;
+        document.getElementById('manageGroupName').innerText = groupName;
+        
+        let members = [];
+        if (membersStr && membersStr.length > 2) {
+            // Thymeleaf array toString looks like "[user1, user2]"
+            let cleanStr = membersStr.replace(/^\\[|\\]$/g, '');
+            if (cleanStr.trim()) {
+               members = cleanStr.split(',').map(s => s.trim());
+            }
+        }
+        
+        currentManageMembers = members;
+        renderMembersList();
+
+        const modal = new bootstrap.Modal(document.getElementById('manageMembersModal'));
+        modal.show();
+    }
+
+    function renderMembersList() {
+        const list = document.getElementById('membersList');
+        if (currentManageMembers.length === 0) {
+            list.innerHTML = `<li class="list-group-item text-muted text-center py-3 border-0 bg-light rounded"><i class="fas fa-ghost me-2"></i>В группе нет пользователей</li>`;
+            return;
+        }
+
+        const groupName = document.getElementById('currentManageGroup').value;
+        list.innerHTML = currentManageMembers.map(user => `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-user text-secondary me-2"></i>${user}</span>
+                <button class="btn btn-sm btn-link text-danger p-0" onclick="removeUserFromGroup('${user}')" title="Исключить">
+                    <i class="fas fa-times"></i>
+                </button>
+            </li>
+        `).join('');
+    }
+
+    async function addUserToGroup() {
+        const select = document.getElementById('newUserSelect');
+        const user = select.value;
+        const group = document.getElementById('currentManageGroup').value;
+
+        if (!user) return;
+        if (currentManageMembers.includes(user)) {
+            alert('Пользователь уже в этой группе');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/groups/${group}/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                currentManageMembers.push(user);
+                renderMembersList();
+                select.value = ''; // сброс селекта
+                // Для чистоты UI, можно было бы location.reload(), но проще обновить локальный массив
+                showAlert(`Пользователь ${user} добавлен в группу`, 'success');
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        } catch (e) {
+            showAlert('Ошибка: ' + e.message, 'danger');
+        }
+    }
+
+    async function removeUserFromGroup(user) {
+        const group = document.getElementById('currentManageGroup').value;
+        try {
+            const res = await fetch(`/api/groups/${group}/users/${user}`, {
+                method: 'DELETE'
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                currentManageMembers = currentManageMembers.filter(u => u !== user);
+                renderMembersList();
+                showAlert(`Пользователь ${user} исключен из группы`, 'success');
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        } catch (e) {
+            showAlert('Ошибка: ' + e.message, 'danger');
+        }
+    }
+    
+    // Перезагрузка страницы при закрытии модалки, чтобы обновить главную таблицу
+    document.getElementById('manageMembersModal').addEventListener('hidden.bs.modal', function () {
+        location.reload();
+    })
+</script>
+
+</body>
+</html>

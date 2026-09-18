@@ -142,11 +142,15 @@
             </div>
             <div class="modal-body small">
                 <ol class="ps-3 mb-0">
+                    <li class="mb-2">Быстрая установка одним скриптом (рекомендуется):
+                        <pre class="bg-dark text-white p-2 rounded mt-1">wget -qO- https://raw.githubusercontent.com/AndreyJVM/samba-web-ui/master/scripts/setup-samba-server.sh | sudo bash</pre>
+                    </li>
+                    <h6 class="mt-3 mb-2 fw-bold text-muted">Или вручную:</h6>
                     <li class="mb-2">Установите Samba: <code>sudo apt install -y samba</code></li>
                     <li class="mb-2">Создайте пользователя: <code>sudo useradd -m -s /bin/bash samba-admin && sudo passwd samba-admin</code></li>
                     <li class="mb-2">Добавьте в Samba: <code>sudo smbpasswd -a samba-admin</code></li>
                     <li class="mb-2">Разрешите команды без пароля в <code>/etc/sudoers.d/samba-web-ui</code>:
-                        <pre class="bg-dark text-white p-2 rounded mt-1">samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /usr/bin/kill, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /usr/bin/tail, /bin/df, /usr/bin/df, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/mkdir, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown, /usr/bin/smbstatus, /usr/bin/systemctl, /bin/kill, /usr/bin/tail is-active smbd</pre>
+                        <pre class="bg-dark text-white p-2 rounded mt-1">samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /usr/bin/kill, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /usr/bin/tail, /bin/df, /usr/bin/df, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/mkdir, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown, /usr/bin/smbstatus, /usr/bin/systemctl, /bin/kill, /usr/bin/tail is-active smbd, /usr/sbin/groupadd, /sbin/groupadd, /usr/sbin/groupdel, /sbin/groupdel, /usr/bin/gpasswd</pre>
                     </li>
                 </ol>
             </div>

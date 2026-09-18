@@ -46,7 +46,7 @@ echo ">>> [4/4] Настройка прав sudoers для '$ADMIN_USER'..."
 SUDOERS_FILE="/etc/sudoers.d/samba-web-ui"
 
 cat <<EOF > "$SUDOERS_FILE"
-$ADMIN_USER ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /usr/bin/kill, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /usr/bin/tail, /bin/df, /usr/bin/df, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/mkdir, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown, /usr/bin/smbstatus, /bin/kill, /usr/bin/tail is-active smbd
+$ADMIN_USER ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /usr/bin/kill, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /usr/bin/tail, /bin/df, /usr/bin/df, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/mkdir, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown, /usr/bin/smbstatus, /bin/kill, /usr/bin/tail is-active smbd, /usr/sbin/groupadd, /sbin/groupadd, /usr/sbin/groupdel, /sbin/groupdel, /usr/bin/gpasswd
 EOF
 
 chmod 0440 "$SUDOERS_FILE"
