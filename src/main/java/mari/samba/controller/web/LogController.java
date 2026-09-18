@@ -17,6 +17,6 @@ public class LogController {
     public String viewLogs(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
         String logs = logService.getRecentLogs(sessionId, 500);
         model.addAttribute("logsData", logs);
-        return "logs";
+        return "logs/view"; // Исправлено: правильный путь к шаблону
     }
 }
