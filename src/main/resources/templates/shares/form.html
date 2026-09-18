@@ -52,17 +52,18 @@
                                 <div class="row mb-4">
                                     <div class="col-md-12">
                                         <label class="form-label text-muted fw-bold small text-uppercase mb-2">Назначить доступ (valid users)</label>
-                                        <div class="border rounded p-3 bg-white" style="max-height: 200px; overflow-y: auto;">
-                                            <div class="text-muted small mb-2" th:if="${users.empty and groups.empty}">Нет доступных пользователей или групп в системе.</div>
+                                        
+                                        <!-- Блок выбора локальных аккаунтов -->
+                                        <div class="border rounded p-3 bg-white mb-3" style="max-height: 200px; overflow-y: auto;">
+                                            <div class="text-muted small mb-2" th:if="${users.empty and groups.empty}">Нет доступных локальных пользователей или групп.</div>
                                             
                                             <!-- Группы -->
-                                            <div class="fw-bold mb-2 text-dark" th:if="${!groups.empty}"><i class="fas fa-users me-1 text-secondary"></i> Группы (Groups)</div>
+                                            <div class="fw-bold mb-2 text-dark" th:if="${!groups.empty}"><i class="fas fa-users me-1 text-secondary"></i> Локальные Группы</div>
                                             <div class="d-flex flex-wrap gap-2 mb-3">
                                                 <div th:each="group : ${groups}" class="form-check form-check-inline m-0">
                                                     <input class="form-check-input valid-users-checkbox" type="checkbox" 
                                                            th:id="'grp_' + ${group.name}" 
-                                                           th:value="'@' + ${group.name}"
-                                                           th:checked="${share.validUsers != null and share.validUsers.contains('@smb_' + group.name) or share.validUsers != null and share.validUsers.contains('@' + group.name)}">
+                                                           th:value="'@smb_' + ${group.name}">
                                                     <label class="form-check-label py-1 px-2 border rounded" th:for="'grp_' + ${group.name}" style="cursor: pointer; background: #eef2f5;">
                                                         <i class="fas fa-users text-primary me-1"></i> <span th:text="${group.name}"></span>
                                                     </label>
@@ -70,21 +71,27 @@
                                             </div>
 
                                             <!-- Пользователи -->
-                                            <div class="fw-bold mb-2 text-dark" th:if="${!users.empty}"><i class="fas fa-user me-1 text-secondary"></i> Пользователи (Users)</div>
+                                            <div class="fw-bold mb-2 text-dark" th:if="${!users.empty}"><i class="fas fa-user me-1 text-secondary"></i> Локальные Пользователи</div>
                                             <div class="d-flex flex-wrap gap-2">
                                                 <div th:each="user : ${users}" class="form-check form-check-inline m-0">
                                                     <input class="form-check-input valid-users-checkbox" type="checkbox" 
                                                            th:id="'usr_' + ${user.username}" 
-                                                           th:value="${user.username}"
-                                                           th:checked="${share.validUsers != null and share.validUsers.matches('(^|.*\\s|,)\\s*' + user.username + '\\s*(,|$|\\s.*)')}">
+                                                           th:value="${user.username}">
                                                     <label class="form-check-label py-1 px-2 border rounded" th:for="'usr_' + ${user.username}" style="cursor: pointer;">
                                                         <i class="fas fa-user text-secondary me-1"></i> <span th:text="${user.username}"></span>
                                                     </label>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="form-text">Выберите, кому разрешен вход. Если никто не выбран, доступ открыт для всех (кроме гостевого, если он выключен).</div>
-                                        <!-- Скрытое поле, куда JS будет собирать строку validUsers -->
+
+                                        <!-- Ручной/Доменный ввод -->
+                                        <div class="bg-white border rounded p-3 mb-2">
+                                            <label for="customUsers" class="form-label fw-bold text-dark mb-1"><i class="fas fa-globe me-1 text-secondary"></i> Доменные пользователи и группы (AD)</label>
+                                            <input type="text" id="customUsers" class="form-control" placeholder="DOMAIN\User, @DOMAIN\Group">
+                                            <div class="form-text">Введите дополнительных пользователей через запятую (например, из контроллера домена Windows).</div>
+                                        </div>
+
+                                        <!-- Скрытое поле, куда JS собирает финальную строку validUsers -->
                                         <input type="hidden" id="validUsers" th:field="*{validUsers}">
                                     </div>
                                 </div>
@@ -109,7 +116,6 @@
                             </div>
                         </div>
 
-
                         <div class="d-flex gap-2 mt-4">
                             <button type="submit" class="btn btn-primary px-5 rounded-pill shadow-sm" onclick="collectValidUsers()"><i class="fas fa-save me-2"></i>Сохранить</button>
                             <a href="/shares" class="btn btn-light px-4 rounded-pill border">Отмена</a>
@@ -130,18 +136,42 @@
 <div th:replace="~{fragments/dir-modal :: directoryBrowserScript}"></div>
 
 <script>
-    // JS логика для сбора выбранных чекбоксов в одну строку через запятую для сохранения в smb.conf
+    document.addEventListener("DOMContentLoaded", function() {
+        const rawValidUsers = document.getElementById('validUsers').value.trim();
+        if (!rawValidUsers) return;
+
+        // Разбираем строку из smb.conf (через запятую)
+        const entries = rawValidUsers.split(',').map(e => e.trim()).filter(e => e.length > 0);
+        const customEntries = [];
+
+        // Идем по каждой записи из конфига
+        entries.forEach(entry => {
+            // Ищем чекбокс с таким value
+            const checkbox = document.querySelector(`.valid-users-checkbox[value="${entry}"]`);
+            if (checkbox) {
+                checkbox.checked = true; // Если это наш локальный юзер/группа — ставим галочку
+            } else {
+                customEntries.push(entry); // Если нет чекбокса, значит это доменная запись (AD) или левая
+            }
+        });
+
+        // Заполняем поле доменных пользователей
+        if (customEntries.length > 0) {
+            document.getElementById('customUsers').value = customEntries.join(', ');
+        }
+    });
+
+    // Собираем данные перед отправкой на бэкенд
     function collectValidUsers() {
         const checkboxes = document.querySelectorAll('.valid-users-checkbox:checked');
-        const values = Array.from(checkboxes).map(cb => {
-            let val = cb.value;
-            // Если это группа (начинается с @), добавляем префикс smb_, так как линукс-группы у нас с префиксом
-            if (val.startsWith('@')) {
-                return '@smb_' + val.substring(1);
-            }
-            return val;
-        });
-        document.getElementById('validUsers').value = values.join(', ');
+        const localSelected = Array.from(checkboxes).map(cb => cb.value); // Возвращает user или @smb_group
+        
+        const customInputString = document.getElementById('customUsers').value.trim();
+        const customSelected = customInputString ? customInputString.split(',').map(e => e.trim()).filter(e => e.length > 0) : [];
+        
+        // Объединяем оба списка и сохраняем в скрытое поле
+        const allSelected = [...localSelected, ...customSelected];
+        document.getElementById('validUsers').value = allSelected.join(', ');
     }
 </script>
 </body>
