@@ -24,7 +24,7 @@ public class ConfigController {
     public String viewConfig(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
         String content = configService.getSmbConfContent(sessionId);
         model.addAttribute("configContent", content);
-        return "config/editor";
+        return "config/view"; // Исправлено: раньше было 'editor'
     }
 
     @PostMapping("/save")
