@@ -5,6 +5,7 @@ import mari.samba.model.SambaShare;
 import mari.samba.service.SambaGroupService;
 import mari.samba.service.SambaShareService;
 import mari.samba.service.SambaUserService;
+import mari.samba.service.SambaMonitoringService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -35,12 +36,16 @@ class ShareControllerTest {
     private SambaGroupService groupService;
 
     @MockitoBean
+    private SambaMonitoringService monitoringService;
+
+    @MockitoBean
     private SshAuthInterceptor authInterceptor;
 
     @Test
     void sharesDashboard_ShouldReturnCorrectTemplate() throws Exception {
         when(authInterceptor.preHandle(any(), any(), any())).thenReturn(true);
         when(shareService.getAllShares("test-session")).thenReturn(Collections.singletonList(new SambaShare()));
+        when(monitoringService.isServiceRunning("test-session")).thenReturn(true);
 
         MockHttpSession session = new MockHttpSession();
 
@@ -49,7 +54,7 @@ class ShareControllerTest {
                         .requestAttr("sessionId", "test-session"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("shares/list"))
-                .andExpect(model().attributeExists("shares"));
+                .andExpect(model().attributeExists("shares", "isRunning"));
     }
 
     @Test
@@ -64,7 +69,7 @@ class ShareControllerTest {
                         .session(session)
                         .requestAttr("sessionId", "test"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("shares/form")) // Будем использовать единый шаблон form.html
+                .andExpect(view().name("shares/form"))
                 .andExpect(model().attributeExists("share", "users", "groups"));
     }
 }
