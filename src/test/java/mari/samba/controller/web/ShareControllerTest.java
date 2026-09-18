@@ -39,18 +39,32 @@ class ShareControllerTest {
 
     @Test
     void sharesDashboard_ShouldReturnCorrectTemplate() throws Exception {
-        // Arrange
         when(authInterceptor.preHandle(any(), any(), any())).thenReturn(true);
         when(shareService.getAllShares("test-session")).thenReturn(Collections.singletonList(new SambaShare()));
 
         MockHttpSession session = new MockHttpSession();
 
-        // Act & Assert
         mockMvc.perform(get("/shares")
                         .session(session)
                         .requestAttr("sessionId", "test-session"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("shares/list"))
                 .andExpect(model().attributeExists("shares"));
+    }
+
+    @Test
+    void showCreateForm_ShouldReturnCorrectTemplateAndInjectUsers() throws Exception {
+        when(authInterceptor.preHandle(any(), any(), any())).thenReturn(true);
+        when(userService.getAllUsers("test")).thenReturn(Collections.emptyList());
+        when(groupService.getAllGroups("test")).thenReturn(Collections.emptyList());
+        
+        MockHttpSession session = new MockHttpSession();
+
+        mockMvc.perform(get("/shares/create")
+                        .session(session)
+                        .requestAttr("sessionId", "test"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("shares/form")) // Будем использовать единый шаблон form.html
+                .andExpect(model().attributeExists("share", "users", "groups"));
     }
 }
