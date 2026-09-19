@@ -1,6 +1,7 @@
 package mari.samba.controller.web;
 
 import jakarta.servlet.http.HttpSession;
+import mari.samba.dto.user.SambaUserCreateDto;
 import mari.samba.model.SambaUser;
 import mari.samba.service.SambaUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,16 +27,26 @@ public class UserController {
         return "users/list";
     }
 
+    @GetMapping("/create")
+    public String showCreateUserForm(Model model) {
+        model.addAttribute("user", new SambaUserCreateDto());
+        return "users/create";
+    }
+
     @PostMapping("/create")
     public String createUser(HttpSession session,
-                             @RequestParam String username,
-                             @RequestParam String password,
-                             @RequestParam(required = false) String fullName,
+                             @ModelAttribute("user") SambaUserCreateDto userDto,
                              RedirectAttributes redirectAttributes) throws Exception {
         String sessionId = session.getId();
-        userService.createUser(sessionId, username, password, fullName);
-        redirectAttributes.addFlashAttribute("successMessage", "Пользователь '" + username + "' успешно создан!");
+        userService.createUser(sessionId, userDto.getUsername(), userDto.getPassword(), userDto.getFullName());
+        redirectAttributes.addFlashAttribute("successMessage", "Пользователь '" + userDto.getUsername() + "' успешно создан!");
         return "redirect:/users";
+    }
+    
+    @GetMapping("/change-password/{username}")
+    public String showChangePasswordForm(@PathVariable String username, Model model) {
+        model.addAttribute("username", username);
+        return "users/change-password";
     }
 
     @PostMapping("/delete")

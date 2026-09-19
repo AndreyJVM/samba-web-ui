@@ -39,4 +39,23 @@ class UserControllerTest {
                 .andExpect(view().name("users/list"))
                 .andExpect(model().attributeExists("users"));
     }
+    
+    @Test
+    @WithMockUser(username="admin", roles={"ADMIN"})
+    void showCreateUserForm_ShouldReturnCreateTemplate() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(get("/users/create").session(session))
+                .andExpect(status().isOk())
+                .andExpect(view().name("users/create"));
+    }
+
+    @Test
+    @WithMockUser(username="admin", roles={"ADMIN"})
+    void showChangePasswordForm_ShouldReturnFormTemplate() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        mockMvc.perform(get("/users/change-password/test_user").session(session))
+                .andExpect(status().isOk())
+                .andExpect(view().name("users/change-password"))
+                .andExpect(model().attributeExists("username"));
+    }
 }
