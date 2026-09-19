@@ -108,12 +108,7 @@
 </div>
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
-<script>
-    function openRestoreModal(filename, date) {
-        document.getElementById('restoreFilename').value = filename;
-        document.getElementById('restoreDate').textContent = date;
-        new bootstrap.Modal(document.getElementById('restoreModal')).show();
-    }
-</script>
+<script th:src="@{/js/config-view.js}"></script>
 </body>
 </html>
+

@@ -135,44 +135,7 @@
 <div th:replace="~{fragments/layout :: scripts}"></div>
 <div th:replace="~{fragments/dir-modal :: directoryBrowserScript}"></div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const rawValidUsers = document.getElementById('validUsers').value.trim();
-        if (!rawValidUsers) return;
-
-        // Разбираем строку из smb.conf (через запятую)
-        const entries = rawValidUsers.split(',').map(e => e.trim()).filter(e => e.length > 0);
-        const customEntries = [];
-
-        // Идем по каждой записи из конфига
-        entries.forEach(entry => {
-            // Ищем чекбокс с таким value
-            const checkbox = document.querySelector(`.valid-users-checkbox[value="${entry}"]`);
-            if (checkbox) {
-                checkbox.checked = true; // Если это наш локальный юзер/группа — ставим галочку
-            } else {
-                customEntries.push(entry); // Если нет чекбокса, значит это доменная запись (AD) или левая
-            }
-        });
-
-        // Заполняем поле доменных пользователей
-        if (customEntries.length > 0) {
-            document.getElementById('customUsers').value = customEntries.join(', ');
-        }
-    });
-
-    // Собираем данные перед отправкой на бэкенд
-    function collectValidUsers() {
-        const checkboxes = document.querySelectorAll('.valid-users-checkbox:checked');
-        const localSelected = Array.from(checkboxes).map(cb => cb.value); // Возвращает user или @smb_group
-        
-        const customInputString = document.getElementById('customUsers').value.trim();
-        const customSelected = customInputString ? customInputString.split(',').map(e => e.trim()).filter(e => e.length > 0) : [];
-        
-        // Объединяем оба списка и сохраняем в скрытое поле
-        const allSelected = [...localSelected, ...customSelected];
-        document.getElementById('validUsers').value = allSelected.join(', ');
-    }
-</script>
+<script th:src="@{/js/shares-form.js}"></script>
 </body>
 </html>
+
