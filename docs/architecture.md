@@ -1,112 +1,81 @@
-# Архитектура проекта
+# Архитектура и Устройство
 
-Приложение спроектировано по принципам многослойной архитектуры (Layered Architecture) с чётким разделением ответственности между сетевым транспортом (SSH/JSch), парсингом конфигурации, доменной логикой и веб-представлением.
+Приложение построено по классической слоистой архитектуре (Layered Architecture) в связке с паттерном Фасад для удаленного управления (SSH/JSch), позволяющим избежать установки агента.
 
 ---
 
 ## Стек технологий
 
-* **Ядро бэкенда**: Spring Boot 3.3 (Java 17)
-* **Веб-слой**: Spring Web MVC, Spring Validation
-* **Шаблонизатор**: Thymeleaf (с модульной компонентной структурой через fragments)
+* **Ядро бэкенда**: Spring Boot 3.4 (Java 21)
+* **Безопасность**: Spring Security, HttpSession (заменило кастомные перехватчики)
+* **Шаблонизатор**: Thymeleaf (с использованием фрагментов)
 * **Фронтенд**: Bootstrap 5.3, FontAwesome 6, кастомный CSS (`style.css`)
-* **SSH-транспорт**: JSch (`com.github.mwiede:jsch`) через абстракцию `CommandExecutor`
-* **Контейнеризация**: Многоэтапный Dockerfile (Eclipse Temurin 17 JRE Alpine)
+* **SSH-клиент**: JSch (`com.github.mwiede:jsch`) через обёртку `CommandExecutor`
+* **Контейнеризация**: Многоэтапный Dockerfile
 * **CI/CD & Docs**: GitHub Actions, Docker Hub, MkDocs Material (GitHub Pages)
 
 ---
 
-## Полная структура проекта
+## Структура директорий и пакетов
 
 ```shell
 samba-web-ui/
 ├── .github/
 │   └── workflows/
 │       ├── ci-cd.yml             # Сборка JAR, прогон тестов, публикация в Docker Hub
-│       └── docs.yml              # Автосборка и деплой сайта MkDocs на GitHub Pages
-├── docs/                         # Исходники документации в Markdown
+│       └── docs.yml              # Автоматическая сборка MkDocs на GitHub Pages
+├── docs/                         # Документация в Markdown
 ├── src/
 │   ├── main/
 │   │   ├── java/mari/samba/
 │   │   │   ├── SambaWebUiApplication.java   # Точка входа Spring Boot
 │   │   │   │
-│   │   │   ├── config/                      # Конфигурация Spring MVC
-│   │   │   │   └── WebMvcConfig.java        # Регистрация Interceptor'ов и статики
+│   │   │   ├── config/                      # Конфигурации Spring
+│   │   │   │   └── SecurityConfig.java      # Настройки авторизации и защиты от CSRF 
 │   │   │   │
-│   │   │   ├── controller/                  # Контроллеры веб-маршрутов
-│   │   │   │   ├── AuthController.java      # Вход, создание сессии и выход
+│   │   │   ├── controller/web/              # Веб-контроллеры
+│   │   │   │   ├── AuthController.java      # Вход, авторизация и выход
 │   │   │   │   ├── ShareController.java     # Управление общими папками
 │   │   │   │   ├── UserController.java      # Управление пользователями
-│   │   │   │   ├── ConfigController.java    # Просмотр smb.conf, бэкапы и [global]
-│   │   │   │   ├── MonitoringController.java# Дашборд smbstatus и статус службы
-│   │   │   │   └── GlobalExceptionHandler.java # Централизованный перехват ошибок
+│   │   │   │   ├── GroupController.java     # Управление группами
+│   │   │   │   ├── ConfigController.java    # Логика работы с smb.conf и бэкапами
+│   │   │   │   ├── MonitoringController.java# Мониторинг smbd и smbstatus
+│   │   │   │   └── WebRoutes.java           # Константы всех эндпоинтов (Anti-Magic Strings)
 │   │   │   │
-│   │   │   ├── dto/                         # Валидируемые DTO для форм
-│   │   │   │   ├── ConnectionRequest.java   # Параметры подключения к хосту
-│   │   │   │   ├── SambaShareCreateDto.java # Настройки сетевой папки
-│   │   │   │   ├── SambaUserCreateDto.java  # Данные создаваемого пользователя
-│   │   │   │   ├── SambaGlobalConfigDto.java# Параметры секции [global]
-│   │   │   │   └── SambaBackupDto.java      # Метаданные архивного снимка smb.conf
+│   │   │   ├── dto/                         # Data Transfer Objects
+│   │   │   │   ├── SambaShareCreateDto.java # Создание папки
+│   │   │   │   ├── SambaUserCreateDto.java  # Форма пользователя
+│   │   │   │   ├── SambaGroupCreateDto.java # Форма группы
+│   │   │   │   └── SambaGlobalConfigDto.java# Настройки секции [global]
 │   │   │   │
-│   │   │   ├── interceptor/                 # Перехватчики запросов
-│   │   │   │   └── AuthInterceptor.java     # Защита маршрутов от неавторизованного доступа
+│   │   │   ├── model/                       # Доменные модели
+│   │   │   │   ├── SambaShare.java          # Сущность шары
+│   │   │   │   ├── SambaUser.java           # Сущность пользователя
+│   │   │   │   └── SambaGroup.java          # Сущность группы
 │   │   │   │
-│   │   │   ├── model/                       # Внутренние модели данных
-│   │   │   │   ├── SambaShare.java          # Сущность ресурса Samba
-│   │   │   │   └── SambaUser.java           # Сущность пользователя Samba
-│   │   │   │
-│   │   │   └── service/                     # Слой бизнес-логики и инфраструктуры
-│   │   │       ├── CommandExecutor.java     # Абстрактный интерфейс вызова shell-команд
-│   │   │       ├── SshSessionManager.java   # Пул сессий JSch, реализация CommandExecutor
-│   │   │       ├── SmbConfParser.java       # Изолированный парсер/генератор INI-конфига
-│   │   │       ├── SambaConfigService.java  # Оркестратор smb.conf, бэкапы и testparm
-│   │   │       ├── SambaShareService.java   # Бизнес-логика создания/правки каталогов
-│   │   │       ├── SambaUserService.java    # Бизнес-логика системных и Samba-аккаунтов
-│   │   │       └── SambaMonitoringService.java # Мониторинг smbd и smbstatus
+│   │   │   └── service/                     # Бизнес-логика и сервисы
+│   │   │       ├── infra/CommandExecutor.java# Выполнение shell-комманд по SSH
+│   │   │       ├── infra/SshSessionManager.java # Работа с SSH сессиями JSch
+│   │   │       ├── SmbConfParser.java       # Парсинг/запись INI-файла Samba
+│   │   │       ├── SambaConfigService.java  # Сохранение smb.conf, валидация testparm
+│   │   │       ├── SambaShareService.java   # Логика общих папок
+│   │   │       ├── SambaGroupService.java   # Логика Linux групп
+│   │   │       ├── SambaUserService.java    # Управление пользователями
+│   │   │       └── SambaMonitoringService.java # Статус процессов и дисков
 │   │   │
 │   │   └── resources/
-│   │       ├── static/
-│   │       │   └── css/
-│   │       │       └── style.css            # Единые стили, переменные, цвета, кнопки
-│   │       ├── templates/                   # Thymeleaf-шаблоны
-│   │       │   ├── fragments/
-│   │       │   │   └── layout.html          # Общий <head>, навбар и скрипты
-│   │       │   ├── config/
-│   │       │   │   ├── view.html            # Просмотр smb.conf и история бэкапов
-│   │       │   │   └── global.html          # Форма параметров секции [global]
-│   │       │   ├── shares/
-│   │       │   │   ├── list.html            # Список шар, статистика, статус службы
-│   │       │   │   ├── create.html          # Форма создания каталога
-│   │       │   │   └── edit.html            # Форма редактирования каталога
-│   │       │   ├── status/
-│   │       │   │   └── dashboard.html       # Дашборд smbd и smbstatus
-│   │       │   ├── users/
-│   │       │   │   ├── list.html            # Список пользователей и статистика
-│   │       │   │   ├── create.html          # Форма регистрации пользователя
-│   │       │   │   └── change-password.html # Форма смены пароля
-│   │       │   └── index.html               # Страница входа (SSH connection)
-│   │       └── application.properties       # Конфигурация Spring Boot
-│   └── test/                                # Модульные и интеграционные тесты
-├── Dockerfile                               # Двухэтапная сборка контейнера
-├── docker-compose.yml                       # Локальный запуск стека
-├── mkdocs.yml                               # Конфигурация сайта документации
-├── pom.xml                                  # Зависимости и сборка Maven
-└── README.md                                # Главная страница репозитория
+│   │       ├── static/css/style.css         # Основные стили
+│   │       ├── templates/                   # Thymeleaf-шаблоны (shares, users, groups, error)
+│   │       └── application.yaml             # Конфигурация Spring Boot
+│   └── test/                                # WebMvcTest-покрытие контроллеров
+├── Dockerfile                               # Сборка образа
+├── mkdocs.yml                               # Настройки документации
+└── README.md                                
 ```
 
-## Принципы изоляции слоев
-1. Транспортная независимость: Слой сервисов взаимодействует с Linux через интерфейс CommandExecutor. Ни один сервис не импортирует классы
-библиотеки JSch (`Session`, `ChannelExec`). Это позволяет при необходимости подменить реализацию на локальный `ProcessBuilder` или другой SSH-клиент.
+## Ключевые паттерны
 
-2. Безопасность транзакций `smb.conf`: Любое изменение файла конфигурации проходит обязательный цикл:
-
-    - Создание снимка в `/etc/samba/backups/`.
-
-    - Запись изменений во временный файл `/tmp/smb.conf.tmp`.
-
-    - Проверка синтаксиса утилитой `testparm -s`.
-
-    - Атомарный перенос через `mv` и перезапуск службы `systemctl restart smbd`.
-
-3. Безопасность выполнения: Все действия на целевой машине производятся из-под выделенного пользователя `samba-admin` со 
-строго ограниченным набором привилегий в `/etc/sudoers.d/samba-web-ui`.
+1. **Выполнение команд**: Код не плодит локальных потоков. Связь к Linux выполняется через обертку CommandExecutor, отправляющую команды (например, пользовательские `useradd`) через SSH. Это оставляет проект независимым от ОС сервера, где он развернут.
+2. **Безопасное обновление `smb.conf`**: Любое изменение в глобальных настройках проходит цикл "Резервная копия -> запись во временный файл `/tmp` -> проверка валидности структуры через команду `testparm` -> перенос `mv` -> перезагрузка `smbd`".
+3. **Безопасность (Spring Security)**: Все методы и модифицирующие эндпоинты покрыты CSRF защитой и проверяют наличие авторизованной сессии в `SecurityContextHolder`.
+4. **Clean Code API**: Все URL маршруты приложения собраны в `WebRoutes.java` (Anti-Magic Strings рефакторинг), а контроллеры полностью покрыты `WebMvcTest` испытаниями.
