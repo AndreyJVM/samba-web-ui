@@ -1,13 +1,18 @@
 /**
- * Скрипт для страницы списка шар: удаление и мониторинг заполненности дисков
+ * JS код страницы со списком шар: модалки и асинхронная подгрузка места
  */
 
-// Модальное окно подтверждения удаления
 function openDeleteShareModal(name) {
     const target = document.getElementById('deleteShareTarget');
-    const form = document.getElementById('deleteShareForm');
-    if (target) target.textContent = name;
-    if (form) form.action = '/shares/delete/' + encodeURIComponent(name);
+    const input = document.getElementById('deleteShareNameInput');
+    
+    if (target) {
+        target.textContent = name;
+    }
+    
+    if (input) {
+        input.value = name;
+    }
 
     const modalEl = document.getElementById('deleteShareModal');
     if (modalEl) {
@@ -15,7 +20,6 @@ function openDeleteShareModal(name) {
     }
 }
 
-// Асинхронная подгрузка свободного места на дисках
 document.addEventListener('DOMContentLoaded', () => {
     const widgets = document.querySelectorAll('.disk-usage-widget');
 
@@ -29,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.success && res.data) {
                     const data = res.data;
 
-                    // Цветовой индикатор: <75% зеленый, 75-90% желтый, >=90% красный
+                    // Изменяем цвета: <75% зелено, 75-90% желто, >=90% красно
                     let colorClass = 'bg-success';
                     if (data.usePercent >= 90) {
                         colorClass = 'bg-danger';
@@ -57,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             })
             .catch(() => {
-                widget.innerHTML = `<span class="text-muted" style="font-size: 0.75rem;"><i class="fas fa-wifi-slash"></i> Ошибка опроса</span>`;
+                widget.innerHTML = `<span class="text-muted" style="font-size: 0.75rem;"><i class="fas fa-wifi-slash"></i> Связь потеряна</span>`;
             });
     });
 });

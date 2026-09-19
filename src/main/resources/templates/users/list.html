@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: header('Пользователи — Samba Web UI')}"></head>
+<head th:replace="~{fragments/layout :: header('Пользователи - Samba Web UI')}"></head>
 <body>
 
 <div th:replace="~{fragments/layout :: navbar('users')}"></div>
@@ -28,7 +28,7 @@
             <div class="stats-card" style="border-left-color: #28a745;">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <small class="text-muted">Активных</small>
+                        <small class="text-muted">Активные:</small>
                         <div class="number" th:text="${users.?[accountEnabled].size()}">0</div>
                     </div>
                     <i class="fas fa-user-check text-success"></i>
@@ -39,7 +39,7 @@
             <div class="stats-card" style="border-left-color: #dc3545;">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <small class="text-muted">Отключенных</small>
+                        <small class="text-muted">Заблокированные:</small>
                         <div class="number" th:text="${users.?[!accountEnabled].size()}">0</div>
                     </div>
                     <i class="fas fa-user-slash text-danger"></i>
@@ -48,13 +48,17 @@
         </div>
     </div>
 
-    <!-- Сообщения -->
+    <!-- Уведомления -->
     <div th:if="${param.created}" class="alert alert-success alert-dismissible fade show">
         <i class="fas fa-check-circle me-1"></i> Пользователь успешно создан!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <div th:if="${param.deleted}" class="alert alert-success alert-dismissible fade show">
         <i class="fas fa-check-circle me-1"></i> Пользователь удален!
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-1"></i> <span th:text="${successMessage}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <div th:if="${param.passwordChanged}" class="alert alert-success alert-dismissible fade show">
@@ -87,7 +91,7 @@
                         </td>
                         <td class="text-center table-actions">
                             <a th:href="@{/users/change-password/{username}(username=${user.username})}"
-                               class="btn btn-outline-warning btn-sm" title="Сменить пароль">
+                               class="btn btn-outline-warning btn-sm" title="Смена пароля">
                                 <i class="fas fa-key"></i>
                             </a>
                             <button type="button" class="btn btn-outline-danger btn-sm"
@@ -100,7 +104,7 @@
                     <tr th:if="${users == null or users.empty}">
                         <td colspan="4" class="text-center py-5 text-muted">
                             <i class="fas fa-users fa-3x mb-2 d-block opacity-50"></i>
-                            Список пользователей пуст
+                            Нет пользователей
                         </td>
                     </tr>
                     </tbody>
@@ -114,7 +118,7 @@
     </div>
 </div>
 
-<!-- Модалка удаления -->
+<!-- Модальное окно удаления -->
 <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -123,12 +127,13 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Удалить учетную запись <strong id="deleteTargetUser"></strong>?<br>
-                <small class="text-muted">Аккаунт будет удален из системы Linux и базы Samba.</small>
+                Точно удалить пользователя <strong id="deleteTargetUser"></strong>?<br>
+                <small class="text-muted">Этот юзер будет удален из системы Linux и из Samba.</small>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Отмена</button>
-                <form id="deleteUserForm" method="post" action="">
+                <form id="deleteUserForm" th:action="@{/users/delete}" method="post">
+                    <input type="hidden" name="username" id="deleteUsernameInput">
                     <button type="submit" class="btn btn-danger rounded-pill px-3">Удалить</button>
                 </form>
             </div>
@@ -140,7 +145,7 @@
 <script>
     function openDeleteUserModal(username) {
         document.getElementById('deleteTargetUser').textContent = username;
-        document.getElementById('deleteUserForm').action = '/users/delete/' + encodeURIComponent(username);
+        document.getElementById('deleteUsernameInput').value = username;
         new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
     }
 </script>

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: header('Общие папки — Samba Web UI')}"></head>
+<head th:replace="~{fragments/layout :: header('Шары - Samba Web UI')}"></head>
 <body>
 
 <div th:replace="~{fragments/layout :: navbar('shares')}"></div>
@@ -8,10 +8,10 @@
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold mb-1"><i class="fas fa-folder-open text-primary me-2"></i>Общие папки</h2>
+            <h2 class="fw-bold mb-1"><i class="fas fa-folder-open text-primary me-2"></i>Шары</h2>
             <div class="d-flex align-items-center gap-3">
                 <small class="text-muted"><i class="fas fa-server me-1"></i><span th:text="${sambaHost}"></span></small>
-                <!-- Виджет статуса демона -->
+                <!-- Статус демона -->
                 <span th:if="${isRunning}" class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
                     <i class="fas fa-circle fa-xs me-1"></i>smbd active
                 </span>
@@ -21,19 +21,20 @@
             </div>
         </div>
         <div class="d-flex gap-2">
+            <!-- Кнопка рестарта демона -->
             <form th:action="@{/status/control}" method="post" class="d-inline">
                 <input type="hidden" name="action" value="restart">
-                <button type="submit" class="btn btn-outline-secondary" title="Перезапустить smbd">
+                <button type="submit" class="btn btn-outline-secondary" title="Перезагрузить smbd">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </form>
             <a href="/shares/create" class="btn btn-primary px-3">
-                <i class="fas fa-plus me-1"></i> Добавить шару
+                <i class="fas fa-plus me-1"></i> Создать Шару
             </a>
         </div>
     </div>
 
-    <!-- Карточки со статистикой -->
+    <!-- Статистика -->
     <div class="row mb-4" th:if="${shares}">
         <div class="col-md-3">
             <div class="stats-card">
@@ -81,7 +82,7 @@
         </div>
     </div>
 
-    <!-- Сообщения -->
+    <!-- Уведомления -->
     <div th:if="${param.created}" class="alert alert-success alert-dismissible fade show">
         <i class="fas fa-check-circle me-1"></i> Шара успешно создана!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -94,8 +95,12 @@
         <i class="fas fa-check-circle me-1"></i> Шара удалена из smb.conf!
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-1"></i> <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
 
-    <!-- Таблица -->
+    <!-- Таблица шар -->
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -103,10 +108,10 @@
                     <thead class="table-light">
                     <tr>
                         <th class="ps-3"><i class="fas fa-tag me-1"></i>Имя</th>
-                        <th style="min-width: 260px;"><i class="fas fa-folder me-1"></i>Путь и диск</th>
+                        <th style="min-width: 260px;"><i class="fas fa-folder me-1"></i>Путь к папке</th>
                         <th><i class="fas fa-comment me-1"></i>Комментарий</th>
-                        <th class="text-center"><i class="fas fa-lock me-1"></i>Режим</th>
-                        <th class="text-center"><i class="fas fa-user-friends me-1"></i>Гость</th>
+                        <th class="text-center"><i class="fas fa-lock me-1"></i>Права</th>
+                        <th class="text-center"><i class="fas fa-user-friends me-1"></i>Гостям</th>
                         <th class="text-center"><i class="fas fa-tools me-1"></i>Действия</th>
                     </tr>
                     </thead>
@@ -119,11 +124,10 @@
                             <div class="mb-1">
                                 <code class="text-dark bg-light px-2 py-1 rounded small" th:text="${share.path}"></code>
                             </div>
-                            <!-- Виджет свободного места -->
                             <div class="disk-usage-widget" th:data-path="${share.path}">
                                 <div class="text-muted d-flex align-items-center" style="font-size: 0.72rem;">
                                     <div class="spinner-border spinner-border-sm me-1" style="width: 0.7rem; height: 0.7rem;" role="status"></div>
-                                    Опрос диска...
+                                    Загрузка места...
                                 </div>
                             </div>
                         </td>
@@ -150,7 +154,7 @@
                     <tr th:if="${shares == null or shares.empty}">
                         <td colspan="6" class="text-center py-5 text-muted">
                             <i class="fas fa-folder-open fa-3x mb-2 d-block opacity-50"></i>
-                            Список папок пуст
+                            Нет общих папок
                         </td>
                     </tr>
                     </tbody>
@@ -164,21 +168,22 @@
     </div>
 </div>
 
-<!-- Модалка удаления -->
+<!-- Модальное окно удаления -->
 <div class="modal fade" id="deleteShareModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0">
-                <h5 class="modal-title fw-bold text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Удаление ресурса</h5>
+                <h5 class="modal-title fw-bold text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Удаление шары</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Вы действительно хотите удалить сетевую шару <strong id="deleteShareTarget"></strong>?<br>
-                <small class="text-muted">Конфигурация будет исключена из smb.conf. Файлы на диске затронуты не будут.</small>
+                Вы действительно хотите удалить общую папку <strong id="deleteShareTarget"></strong>?<br>
+                <small class="text-muted">Разрешения будут удалены из smb.conf. Мы не будем удалять саму папку с диска.</small>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Отмена</button>
-                <form id="deleteShareForm" method="post" action="">
+                <form id="deleteShareForm" th:action="@{/shares/delete}" method="post">
+                    <input type="hidden" name="sharename" id="deleteShareNameInput">
                     <button type="submit" class="btn btn-danger rounded-pill px-3">Удалить</button>
                 </form>
             </div>
