@@ -12,8 +12,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(UserController.class)
@@ -29,33 +33,78 @@ class UserControllerTest {
     @WithMockUser(username="admin", roles={"ADMIN"})
     void listUsers_ShouldReturnListTemplate() throws Exception {
         MockHttpSession session = new MockHttpSession();
-        SambaUser user = new SambaUser("test_user");
-        user.setFullName("Test");
-        user.setAccountEnabled(true);
-        when(userService.getAllUsers(session.getId())).thenReturn(Collections.singletonList(user));
+        when(userService.getAllUsers(session.getId())).thenReturn(Collections.singletonList(new SambaUser("test_user")));
 
         mockMvc.perform(get("/users").session(session))
                 .andExpect(status().isOk())
                 .andExpect(view().name("users/list"))
                 .andExpect(model().attributeExists("users"));
     }
-    
+
     @Test
     @WithMockUser(username="admin", roles={"ADMIN"})
     void showCreateUserForm_ShouldReturnCreateTemplate() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        mockMvc.perform(get("/users/create").session(session))
+        mockMvc.perform(get("/users/create"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("users/create"));
+                .andExpect(view().name("users/create"))
+                .andExpect(model().attributeExists("user"));
     }
 
     @Test
     @WithMockUser(username="admin", roles={"ADMIN"})
-    void showChangePasswordForm_ShouldReturnFormTemplate() throws Exception {
+    void createUser_ShouldRedirectAndFlashSuccess() throws Exception {
         MockHttpSession session = new MockHttpSession();
-        mockMvc.perform(get("/users/change-password/test_user").session(session))
+        doNothing().when(userService).createUser(anyString(), anyString(), anyString(), anyString());
+
+        mockMvc.perform(post("/users/create")
+                        .with(csrf())
+                        .session(session)
+                        .param("username", "newtest")
+                        .param("password", "strongpass")
+                        .param("fullName", "Test User"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/users"))
+                .andExpect(flash().attributeExists("successMessage"));
+    }
+
+    @Test
+    @WithMockUser(username="admin", roles={"ADMIN"})
+    void showChangePasswordForm_ShouldReturnTemplateWithUsername() throws Exception {
+        mockMvc.perform(get("/users/change-password/test_user"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("users/change-password"))
-                .andExpect(model().attributeExists("username"));
+                .andExpect(model().attributeExists("username"))
+                .andExpect(model().attribute("username", "test_user"));
+    }
+
+    @Test
+    @WithMockUser(username="admin", roles={"ADMIN"})
+    void changePassword_ShouldRedirectAndFlashSuccess() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        doNothing().when(userService).changePassword(anyString(), anyString(), anyString());
+
+        mockMvc.perform(post("/users/password")
+                        .with(csrf())
+                        .session(session)
+                        .param("username", "test_user")
+                        .param("newPassword", "new_strong_pass"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/users"))
+                .andExpect(flash().attributeExists("successMessage"));
+    }
+
+    @Test
+    @WithMockUser(username="admin", roles={"ADMIN"})
+    void deleteUser_ShouldRedirectAndFlashSuccess() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        doNothing().when(userService).deleteUser(anyString(), anyString());
+
+        mockMvc.perform(post("/users/delete")
+                        .with(csrf())
+                        .session(session)
+                        .param("username", "bad_user"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/users"))
+                .andExpect(flash().attributeExists("successMessage"));
     }
 }

@@ -12,8 +12,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ConfigController.class)
@@ -47,7 +52,34 @@ class ConfigControllerTest {
         mockMvc.perform(get("/config/global").session(session))
                 .andExpect(status().isOk())
                 .andExpect(view().name("config/global"))
-                // Изменено: проверяем, что в моделе есть атрибут "globalConfig", а не "config"
                 .andExpect(model().attributeExists("globalConfig"));
+    }
+
+    @Test
+    @WithMockUser(username="admin", roles={"ADMIN"})
+    void updateGlobalConfig_ShouldRedirectWithSavedParam() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        doNothing().when(configService).updateGlobalConfig(anyString(), any(SambaGlobalConfigDto.class));
+
+        mockMvc.perform(post("/config/global")
+                        .with(csrf())
+                        .session(session)
+                        .param("workgroup", "NEWGROUP"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/config/global?saved"));
+    }
+
+    @Test
+    @WithMockUser(username="admin", roles={"ADMIN"})
+    void restoreConfig_ShouldRedirectWithRestoredParam() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        doNothing().when(configService).restoreBackup(anyString(), anyString());
+
+        mockMvc.perform(post("/config/restore")
+                        .with(csrf())
+                        .session(session)
+                        .param("filename", "smb.conf.backup"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/config?restored"));
     }
 }
