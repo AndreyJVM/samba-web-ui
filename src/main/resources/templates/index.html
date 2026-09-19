@@ -3,100 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход — Samba Web UI</title>
+    <title>Вход - Samba Web UI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .login-page-body {
+            background-color: var(--bg-main);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         .login-card {
-            background: rgba(255, 255, 255, 0.96);
-            backdrop-filter: blur(8px);
-            border-radius: 20px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-soft);
         }
     </style>
 </head>
-<body>
+<body class="login-page-body">
 
-<div class="container py-4">
+<div class="container py-4 content">
     <div class="row justify-content-center">
         <div class="col-md-7 col-lg-5 col-xl-4">
             <div class="card login-card p-4">
                 <div class="card-body">
                     <div class="text-center mb-4">
-                        <i class="fas fa-server fa-3x text-primary mb-2"></i>
-                        <h3 class="fw-bold">Samba Web UI</h3>
+                        <div class="mb-3 d-inline-flex align-items-center justify-content-center bg-light rounded-circle" style="width: 64px; height: 64px; border: 1px solid var(--border-soft)">
+                            <i class="fas fa-server fa-2x text-dark"></i>
+                        </div>
+                        <h3 class="fw-bold text-dark">Samba Web UI</h3>
                         <p class="text-muted small">Панель управления общими ресурсами</p>
                     </div>
 
-                    <div th:if="${error}" class="alert alert-danger py-2 small" role="alert">
+                    <div th:if="${error}" class="alert alert-danger py-2 small border-0 bg-danger text-white bg-opacity-75" role="alert">
                         <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${error}"></span>
                     </div>
-                    <div th:if="${param.disconnected}" class="alert alert-warning alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        Сессия SSH была завершена или истекло время ожидания. Пожалуйста, войдите снова.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <div th:if="${param.disconnected}" class="alert alert-secondary border-0 py-2 small" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Сессия завершена.
+                        <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
 
                     <form th:action="@{/connect}" th:object="${connectionRequest}" method="post">
-                        <!-- Скрытое поле для типа авторизации -->
                         <input type="hidden" id="authType" th:field="*{authType}" value="password">
 
-                        <!-- Хост и порт в одну строку -->
                         <div class="row g-2 mb-3">
                             <div class="col-8">
                                 <label for="host" class="form-label small fw-bold">IP / Хост</label>
                                 <input type="text" id="host" th:field="*{host}" class="form-control" placeholder="192.168.1.100" required>
                             </div>
                             <div class="col-4">
-                                <label for="port" class="form-label small fw-bold">Порт SSH</label>
+                                <label for="port" class="form-label small fw-bold">Порт</label>
                                 <input type="number" id="port" th:field="*{port}" class="form-control" placeholder="22" min="1" max="65535">
                             </div>
                         </div>
 
-                        <!-- Имя пользователя -->
                         <div class="mb-3">
-                            <label for="username" class="form-label small fw-bold">Пользователь SSH</label>
+                            <label for="username" class="form-label small fw-bold">SSH Пользователь</label>
                             <input type="text" id="username" th:field="*{username}" class="form-control" placeholder="samba-admin" required>
                         </div>
 
-                        <!-- Вкладки выбора способа авторизации -->
                         <ul class="nav nav-pills nav-fill mb-3" id="authTab" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active py-1 small" id="password-tab" data-bs-toggle="pill" data-bs-target="#password-pane" type="button" role="tab" onclick="setAuthType('password')">
-                                    <i class="fas fa-key me-1"></i>Пароль
+                                <button class="nav-link active py-1 small fw-medium" id="password-tab" data-bs-toggle="pill" data-bs-target="#password-pane" type="button" role="tab" onclick="setAuthType('password')">
+                                    <i class="fas fa-key me-1 text-muted"></i>Пароль
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link py-1 small" id="key-tab" data-bs-toggle="pill" data-bs-target="#key-pane" type="button" role="tab" onclick="setAuthType('key')">
-                                    <i class="fas fa-id-badge me-1"></i>SSH-ключ
+                                <button class="nav-link py-1 small fw-medium" id="key-tab" data-bs-toggle="pill" data-bs-target="#key-pane" type="button" role="tab" onclick="setAuthType('key')">
+                                    <i class="fas fa-id-badge me-1 text-muted"></i>SSH-Ключ
                                 </button>
                             </li>
                         </ul>
 
                         <div class="tab-content mb-4" id="authTabContent">
-                            <!-- Блок пароля -->
                             <div class="tab-pane fade show active" id="password-pane" role="tabpanel">
-                                <label for="password" class="form-label small fw-bold">Пароль SSH</label>
+                                <label for="password" class="form-label small fw-bold">SSH Пароль</label>
                                 <input type="password" id="password" th:field="*{password}" class="form-control" placeholder="••••••••">
                             </div>
 
-                            <!-- Блок SSH ключа -->
                             <div class="tab-pane fade" id="key-pane" role="tabpanel">
                                 <div class="mb-2">
                                     <label for="privateKey" class="form-label small fw-bold">Приватный ключ (OpenSSH / RSA / Ed25519)</label>
                                     <textarea id="privateKey" th:field="*{privateKey}" rows="4" class="form-control font-monospace small" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"></textarea>
                                 </div>
                                 <div>
-                                    <label for="passphrase" class="form-label small text-muted">Кодовая фраза ключа (если задана)</label>
-                                    <input type="password" id="passphrase" th:field="*{passphrase}" class="form-control form-control-sm" placeholder="Passphrase к ключу">
+                                    <label for="passphrase" class="form-label small text-muted">Кодовая фраза ключа (если есть)</label>
+                                    <input type="password" id="passphrase" th:field="*{passphrase}" class="form-control form-control-sm" placeholder="Passphrase">
                                 </div>
                             </div>
                         </div>
@@ -121,8 +117,8 @@
                     </script>
 
                     <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                        <small class="text-muted"><i class="fas fa-shield-alt text-success me-1"></i>Безопасный SSH</small>
-                        <button type="button" class="btn btn-link btn-sm text-decoration-none" data-bs-toggle="modal" data-bs-target="#helpModal">
+                        <small class="text-muted"><i class="fas fa-shield-alt text-secondary me-1"></i>Безопасное соединение</small>
+                        <button type="button" class="btn btn-link btn-sm text-decoration-none text-muted" data-bs-toggle="modal" data-bs-target="#helpModal">
                             <i class="fas fa-question-circle me-1"></i>Инструкция
                         </button>
                     </div>
@@ -132,25 +128,24 @@
     </div>
 </div>
 
-<!-- Модальное окно -->
 <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-tools text-primary me-2"></i>Подготовка Samba-сервера</h5>
+                <h5 class="modal-title fw-bold"><i class="fas fa-tools text-dark me-2"></i>Подготовка Samba-сервера</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body small">
-                <ol class="ps-3 mb-0">
-                    <li class="mb-2">Быстрая установка одним скриптом (рекомендуется):
-                        <pre class="bg-dark text-white p-2 rounded mt-1">wget -qO- https://raw.githubusercontent.com/AndreyJVM/samba-web-ui/master/scripts/setup-samba-server.sh | sudo bash</pre>
+                <ol class="ps-3 mb-0 text-muted">
+                    <li class="mb-2">Быстрая настройка через скрипт (рекомендуется):
+                        <pre class="bg-light border p-2 rounded mt-1 font-monospace text-dark">wget -qO- https://raw.githubusercontent.com/AndreyJVM/samba-web-ui/master/scripts/setup-samba-server.sh | sudo bash</pre>
                     </li>
-                    <h6 class="mt-3 mb-2 fw-bold text-muted">Или вручную:</h6>
-                    <li class="mb-2">Установите Samba: <code>sudo apt install -y samba</code></li>
-                    <li class="mb-2">Создайте пользователя: <code>sudo useradd -m -s /bin/bash samba-admin && sudo passwd samba-admin</code></li>
-                    <li class="mb-2">Добавьте в Samba: <code>sudo smbpasswd -a samba-admin</code></li>
-                    <li class="mb-2">Разрешите команды без пароля в <code>/etc/sudoers.d/samba-web-ui</code>:
-                        <pre class="bg-dark text-white p-2 rounded mt-1">samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /usr/bin/kill, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /usr/bin/tail, /bin/df, /usr/bin/df, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/mkdir, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown, /usr/bin/smbstatus, /usr/bin/systemctl, /bin/kill, /usr/bin/tail is-active smbd, /usr/sbin/groupadd, /sbin/groupadd, /usr/sbin/groupdel, /sbin/groupdel, /usr/bin/gpasswd</pre>
+                    <h6 class="mt-3 mb-2 fw-bold text-dark">Ручная настройка:</h6>
+                    <li class="mb-2">Установка Samba: <code>sudo apt install -y samba</code></li>
+                    <li class="mb-2">Создание пользователя: <code>sudo useradd -m -s /bin/bash samba-admin && sudo passwd samba-admin</code></li>
+                    <li class="mb-2">Добавление в Samba: <code>sudo smbpasswd -a samba-admin</code></li>
+                    <li class="mb-2">Настройка прав доступа в <code>/etc/sudoers.d/samba-web-ui</code>:
+                        <pre class="bg-light border p-2 rounded mt-1 font-monospace text-dark">samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /usr/bin/kill, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /usr/bin/tail, /bin/df, /usr/bin/df, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/mkdir, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown, /usr/bin/smbstatus, /usr/bin/systemctl, /bin/kill, /usr/bin/tail is-active smbd, /usr/sbin/groupadd, /sbin/groupadd, /usr/sbin/groupdel, /sbin/groupdel, /usr/bin/gpasswd</pre>
                     </li>
                 </ol>
             </div>

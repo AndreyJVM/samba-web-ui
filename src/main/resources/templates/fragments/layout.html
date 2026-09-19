@@ -12,11 +12,11 @@
 
 <div th:fragment="navbar(activeTab)">
     <!-- Шапка для мобилок -->
-    <div class="mobile-header d-lg-none d-flex justify-content-between align-items-center p-3 shadow-sm text-white">
+    <div class="mobile-header d-lg-none d-flex justify-content-between align-items-center p-3 shadow-sm">
         <div class="fw-bold fs-5">
             <i class="fas fa-server me-2"></i>Samba UI
         </div>
-        <button class="btn btn-outline-light border-0" type="button" onclick="document.getElementById('sidebar').classList.add('show'); document.getElementById('sidebar-backdrop').classList.add('show');">
+        <button class="btn btn-outline-secondary border-0" type="button" onclick="document.getElementById('sidebar').classList.add('show'); document.getElementById('sidebar-backdrop').classList.add('show');">
             <i class="fas fa-bars fs-4"></i>
         </button>
     </div>
@@ -28,21 +28,21 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header d-flex justify-content-between align-items-center">
             <a href="/shares" class="sidebar-brand">
-                <i class="fas fa-server"></i> Samba Web UI
+                <i class="fas fa-cube me-1"></i> Samba Web UI
             </a>
             <!-- Кнопка закрытия для мобилок -->
-            <button type="button" class="btn-close btn-close-white d-lg-none" onclick="document.getElementById('sidebar').classList.remove('show'); document.getElementById('sidebar-backdrop').classList.remove('show');"></button>
+            <button type="button" class="btn-close d-lg-none" onclick="document.getElementById('sidebar').classList.remove('show'); document.getElementById('sidebar-backdrop').classList.remove('show');"></button>
         </div>
 
         <ul class="sidebar-nav">
             <li class="nav-item">
                 <a class="nav-link" th:classappend="${activeTab == 'shares'} ? ' active' : ''" href="/shares">
-                    <i class="fas fa-folder-open"></i> Шары
+                    <i class="fas fa-folder"></i> Шары
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:classappend="${activeTab == 'users'} ? ' active' : ''" href="/users">
-                    <i class="fas fa-user"></i> Пользователи
+                    <i class="fas fa-user-circle"></i> Пользователи
                 </a>
             </li>
             <li class="nav-item">
@@ -52,7 +52,7 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:classappend="${activeTab == 'config'} ? ' active' : ''" href="/config">
-                    <i class="fas fa-file-code"></i> Конфиг
+                    <i class="fas fa-code"></i> Конфиг
                 </a>
             </li>
             <li class="nav-item">
@@ -62,7 +62,7 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:classappend="${activeTab == 'status'} ? ' active' : ''" href="/status">
-                    <i class="fas fa-heartbeat"></i> Мониторинг
+                    <i class="fas fa-chart-bar"></i> Мониторинг
                 </a>
             </li>
             <li class="nav-item">
@@ -73,18 +73,18 @@
         </ul>
 
         <div class="sidebar-footer">
-            <div class="navbar-host-badge mb-3 text-truncate p-2 rounded" th:if="${session.sambaHost}" style="background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
-                <div class="d-flex align-items-center mb-1">
-                    <i class="fas fa-network-wired me-2 mt-1" style="color: #64ffda;"></i>
-                    <span th:text="${session.sambaHost}" class="fw-bold text-white fs-6"></span>
+            <div class="navbar-host-badge mb-3 text-truncate p-2" th:if="${session.sambaHost}">
+                <div class="d-flex align-items-center mb-1 text-muted small">
+                    <i class="fas fa-network-wired me-2"></i>
+                    <span th:text="${session.sambaHost}" class="fw-bold text-dark"></span>
                 </div>
-                <div class="d-flex align-items-center" th:if="${session.sambaUser}">
-                    <i class="fas fa-user-circle me-2 mt-1" style="color: #cbd5e1;"></i>
-                    <span th:text="${session.sambaUser}" style="color: #f8fafc; font-weight: 500;"></span>
+                <div class="d-flex align-items-center text-muted small" th:if="${session.sambaUser}">
+                    <i class="fas fa-user me-2"></i>
+                    <span th:text="${session.sambaUser}" class="fw-medium"></span>
                 </div>
             </div>
             
-            <a class="btn btn-outline-light w-100" href="/disconnect">
+            <a class="btn btn-outline-secondary w-100 fw-bold" href="/disconnect">
                 <i class="fas fa-sign-out-alt me-1"></i> Отключиться
             </a>
         </div>
