@@ -32,14 +32,14 @@ public class ConfigController {
     public String showGlobalConfig(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         SambaGlobalConfigDto globalConfig = configService.getGlobalConfig(sessionId);
-        model.addAttribute("config", globalConfig);
+        model.addAttribute("globalConfig", globalConfig);
         return "config/global";
     }
 
     @PostMapping("/global")
-    public String updateGlobalConfig(HttpSession session, @ModelAttribute SambaGlobalConfigDto config) throws Exception {
+    public String updateGlobalConfig(HttpSession session, @ModelAttribute("globalConfig") SambaGlobalConfigDto globalConfig) throws Exception {
         String sessionId = session.getId();
-        configService.updateGlobalConfig(sessionId, config);
+        configService.updateGlobalConfig(sessionId, globalConfig);
         return "redirect:/config/global?saved";
     }
     

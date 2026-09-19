@@ -47,6 +47,7 @@ class ConfigControllerTest {
         mockMvc.perform(get("/config/global").session(session))
                 .andExpect(status().isOk())
                 .andExpect(view().name("config/global"))
-                .andExpect(model().attributeExists("config"));
+                // Изменено: проверяем, что в моделе есть атрибут "globalConfig", а не "config"
+                .andExpect(model().attributeExists("globalConfig"));
     }
 }
