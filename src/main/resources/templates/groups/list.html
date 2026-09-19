@@ -95,7 +95,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" name="name" id="deleteGroupNameInput">
+                    <input type="hidden" name="name" id="deleteGroupNameInput"><input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     Точно удалить группу <strong id="deleteTargetGroup"></strong>?<br>
                     <small class="text-muted">Это удалит ее из системы. Пользователи останутся, но потеряют права данной группы!</small>
                 </div>

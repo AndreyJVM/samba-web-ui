@@ -133,7 +133,7 @@
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Отмена</button>
                 <form id="deleteUserForm" th:action="@{/users/delete}" method="post">
-                    <input type="hidden" name="username" id="deleteUsernameInput">
+                    <input type="hidden" name="username" id="deleteUsernameInput"><input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                     <button type="submit" class="btn btn-danger rounded-pill px-3">Удалить</button>
                 </form>
             </div>
