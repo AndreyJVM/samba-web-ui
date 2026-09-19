@@ -13,7 +13,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
 
 @Controller
-@RequestMapping("/users")
+@RequestMapping(WebRoutes.USERS)
 public class UserController {
 
     @Autowired
@@ -27,39 +27,39 @@ public class UserController {
         return "users/list";
     }
 
-    @GetMapping("/create")
+    @GetMapping(WebRoutes.USERS_CREATE_MAPPING)
     public String showCreateUserForm(Model model) {
         model.addAttribute("user", new SambaUserCreateDto());
         return "users/create";
     }
 
-    @PostMapping("/create")
+    @PostMapping(WebRoutes.USERS_CREATE_MAPPING)
     public String createUser(HttpSession session,
                              @ModelAttribute("user") SambaUserCreateDto userDto,
                              RedirectAttributes redirectAttributes) throws Exception {
         String sessionId = session.getId();
         userService.createUser(sessionId, userDto.getUsername(), userDto.getPassword(), userDto.getFullName());
         redirectAttributes.addFlashAttribute("successMessage", "Пользователь '" + userDto.getUsername() + "' успешно создан!");
-        return "redirect:/users";
+        return "redirect:" + WebRoutes.USERS;
     }
     
-    @GetMapping("/change-password/{username}")
+    @GetMapping(WebRoutes.USERS_CHANGE_PASSWORD_MAPPING)
     public String showChangePasswordForm(@PathVariable String username, Model model) {
         model.addAttribute("username", username);
         return "users/change-password";
     }
 
-    @PostMapping("/delete")
+    @PostMapping(WebRoutes.USERS_DELETE_MAPPING)
     public String deleteUser(HttpSession session,
                              @RequestParam String username,
                              RedirectAttributes redirectAttributes) throws Exception {
         String sessionId = session.getId();
         userService.deleteUser(sessionId, username);
         redirectAttributes.addFlashAttribute("successMessage", "Пользователь '" + username + "' успешно удален!");
-        return "redirect:/users";
+        return "redirect:" + WebRoutes.USERS;
     }
 
-    @PostMapping("/password")
+    @PostMapping(WebRoutes.USERS_PASSWORD_MAPPING)
     public String changePassword(HttpSession session,
                                  @RequestParam String username,
                                  @RequestParam String newPassword,
@@ -67,6 +67,6 @@ public class UserController {
         String sessionId = session.getId();
         userService.changePassword(sessionId, username, newPassword);
         redirectAttributes.addFlashAttribute("successMessage", "Пароль для пользователя '" + username + "' обновлен!");
-        return "redirect:/users";
+        return "redirect:" + WebRoutes.USERS;
     }
 }

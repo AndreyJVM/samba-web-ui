@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
-@RequestMapping("/status")
+@RequestMapping(WebRoutes.STATUS)
 public class MonitoringController {
 
     @Autowired
@@ -38,13 +38,13 @@ public class MonitoringController {
     public String controlService(HttpSession session, @RequestParam String action) throws Exception {
         String sessionId = session.getId();
         monitoringService.controlService(sessionId, action);
-        return "redirect:/status";
+        return "redirect:" + WebRoutes.STATUS;
     }
     
     @PostMapping("/kill")
     public String killSession(HttpSession session, @RequestParam String pid) throws Exception {
         String sessionId = session.getId();
         monitoringService.killSession(sessionId, pid);
-        return "redirect:/status";
+        return "redirect:" + WebRoutes.STATUS;
     }
 }

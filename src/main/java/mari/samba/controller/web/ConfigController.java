@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
-@RequestMapping("/config")
+@RequestMapping(WebRoutes.CONFIG)
 public class ConfigController {
 
     @Autowired
@@ -28,7 +28,7 @@ public class ConfigController {
         return "config/view";
     }
     
-    @GetMapping("/global")
+    @GetMapping(WebRoutes.CONFIG_GLOBAL_MAPPING)
     public String showGlobalConfig(HttpSession session, Model model) throws Exception {
         String sessionId = session.getId();
         SambaGlobalConfigDto globalConfig = configService.getGlobalConfig(sessionId);
@@ -36,17 +36,17 @@ public class ConfigController {
         return "config/global";
     }
 
-    @PostMapping("/global")
+    @PostMapping(WebRoutes.CONFIG_GLOBAL_MAPPING)
     public String updateGlobalConfig(HttpSession session, @ModelAttribute("globalConfig") SambaGlobalConfigDto globalConfig) throws Exception {
         String sessionId = session.getId();
         configService.updateGlobalConfig(sessionId, globalConfig);
-        return "redirect:/config/global?saved";
+        return "redirect:" + WebRoutes.CONFIG + WebRoutes.CONFIG_GLOBAL_MAPPING + "?saved";
     }
     
-    @PostMapping("/restore")
+    @PostMapping(WebRoutes.CONFIG_RESTORE_MAPPING)
     public String restoreConfig(HttpSession session, @RequestParam String filename) throws Exception {
         String sessionId = session.getId();
         configService.restoreBackup(sessionId, filename);
-        return "redirect:/config?restored";
+        return "redirect:" + WebRoutes.CONFIG + "?restored";
     }
 }

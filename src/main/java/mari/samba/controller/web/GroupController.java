@@ -14,7 +14,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
 
 @Controller
-@RequestMapping("/groups")
+@RequestMapping(WebRoutes.GROUPS)
 public class GroupController {
 
     @Autowired
@@ -31,24 +31,24 @@ public class GroupController {
         return "groups/list";
     }
 
-    @PostMapping("/create")
+    @PostMapping(WebRoutes.GROUPS_CREATE_MAPPING)
     public String createGroup(HttpSession session, @RequestParam String name, RedirectAttributes redirectAttributes) throws Exception {
         String sessionId = session.getId();
         SambaGroupCreateDto dto = new SambaGroupCreateDto(name, "");
         groupService.createGroup(sessionId, dto);
         redirectAttributes.addFlashAttribute("successMessage", "Группа '" + name + "' успешно создана!");
-        return "redirect:/groups";
+        return "redirect:" + WebRoutes.GROUPS;
     }
 
-    @PostMapping("/delete")
+    @PostMapping(WebRoutes.GROUPS_DELETE_MAPPING)
     public String deleteGroup(HttpSession session, @RequestParam String name, RedirectAttributes redirectAttributes) throws Exception {
         String sessionId = session.getId();
         groupService.deleteGroup(sessionId, name);
         redirectAttributes.addFlashAttribute("successMessage", "Группа '" + name + "' успешно удалена!");
-        return "redirect:/groups";
+        return "redirect:" + WebRoutes.GROUPS;
     }
 
-    @GetMapping("/{groupname}/members")
+    @GetMapping(WebRoutes.GROUPS_MEMBERS_MAPPING)
     public String editMembers(HttpSession session, @PathVariable String groupname, Model model) throws Exception {
         String sessionId = session.getId();
         SambaGroup group = groupService.getAllGroups(sessionId).stream()
@@ -61,26 +61,22 @@ public class GroupController {
         return "groups/members";
     }
 
-    @PostMapping("/{groupname}/members")
+    @PostMapping(WebRoutes.GROUPS_MEMBERS_MAPPING)
     public String updateMembers(HttpSession session,
                                 @PathVariable String groupname,
                                 @RequestParam(required = false) List<String> members,
                                 RedirectAttributes redirectAttributes) throws Exception {
         String sessionId = session.getId();
         
-        // Так как в сервисе нет пакетного setGroupMembers, мы сначала получаем старых
-        // очищаем их, и добавляем новых, либо создадим отдельный метод в сервисе
         List<SambaGroup> groups = groupService.getAllGroups(sessionId);
         SambaGroup group = groups.stream().filter(g -> g.getName().equals(groupname)).findFirst().orElse(null);
         
         if (group != null) {
-            // Удаляем старых
             for (String oldMember : group.getMembers()) {
                 if (members == null || !members.contains(oldMember)) {
                     groupService.removeUserFromGroup(sessionId, oldMember, groupname);
                 }
             }
-            // Добавляем новых
             if (members != null) {
                 for (String newMember : members) {
                     if (!group.getMembers().contains(newMember)) {
@@ -90,7 +86,7 @@ public class GroupController {
             }
         }
         
-        redirectAttributes.addFlashAttribute("successMessage", "Массив пользователей группы '" + groupname + "' обновлен!");
-        return "redirect:/groups";
+        redirectAttributes.addFlashAttribute("successMessage", "Состав группы '" + groupname + "' обновлен!");
+        return "redirect:" + WebRoutes.GROUPS;
     }
 }

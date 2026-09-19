@@ -27,19 +27,19 @@ public class AuthController {
     @Autowired
     private SshSessionManager sessionManager;
 
-    @GetMapping("/")
+    @GetMapping(WebRoutes.ROOT)
     public String home(Model model) {
         // Если пользователь уже авторизован, можно редиректить в shares
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-            return "redirect:/shares";
+            return "redirect:" + WebRoutes.SHARES;
         }
         
         model.addAttribute("connectionRequest", new ConnectionRequestDto());
         return "index";
     }
 
-    @PostMapping("/connect")
+    @PostMapping(WebRoutes.CONNECT)
     public String connect(@Valid @ModelAttribute("connectionRequest") ConnectionRequestDto request,
                           BindingResult bindingResult,
                           HttpServletRequest httpRequest,
@@ -77,14 +77,14 @@ public class AuthController {
             httpSession.setAttribute("sambaHost", request.getHost() + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : ""));
             httpSession.setAttribute("sambaUser", request.getUsername());
 
-            return "redirect:/shares";
+            return "redirect:" + WebRoutes.SHARES;
         } catch (Exception e) {
             model.addAttribute("error", "Ошибка подключения: " + e.getMessage());
             return "index";
         }
     }
 
-    @GetMapping("/disconnect")
+    @GetMapping(WebRoutes.DISCONNECT)
     public String disconnect(HttpSession httpSession) {
         // В SecurityConfig настроили, что /disconnect очищает контектст и сессию,
         // но нам также нужно разорвать SSH-физическое соединение.
@@ -93,6 +93,6 @@ public class AuthController {
             sessionManager.disconnect(sessionId);
             httpSession.invalidate();
         }
-        return "redirect:/?disconnected";
+        return "redirect:" + WebRoutes.ROOT + "?disconnected";
     }
 }
