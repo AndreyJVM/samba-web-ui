@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -31,14 +32,17 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(username="admin", roles={"ADMIN"})
-    void listUsers_ShouldReturnListTemplate() throws Exception {
+    void listUsers_ShouldReturnListTemplateAndRenderCsrfToken() throws Exception {
         MockHttpSession session = new MockHttpSession();
         when(userService.getAllUsers(session.getId())).thenReturn(Collections.singletonList(new SambaUser("test_user")));
 
         mockMvc.perform(get("/users").session(session))
                 .andExpect(status().isOk())
                 .andExpect(view().name("users/list"))
-                .andExpect(model().attributeExists("users"));
+                .andExpect(model().attributeExists("users"))
+                // Security checks: ensure delete form uses the correct POST mapping and contains CSRF
+                .andExpect(content().string(containsString("action=\"/users/delete\"")))
+                .andExpect(content().string(containsString("name=\"_csrf\"")));
     }
 
     @Test
@@ -47,7 +51,9 @@ class UserControllerTest {
         mockMvc.perform(get("/users/create"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("users/create"))
-                .andExpect(model().attributeExists("user"));
+                .andExpect(model().attributeExists("user"))
+                // Security check: ensure CSRF is present
+                .andExpect(content().string(containsString("name=\"_csrf\"")));
     }
 
     @Test
@@ -69,12 +75,15 @@ class UserControllerTest {
 
     @Test
     @WithMockUser(username="admin", roles={"ADMIN"})
-    void showChangePasswordForm_ShouldReturnTemplateWithUsername() throws Exception {
+    void showChangePasswordForm_ShouldReturnTemplateWithCorrectActionAndCsrf() throws Exception {
         mockMvc.perform(get("/users/change-password/test_user"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("users/change-password"))
                 .andExpect(model().attributeExists("username"))
-                .andExpect(model().attribute("username", "test_user"));
+                .andExpect(model().attribute("username", "test_user"))
+                // Security checks: ensure the form posts strictly to /users/password as mapped
+                .andExpect(content().string(containsString("action=\"/users/password\"")))
+                .andExpect(content().string(containsString("name=\"_csrf\"")));
     }
 
     @Test
