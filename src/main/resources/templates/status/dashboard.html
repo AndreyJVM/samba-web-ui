@@ -7,10 +7,10 @@
 
 <div class="container-fluid content mt-4 mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-0 text-primary">
-            <i class="fas fa-chart-pie me-2"></i>Дашборд и Мониторинг
+        <h2 class="fw-bold mb-0 text-dark">
+            <i class="fas fa-chart-pie me-2 opacity-75"></i>Дашборд и Мониторинг
         </h2>
-        <a href="/status" class="btn btn-outline-primary btn-sm">
+        <a href="/status" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-sync-alt me-1"></i> Обновить
         </a>
     </div>
@@ -66,7 +66,7 @@
                     <div class="progress" style="height: 8px;">
                         <div class="progress-bar" 
                              th:classappend="${T(java.lang.Integer).parseInt(diskUsage.percent) > 90 ? 'bg-danger' : 
-                                              (T(java.lang.Integer).parseInt(diskUsage.percent) > 75 ? 'bg-warning' : 'bg-info')}"
+                                              (T(java.lang.Integer).parseInt(diskUsage.percent) > 75 ? 'bg-warning' : 'bg-dark')}"
                              role="progressbar" 
                              th:style="'width: ' + ${diskUsage.percent} + '%'" 
                              th:aria-valuenow="${diskUsage.percent}" aria-valuemin="0" aria-valuemax="100"></div>
@@ -83,7 +83,7 @@
             <div class="card stats-card h-100 shadow-sm border-0">
                 <div class="card-body position-relative">
                     <h6 class="text-muted fw-bold mb-2 text-uppercase small">Активные клиенты</h6>
-                    <div class="fs-1 fw-bold text-purple" th:text="${connections != null ? connections.size() : 0}">0</div>
+                    <div class="fs-1 fw-bold text-dark" th:text="${connections != null ? connections.size() : 0}">0</div>
                     <i class="fas fa-users text-muted opacity-25 position-absolute" style="font-size: 3rem; bottom: 15px; right: 15px;"></i>
                 </div>
             </div>
@@ -94,7 +94,7 @@
             <div class="card stats-card h-100 shadow-sm border-0">
                 <div class="card-body position-relative">
                     <h6 class="text-muted fw-bold mb-2 text-uppercase small">Файлы в работе</h6>
-                    <div class="fs-1 fw-bold text-orange" th:text="${openFiles != null ? openFiles.size() : 0}">0</div>
+                    <div class="fs-1 fw-bold text-dark" th:text="${openFiles != null ? openFiles.size() : 0}">0</div>
                     <i class="fas fa-file-signature text-muted opacity-25 position-absolute" style="font-size: 3rem; bottom: 15px; right: 15px;"></i>
                 </div>
             </div>
@@ -107,8 +107,8 @@
         <div class="col-xl-5 mb-4">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white p-3 border-bottom d-flex align-items-center">
-                    <i class="fas fa-network-wired me-2 text-purple"></i>
-                    <h5 class="mb-0 fw-bold">Онлайн сессии</h5>
+                    <i class="fas fa-network-wired me-2 text-muted"></i>
+                    <h5 class="mb-0 fw-bold text-dark">Онлайн сессии</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -160,8 +160,8 @@
         <div class="col-xl-7 mb-4">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white p-3 border-bottom d-flex align-items-center">
-                    <i class="fas fa-lock me-2 text-orange"></i>
-                    <h5 class="mb-0 fw-bold">Используемые файлы</h5>
+                    <i class="fas fa-lock me-2 text-muted"></i>
+                    <h5 class="mb-0 fw-bold text-dark">Используемые файлы</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
@@ -169,7 +169,7 @@
                             <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
                             <tr>
                                 <th class="ps-4">PID</th>
-                                <th>Режим</th>
+                                <th>Р/З</th>
                                 <th>Путь к файлу</th>
                             </tr>
                             </thead>
@@ -178,7 +178,7 @@
                                 <td class="ps-4 font-monospace text-muted small" th:text="${file.pid}"></td>
                                 <td>
                                     <span class="badge"
-                                          th:classappend="${file.rw == 'RDONLY' ? 'bg-info' : (file.rw == 'WRONLY' ? 'bg-danger' : 'bg-warning')}"
+                                          th:classappend="${file.rw == 'RDONLY' ? 'bg-secondary' : (file.rw == 'WRONLY' ? 'bg-danger' : 'bg-dark')}"
                                           th:text="${file.rw == 'RDONLY' ? 'Чтение' : (file.rw == 'WRONLY' ? 'Запись' : file.rw)}">
                                     </span>
                                 </td>
@@ -189,7 +189,7 @@
                             <tr th:if="${openFiles == null or openFiles.empty}">
                                 <td colspan="3" class="text-center py-5 text-muted">
                                     <i class="fas fa-folder-open fs-2 mb-2 text-light"></i>
-                                    <p class="mb-0 small">Нет заблокированных или открытых по сети файлов</p>
+                                    <p class="mb-0 small">Нет заблокированных или открытых в сети файлов</p>
                                 </td>
                             </tr>
                             </tbody>

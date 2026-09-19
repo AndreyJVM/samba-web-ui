@@ -7,8 +7,8 @@
 
 <div class="container-fluid content px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0 text-primary fw-bold">
-            <i class="fas fa-users me-2"></i>Группы OS Linux / Samba
+        <h2 class="mb-0 text-dark fw-bold">
+            <i class="fas fa-users me-2 opacity-75"></i>Группы OS Linux / Samba
         </h2>
         <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#createGroupModal">
             <i class="fas fa-plus me-1"></i> Новая группа
@@ -43,7 +43,7 @@
                         </div>
                     </td>
                     <td class="text-end pe-4">
-                        <a th:href="@{/groups/{name}/members(name=${group.name})}" class="btn btn-sm btn-outline-primary me-2">
+                        <a th:href="@{/groups/{name}/members(name=${group.name})}" class="btn btn-sm btn-outline-secondary me-2">
                             <i class="fas fa-user-edit"></i> Состав
                         </a>
                         <button class="btn btn-sm btn-outline-danger" th:data-name="${group.name}" onclick="openDeleteModal(this.getAttribute('data-name'))">
@@ -66,7 +66,7 @@
         <div class="modal-content">
             <form th:action="@{/groups/create}" method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle text-primary me-2"></i>Новая группа</h5>
+                    <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2 opacity-75"></i>Новая группа</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -89,19 +89,18 @@
 <div class="modal fade" id="deleteGroupModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form th:action="@{/groups/delete}" method="post">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Удаление группы</h5>
+            <form id="deleteGroupForm" th:action="@{/groups/delete}" method="post">
+                <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger fw-bold"><i class="fas fa-exclamation-triangle me-2"></i>Удаление группы</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="hidden" name="name" id="deleteGroupNameInput"><input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                    Точно удалить группу <strong id="deleteTargetGroup"></strong>?<br>
-                    <small class="text-muted">Это удалит ее из системы. Пользователи останутся, но потеряют права данной группы!</small>
+                    Вы действительно хотите удалить группу <strong id="deleteGroupNameText"></strong>?
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Отмена</button>
-                    <button type="submit" class="btn btn-danger rounded-pill px-3">Удалить</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger">Удалить</button>
                 </div>
             </form>
         </div>
@@ -109,14 +108,6 @@
 </div>
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
-
 <script th:src="@{/js/groups-list.js}"></script>
-
-
-
-
-
-
-
 </body>
 </html>
