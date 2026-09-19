@@ -1,5 +1,6 @@
 package mari.samba.controller.web;
 
+import jakarta.servlet.http.HttpSession;
 import mari.samba.model.SambaUser;
 import mari.samba.service.SambaUserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,53 +19,43 @@ public class UserController {
     private SambaUserService userService;
 
     @GetMapping
-    public String loadUsersDashboard(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
+    public String listUsers(HttpSession session, Model model) throws Exception {
+        String sessionId = session.getId();
         List<SambaUser> users = userService.getAllUsers(sessionId);
         model.addAttribute("users", users);
-        return "users/list"; // Правильный путь шаблона
+        return "users/list";
     }
 
     @PostMapping("/create")
-    public String createUser(@RequestAttribute("sessionId") String sessionId,
+    public String createUser(HttpSession session,
                              @RequestParam String username,
                              @RequestParam String password,
-                             @RequestParam String fullName,
+                             @RequestParam(required = false) String fullName,
                              RedirectAttributes redirectAttributes) throws Exception {
-        if (userService.userExists(sessionId, username)) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Пользователь '" + username + "' уже существует в Linux.");
-            return "redirect:/users";
-        }
-        
+        String sessionId = session.getId();
         userService.createUser(sessionId, username, password, fullName);
         redirectAttributes.addFlashAttribute("successMessage", "Пользователь '" + username + "' успешно создан!");
         return "redirect:/users";
     }
 
     @PostMapping("/delete")
-    public String deleteUser(@RequestAttribute("sessionId") String sessionId,
+    public String deleteUser(HttpSession session,
                              @RequestParam String username,
                              RedirectAttributes redirectAttributes) throws Exception {
-        if ("root".equals(username) || "samba-admin".equals(username)) {
-            throw new IllegalArgumentException("Удаление служебных профилей запрещено.");
-        }
-        
+        String sessionId = session.getId();
         userService.deleteUser(sessionId, username);
         redirectAttributes.addFlashAttribute("successMessage", "Пользователь '" + username + "' успешно удален!");
         return "redirect:/users";
     }
 
-    @PostMapping("/chpasswd")
-    public String changePassword(@RequestAttribute("sessionId") String sessionId,
+    @PostMapping("/password")
+    public String changePassword(HttpSession session,
                                  @RequestParam String username,
                                  @RequestParam String newPassword,
                                  RedirectAttributes redirectAttributes) throws Exception {
-        // Базовая валидация на уровне контроллера
-        if (newPassword == null || newPassword.length() < 3) {
-            throw new IllegalArgumentException("Пароль должен содержать минимум 3 символа.");
-        }
-        
+        String sessionId = session.getId();
         userService.changePassword(sessionId, username, newPassword);
-        redirectAttributes.addFlashAttribute("successMessage", "Пароль для пользователя '" + username + "' обновлен.");
+        redirectAttributes.addFlashAttribute("successMessage", "Пароль для пользователя '" + username + "' обновлен!");
         return "redirect:/users";
     }
 }

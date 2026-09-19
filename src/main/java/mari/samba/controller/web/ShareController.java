@@ -32,19 +32,19 @@ public class ShareController {
     private SambaMonitoringService monitoringService;
 
     @GetMapping
-    public String sharesDashboard(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
+    public String sharesDashboard(HttpSession session, Model model) throws Exception {
+        String sessionId = session.getId();
         List<SambaShare> shares = shareService.getAllShares(sessionId);
         
-        // Передаем статус службы smbd для виджета в шапке
         boolean isRunning = monitoringService.isServiceRunning(sessionId); 
         model.addAttribute("isRunning", isRunning);
-        
         model.addAttribute("shares", shares);
         return "shares/list"; 
     }
 
     @GetMapping("/create")
-    public String showCreateForm(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
+    public String showCreateForm(HttpSession session, Model model) throws Exception {
+        String sessionId = session.getId();
         model.addAttribute("share", new SambaShareCreateDto());
         model.addAttribute("users", userService.getAllUsers(sessionId));
         model.addAttribute("groups", groupService.getAllGroups(sessionId));
@@ -53,18 +53,20 @@ public class ShareController {
     }
 
     @PostMapping("/create")
-    public String createShare(@RequestAttribute("sessionId") String sessionId,
+    public String createShare(HttpSession session,
                               @ModelAttribute("share") SambaShareCreateDto dto,
                               RedirectAttributes redirectAttributes) throws Exception {
+        String sessionId = session.getId();
         shareService.createShare(sessionId, dto);
         redirectAttributes.addFlashAttribute("successMessage", "Шара '" + dto.getName() + "' успешно создана!");
         return "redirect:/shares";
     }
 
     @GetMapping("/edit/{name}")
-    public String showEditForm(@RequestAttribute("sessionId") String sessionId,
+    public String showEditForm(HttpSession session,
                                @PathVariable String name,
                                Model model) throws Exception {
+        String sessionId = session.getId();
         SambaShare share = shareService.getShareByName(sessionId, name);
         if (share == null) {
             throw new IllegalArgumentException("Шара с именем '" + name + "' не найдена.");
@@ -88,19 +90,21 @@ public class ShareController {
     }
 
     @PostMapping("/edit/{name}")
-    public String updateShare(@RequestAttribute("sessionId") String sessionId,
+    public String updateShare(HttpSession session,
                               @PathVariable String name,
                               @ModelAttribute("share") SambaShareCreateDto dto,
                               RedirectAttributes redirectAttributes) throws Exception {
+        String sessionId = session.getId();
         shareService.updateShare(sessionId, name, dto);
         redirectAttributes.addFlashAttribute("successMessage", "Шара '" + name + "' успешно обновлена!");
         return "redirect:/shares";
     }
 
     @PostMapping("/delete/{name}")
-    public String deleteShare(@RequestAttribute("sessionId") String sessionId,
+    public String deleteShare(HttpSession session,
                               @PathVariable String name,
                               RedirectAttributes redirectAttributes) throws Exception {
+        String sessionId = session.getId();
         shareService.deleteShare(sessionId, name);
         redirectAttributes.addFlashAttribute("successMessage", "Шара '" + name + "' успешно удалена!");
         return "redirect:/shares";

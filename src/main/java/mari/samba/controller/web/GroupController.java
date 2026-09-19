@@ -1,18 +1,17 @@
 package mari.samba.controller.web;
 
+import jakarta.servlet.http.HttpSession;
+import mari.samba.dto.group.SambaGroupCreateDto;
 import mari.samba.model.SambaGroup;
-import mari.samba.model.SambaUser;
 import mari.samba.service.SambaGroupService;
 import mari.samba.service.SambaUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/groups")
@@ -25,16 +24,73 @@ public class GroupController {
     private SambaUserService userService;
 
     @GetMapping
-    public String groupsPage(@RequestAttribute("sessionId") String sessionId, Model model) throws Exception {
+    public String listGroups(HttpSession session, Model model) throws Exception {
+        String sessionId = session.getId();
         List<SambaGroup> groups = groupService.getAllGroups(sessionId);
-        List<SambaUser> users = userService.getAllUsers(sessionId);
-        
-        // Передаем только список имен пользователей для удобства в селектах JS
-        List<String> usernames = users.stream().map(SambaUser::getUsername).collect(Collectors.toList());
-
         model.addAttribute("groups", groups);
-        model.addAttribute("allUsernames", usernames);
+        return "groups/list";
+    }
+
+    @PostMapping("/create")
+    public String createGroup(HttpSession session, @RequestParam String name, RedirectAttributes redirectAttributes) throws Exception {
+        String sessionId = session.getId();
+        SambaGroupCreateDto dto = new SambaGroupCreateDto(name, "");
+        groupService.createGroup(sessionId, dto);
+        redirectAttributes.addFlashAttribute("successMessage", "Группа '" + name + "' успешно создана!");
+        return "redirect:/groups";
+    }
+
+    @PostMapping("/delete")
+    public String deleteGroup(HttpSession session, @RequestParam String name, RedirectAttributes redirectAttributes) throws Exception {
+        String sessionId = session.getId();
+        groupService.deleteGroup(sessionId, name);
+        redirectAttributes.addFlashAttribute("successMessage", "Группа '" + name + "' успешно удалена!");
+        return "redirect:/groups";
+    }
+
+    @GetMapping("/{groupname}/members")
+    public String editMembers(HttpSession session, @PathVariable String groupname, Model model) throws Exception {
+        String sessionId = session.getId();
+        SambaGroup group = groupService.getAllGroups(sessionId).stream()
+                .filter(g -> g.getName().equals(groupname))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Группа не найдена: " + groupname));
+
+        model.addAttribute("group", group);
+        model.addAttribute("allUsers", userService.getAllUsers(sessionId));
+        return "groups/members";
+    }
+
+    @PostMapping("/{groupname}/members")
+    public String updateMembers(HttpSession session,
+                                @PathVariable String groupname,
+                                @RequestParam(required = false) List<String> members,
+                                RedirectAttributes redirectAttributes) throws Exception {
+        String sessionId = session.getId();
         
-        return "groups";
+        // Так как в сервисе нет пакетного setGroupMembers, мы сначала получаем старых
+        // очищаем их, и добавляем новых, либо создадим отдельный метод в сервисе
+        List<SambaGroup> groups = groupService.getAllGroups(sessionId);
+        SambaGroup group = groups.stream().filter(g -> g.getName().equals(groupname)).findFirst().orElse(null);
+        
+        if (group != null) {
+            // Удаляем старых
+            for (String oldMember : group.getMembers()) {
+                if (members == null || !members.contains(oldMember)) {
+                    groupService.removeUserFromGroup(sessionId, oldMember, groupname);
+                }
+            }
+            // Добавляем новых
+            if (members != null) {
+                for (String newMember : members) {
+                    if (!group.getMembers().contains(newMember)) {
+                        groupService.addUserToGroup(sessionId, newMember, groupname);
+                    }
+                }
+            }
+        }
+        
+        redirectAttributes.addFlashAttribute("successMessage", "Массив пользователей группы '" + groupname + "' обновлен!");
+        return "redirect:/groups";
     }
 }

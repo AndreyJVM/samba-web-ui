@@ -7,56 +7,44 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
-import java.util.Map;
-
 @Controller
+@RequestMapping("/status")
 public class MonitoringController {
 
     @Autowired
     private SambaMonitoringService monitoringService;
 
-    @GetMapping("/status")
-    public String statusDashboard(HttpSession httpSession, Model model) {
-        String sessionId = httpSession.getId();
-        try {
-            // Собираем все метрики
-            boolean isRunning = monitoringService.isServiceRunning(sessionId);
-            List<Map<String, String>> connections = monitoringService.getActiveConnections(sessionId);
-            List<Map<String, String>> openFiles = monitoringService.getOpenFiles(sessionId);
-            Map<String, String> diskUsage = monitoringService.getDiskUsage(sessionId);
+    @GetMapping
+    public String dashboard(HttpSession session, Model model) {
+        String sessionId = session.getId();
+        boolean isRunning = monitoringService.isServiceRunning(sessionId);
+        model.addAttribute("isRunning", isRunning);
+        
+        // Добавляем метрики диска
+        model.addAttribute("diskUsage", monitoringService.getDiskUsage(sessionId));
 
-            model.addAttribute("isRunning", isRunning);
-            model.addAttribute("connections", connections);
-            model.addAttribute("openFiles", openFiles);
-            model.addAttribute("diskUsage", diskUsage);
-
-            return "status/dashboard";
-        } catch (Exception e) {
-            model.addAttribute("error", "Ошибка получения статуса сервера: " + e.getMessage());
-            return "status/dashboard";
+        if (isRunning) {
+            model.addAttribute("connections", monitoringService.getActiveConnections(sessionId));
+            model.addAttribute("openFiles", monitoringService.getOpenFiles(sessionId));
         }
+
+        return "status/dashboard";
     }
 
-    @PostMapping("/status/control")
-    public String controlService(@RequestParam String action, HttpSession httpSession) {
-        try {
-            monitoringService.controlService(httpSession.getId(), action);
-            return "redirect:/status?success=true";
-        } catch (Exception e) {
-            return "redirect:/status?error=" + e.getMessage();
-        }
+    @PostMapping("/control")
+    public String controlService(HttpSession session, @RequestParam String action) throws Exception {
+        String sessionId = session.getId();
+        monitoringService.controlService(sessionId, action);
+        return "redirect:/status";
     }
-
-    @PostMapping("/status/kill")
-    public String killSession(@RequestParam String pid, HttpSession httpSession) {
-        try {
-            monitoringService.killSession(httpSession.getId(), pid);
-            return "redirect:/status?killSuccess=true&pid=" + pid;
-        } catch (Exception e) {
-            return "redirect:/status?error=Ошибка завершения процесса: " + e.getMessage();
-        }
+    
+    @PostMapping("/kill")
+    public String killSession(HttpSession session, @RequestParam String pid) throws Exception {
+        String sessionId = session.getId();
+        monitoringService.killSession(sessionId, pid);
+        return "redirect:/status";
     }
 }
