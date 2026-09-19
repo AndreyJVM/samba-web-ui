@@ -33,7 +33,7 @@
     <div class="row mb-4">
         <!-- Статус Samba -->
         <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
-            <div class="card stats-card h-100 shadow-sm border-0" style="border-left: 4px solid #198754;">
+            <div class="card stats-card h-100 shadow-sm border-0">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="text-muted fw-bold mb-0 text-uppercase small">Служба Samba</h6>
@@ -54,7 +54,7 @@
 
         <!-- Дисковое пространство -->
         <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
-            <div class="card stats-card h-100 shadow-sm border-0" style="border-left: 4px solid #0dcaf0;">
+            <div class="card stats-card h-100 shadow-sm border-0">
                 <div class="card-body">
                     <h6 class="text-muted fw-bold mb-3 text-uppercase small">Хранилище диска (/)</h6>
                     
@@ -80,10 +80,10 @@
 
         <!-- Онлайн клиенты -->
         <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
-            <div class="card stats-card h-100 shadow-sm border-0" style="border-left: 4px solid #6f42c1;">
+            <div class="card stats-card h-100 shadow-sm border-0">
                 <div class="card-body position-relative">
                     <h6 class="text-muted fw-bold mb-2 text-uppercase small">Активные клиенты</h6>
-                    <div class="fs-1 fw-bold text-purple" style="color: #6f42c1;" th:text="${connections != null ? connections.size() : 0}">0</div>
+                    <div class="fs-1 fw-bold text-purple" th:text="${connections != null ? connections.size() : 0}">0</div>
                     <i class="fas fa-users text-muted opacity-25 position-absolute" style="font-size: 3rem; bottom: 15px; right: 15px;"></i>
                 </div>
             </div>
@@ -91,10 +91,10 @@
 
         <!-- Открытые файлы -->
         <div class="col-md-3 col-sm-6">
-            <div class="card stats-card h-100 shadow-sm border-0" style="border-left: 4px solid #fd7e14;">
+            <div class="card stats-card h-100 shadow-sm border-0">
                 <div class="card-body position-relative">
                     <h6 class="text-muted fw-bold mb-2 text-uppercase small">Файлы в работе</h6>
-                    <div class="fs-1 fw-bold text-orange" style="color: #fd7e14;" th:text="${openFiles != null ? openFiles.size() : 0}">0</div>
+                    <div class="fs-1 fw-bold text-orange" th:text="${openFiles != null ? openFiles.size() : 0}">0</div>
                     <i class="fas fa-file-signature text-muted opacity-25 position-absolute" style="font-size: 3rem; bottom: 15px; right: 15px;"></i>
                 </div>
             </div>
@@ -107,7 +107,7 @@
         <div class="col-xl-5 mb-4">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white p-3 border-bottom d-flex align-items-center">
-                    <i class="fas fa-network-wired me-2 text-purple" style="color: #6f42c1;"></i>
+                    <i class="fas fa-network-wired me-2 text-purple"></i>
                     <h5 class="mb-0 fw-bold">Онлайн сессии</h5>
                 </div>
                 <div class="card-body p-0">
@@ -160,7 +160,7 @@
         <div class="col-xl-7 mb-4">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white p-3 border-bottom d-flex align-items-center">
-                    <i class="fas fa-lock me-2 text-orange" style="color: #fd7e14;"></i>
+                    <i class="fas fa-lock me-2 text-orange"></i>
                     <h5 class="mb-0 fw-bold">Используемые файлы</h5>
                 </div>
                 <div class="card-body p-0">

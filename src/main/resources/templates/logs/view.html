@@ -1,64 +1,63 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: header('Системные логи — Samba Web UI')}"></head>
-<body>
+<head th:replace="~{fragments/layout :: header('Samba Web UI - Логи')}"></head>
+<body class="bg-light">
 
 <div th:replace="~{fragments/layout :: navbar('logs')}"></div>
 
-<div class="container-fluid mt-4 mb-5">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+<div class="container-fluid content px-4 py-4 mb-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h2 class="fw-bold mb-0">
-                <i class="fas fa-terminal text-primary me-2"></i>Системные логи Samba
+            <h2 class="mb-0 text-dark fw-bold">
+                <i class="fas fa-terminal me-2 opacity-75"></i>Логи Samba
             </h2>
-            <small class="text-muted">Мониторинг журнала событий <code>/var/log/samba/log.smbd</code></small>
+            <small class="text-muted">Просмотр системных событий <code>/var/log/samba/log.smbd</code></small>
         </div>
 
-        <!-- Панель управления логами -->
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <!-- Количество строк -->
-            <div class="input-group input-group-sm" style="width: auto;">
-                <span class="input-group-text"><i class="fas fa-list-ol me-1"></i>Строк</span>
-                <select id="linesSelect" class="form-select form-select-sm">
-                    <option value="50" th:selected="${selectedLines == 50}">50</option>
-                    <option value="100" th:selected="${selectedLines == 100}">100</option>
-                    <option value="200" th:selected="${selectedLines == 200}">200</option>
-                    <option value="500" th:selected="${selectedLines == 500}">500</option>
+        <div class="d-flex flex-wrap align-items-center gap-2 bg-white p-2 rounded border">
+            <div class="input-group input-group-sm mb-0" style="width: auto;">
+                <span class="input-group-text bg-transparent border-0"><i class="fas fa-list-ol me-1 text-muted"></i></span>
+                <select id="linesSelect" class="form-select form-select-sm border-0 border-start bg-transparent">
+                    <option value="50" th:selected="${selectedLines == 50}">50 строк</option>
+                    <option value="100" th:selected="${selectedLines == 100}">100 строк</option>
+                    <option value="200" th:selected="${selectedLines == 200}">200 строк</option>
+                    <option value="500" th:selected="${selectedLines == 500}">500 строк</option>
                 </select>
             </div>
 
-            <!-- Автообновление -->
-            <div class="form-check form-switch d-flex align-items-center gap-2 mb-0 ms-2">
-                <input class="form-check-input" type="checkbox" id="autoRefreshSwitch">
-                <label class="form-check-label small fw-bold" for="autoRefreshSwitch">Автообновление (3с)</label>
+            <div class="border-start ms-1 ps-2 my-1"></div>
+
+            <div class="form-check form-switch d-flex align-items-center gap-2 mb-0 ms-1 me-2">
+                <input class="form-check-input mt-0" type="checkbox" id="autoRefreshSwitch">
+                <label class="form-check-label small fw-medium mt-1 text-muted" for="autoRefreshSwitch">Live (3с)</label>
             </div>
 
-            <!-- Кнопка ручного обновления -->
-            <button id="refreshBtn" class="btn btn-outline-primary btn-sm ms-2">
-                <i class="fas fa-sync-alt me-1"></i> Обновить
+            <button id="refreshBtn" class="btn btn-light btn-sm px-3 ms-1 border" title="Обновить сейчас">
+                <i class="fas fa-sync-alt"></i>
             </button>
 
-            <!-- Прокрутка в самый низ -->
-            <button id="scrollBottomBtn" class="btn btn-outline-secondary btn-sm" title="Прокрутить в конец">
+            <button id="scrollBottomBtn" class="btn btn-light btn-sm px-3 border" title="Вниз">
                 <i class="fas fa-arrow-down"></i>
             </button>
         </div>
     </div>
 
-    <!-- Консоль логов -->
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2 px-3">
-            <span class="small font-monospace text-secondary">
-                <i class="fas fa-circle text-danger me-1"></i>
-                <i class="fas fa-circle text-warning me-1"></i>
-                <i class="fas fa-circle text-success me-2"></i>
-                log.smbd
-            </span>
-            <span id="lastUpdated" class="badge bg-secondary font-monospace">Загружено</span>
+    <!-- Терминал логов -->
+    <div class="card shadow-sm border-0 bg-dark">
+        <div class="card-header bg-dark text-white border-bottom border-secondary border-opacity-50 d-flex justify-content-between align-items-center py-3 px-4">
+            <div class="d-flex align-items-center gap-2">
+                <div class="d-flex gap-1 me-2">
+                    <div class="rounded-circle bg-danger" style="width: 12px; height: 12px;"></div>
+                    <div class="rounded-circle bg-warning" style="width: 12px; height: 12px;"></div>
+                    <div class="rounded-circle bg-success" style="width: 12px; height: 12px;"></div>
+                </div>
+                <span class="small font-monospace text-secondary">log.smbd</span>
+            </div>
+            <span id="lastUpdated" class="badge bg-secondary bg-opacity-25 text-light font-monospace fw-normal">Загрузка...</span>
         </div>
-        <div class="card-body p-0 bg-dark">
-            <pre id="logTerminal" class="m-0 p-3 text-light"
-                 style="height: 650px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.45; white-space: pre-wrap; word-break: break-all;"
+        <div class="card-body p-0">
+            <pre id="logTerminal" class="m-0 p-4 text-light"
+                 style="height: 65vh; min-height: 400px; overflow-y: auto; font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-all; background: #1e1e1e;"
                  th:text="${logs}"></pre>
         </div>
     </div>
