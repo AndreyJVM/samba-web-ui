@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: header('Новый пользователь — Samba Web UI')}"></head>
+<head th:replace="~{fragments/layout :: header('Создание Пользователя - Samba Web UI')}"></head>
 <body>
 
 <div th:replace="~{fragments/layout :: navbar('users')}"></div>
@@ -50,18 +50,6 @@
 </div>
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
-<script>
-    document.getElementById('createForm').addEventListener('submit', function(e) {
-        const p1 = document.getElementById('password').value;
-        const p2 = document.getElementById('confirmPassword').value;
-        const alertBox = document.getElementById('mismatchAlert');
-        if (p1 !== p2) {
-            e.preventDefault();
-            alertBox.classList.remove('d-none');
-        } else {
-            alertBox.classList.add('d-none');
-        }
-    });
-</script>
+<script th:src="@{/js/password-validation.js}"></script>
 </body>
 </html>

@@ -142,12 +142,6 @@
 </div>
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
-<script>
-    function openDeleteUserModal(username) {
-        document.getElementById('deleteTargetUser').textContent = username;
-        document.getElementById('deleteUsernameInput').value = username;
-        new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
-    }
-</script>
+<script th:src="@{/js/users-list.js}"></script>
 </body>
 </html>

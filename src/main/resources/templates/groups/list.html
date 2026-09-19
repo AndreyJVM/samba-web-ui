@@ -110,13 +110,13 @@
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
 
-<script>
-    function openDeleteModal(name) {
-        document.getElementById('deleteTargetGroup').textContent = name;
-        document.getElementById('deleteGroupNameInput').value = name;
-        new bootstrap.Modal(document.getElementById('deleteGroupModal')).show();
-    }
-</script>
+<script th:src="@{/js/groups-list.js}"></script>
+
+
+
+
+
+
 
 </body>
 </html>

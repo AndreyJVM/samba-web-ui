@@ -11,14 +11,7 @@
 </head>
 
 <div th:fragment="navbar(activeTab)">
-    <!-- Хитрость: добавляем отступ контенту только там, где есть этот сайдбар -->
-    <style>
-        @media (min-width: 992px) {
-            body { padding-left: 260px; }
-        }
-    </style>
-
-    <!-- Верхняя панель только для мобилок -->
+    <!-- Шапка для мобилок -->
     <div class="mobile-header d-lg-none d-flex justify-content-between align-items-center p-3 shadow-sm text-white">
         <div class="fw-bold fs-5">
             <i class="fas fa-server me-2"></i>Samba UI
@@ -28,10 +21,10 @@
         </button>
     </div>
 
-    <!-- Темный фон для мобилок -->
+    <!-- Фон для мобилок -->
     <div class="sidebar-backdrop d-lg-none" id="sidebar-backdrop" onclick="document.getElementById('sidebar').classList.remove('show'); this.classList.remove('show');"></div>
 
-    <!-- Сам сайдбар -->
+    <!-- Сайдбар -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header d-flex justify-content-between align-items-center">
             <a href="/shares" class="sidebar-brand">
@@ -59,12 +52,12 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:classappend="${activeTab == 'config'} ? ' active' : ''" href="/config">
-                    <i class="fas fa-file-code"></i> Конфигурация
+                    <i class="fas fa-file-code"></i> Конфиг
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" th:classappend="${activeTab == 'global-settings'} ? ' active' : ''" href="/config/global">
-                    <i class="fas fa-sliders-h"></i> Настройки
+                    <i class="fas fa-sliders-h"></i> Опции
                 </a>
             </li>
             <li class="nav-item">
@@ -80,7 +73,6 @@
         </ul>
 
         <div class="sidebar-footer">
-            <!-- Отображение текущего хоста и пользователя -->
             <div class="navbar-host-badge mb-3 text-truncate p-2 rounded" th:if="${session.sambaHost}" style="background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
                 <div class="d-flex align-items-center mb-1">
                     <i class="fas fa-network-wired me-2 mt-1" style="color: #64ffda;"></i>

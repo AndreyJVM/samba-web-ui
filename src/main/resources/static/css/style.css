@@ -259,3 +259,8 @@ body {
     letter-spacing: -0.025em;
     color: var(--text-main);
 }
+
+/* Desktop Layout Padding */
+@media (min-width: 992px) {
+    body { padding-left: var(--sidebar-width); }
+}
