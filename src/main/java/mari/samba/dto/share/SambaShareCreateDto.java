@@ -9,25 +9,26 @@ import lombok.Setter;
 @Getter
 public class SambaShareCreateDto {
 
-    @NotBlank(message = "Имя шары обязательно")
-    @Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "Имя может содержать только буквы, цифры, подчеркивания и дефисы")
-    private String name;
+  @NotBlank(message = "Имя шары обязательно")
+  @Pattern(
+      regexp = "^[a-zA-Z0-9_-]+$",
+      message = "Имя может содержать только буквы, цифры, подчеркивания и дефисы")
+  private String name;
 
-    @NotBlank(message = "Путь к папке обязателен")
-    private String path;
+  @NotBlank(message = "Путь к папке обязателен")
+  private String path;
 
-    private String comment;
-    private boolean readOnly = true;
-    private boolean guestOk = false;
-    private boolean browseable = true;
-    private String validUsers;
-    private String writeList;
-    private String createMask;
-    private String directoryMask;
-    private String forceUser;
-    private String forceGroup;
-    private String maxConnections;
-    private String hostsAllow;
-    private String hostsDeny;
-
+  private String comment;
+  private boolean readOnly = true;
+  private boolean guestOk = false;
+  private boolean browseable = true;
+  private String validUsers;
+  private String writeList;
+  private String createMask;
+  private String directoryMask;
+  private String forceUser;
+  private String forceGroup;
+  private String maxConnections;
+  private String hostsAllow;
+  private String hostsDeny;
 }

@@ -13,42 +13,39 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/fs")
 public class FileSystemApiController {
 
-    @Autowired
-    private FileSystemService fileSystemService;
+  @Autowired private FileSystemService fileSystemService;
 
-    @GetMapping("/browse")
-    public ResponseEntity<ApiResponse<DirectoryBrowseResultDto>> browseDirectories(
-            @RequestParam(defaultValue = "/") String path,
-            HttpSession httpSession) {
-        try {
-            DirectoryBrowseResultDto result = fileSystemService.listDirectories(httpSession.getId(), path);
-            return ResponseEntity.ok(ApiResponse.ok(result));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+  @GetMapping("/browse")
+  public ResponseEntity<ApiResponse<DirectoryBrowseResultDto>> browseDirectories(
+      @RequestParam(defaultValue = "/") String path, HttpSession httpSession) {
+    try {
+      DirectoryBrowseResultDto result =
+          fileSystemService.listDirectories(httpSession.getId(), path);
+      return ResponseEntity.ok(ApiResponse.ok(result));
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
     }
+  }
 
-    @PostMapping("/mkdir")
-    public ResponseEntity<ApiResponse<Void>> makeDirectory(
-            @RequestParam String parentPath,
-            @RequestParam String name,
-            HttpSession httpSession) {
-        try {
-            fileSystemService.createDirectory(httpSession.getId(), parentPath, name);
-            return ResponseEntity.ok(ApiResponse.ok("Каталог успешно создан", null));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+  @PostMapping("/mkdir")
+  public ResponseEntity<ApiResponse<Void>> makeDirectory(
+      @RequestParam String parentPath, @RequestParam String name, HttpSession httpSession) {
+    try {
+      fileSystemService.createDirectory(httpSession.getId(), parentPath, name);
+      return ResponseEntity.ok(ApiResponse.ok("Каталог успешно создан", null));
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
     }
+  }
 
-    @GetMapping("/disk-usage")
-    public ResponseEntity<ApiResponse<DiskUsageDto>> getDiskUsage(@RequestParam String path,
-                                                                  HttpSession httpSession) {
-        try {
-            DiskUsageDto result = fileSystemService.getDiskUsage(httpSession.getId(), path);
-            return ResponseEntity.ok(ApiResponse.ok(result));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+  @GetMapping("/disk-usage")
+  public ResponseEntity<ApiResponse<DiskUsageDto>> getDiskUsage(
+      @RequestParam String path, HttpSession httpSession) {
+    try {
+      DiskUsageDto result = fileSystemService.getDiskUsage(httpSession.getId(), path);
+      return ResponseEntity.ok(ApiResponse.ok(result));
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
     }
+  }
 }

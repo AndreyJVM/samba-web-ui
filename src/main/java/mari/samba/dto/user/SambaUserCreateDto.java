@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class SambaUserCreateDto {
-    private String username;
-    private String fullName;
-    private String password;
+  private String username;
+  private String fullName;
+  private String password;
 }

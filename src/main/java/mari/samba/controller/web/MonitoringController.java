@@ -14,37 +14,36 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequestMapping(WebRoutes.STATUS)
 public class MonitoringController {
 
-    @Autowired
-    private SambaMonitoringService monitoringService;
+  @Autowired private SambaMonitoringService monitoringService;
 
-    @GetMapping
-    public String dashboard(HttpSession session, Model model) {
-        String sessionId = session.getId();
-        boolean isRunning = monitoringService.isServiceRunning(sessionId);
-        model.addAttribute("isRunning", isRunning);
-        
-        // Добавляем метрики диска
-        model.addAttribute("diskUsage", monitoringService.getDiskUsage(sessionId));
+  @GetMapping
+  public String dashboard(HttpSession session, Model model) {
+    String sessionId = session.getId();
+    boolean isRunning = monitoringService.isServiceRunning(sessionId);
+    model.addAttribute("isRunning", isRunning);
 
-        if (isRunning) {
-            model.addAttribute("connections", monitoringService.getActiveConnections(sessionId));
-            model.addAttribute("openFiles", monitoringService.getOpenFiles(sessionId));
-        }
+    // Добавляем метрики диска
+    model.addAttribute("diskUsage", monitoringService.getDiskUsage(sessionId));
 
-        return "status/dashboard";
+    if (isRunning) {
+      model.addAttribute("connections", monitoringService.getActiveConnections(sessionId));
+      model.addAttribute("openFiles", monitoringService.getOpenFiles(sessionId));
     }
 
-    @PostMapping("/control")
-    public String controlService(HttpSession session, @RequestParam String action) throws Exception {
-        String sessionId = session.getId();
-        monitoringService.controlService(sessionId, action);
-        return "redirect:" + WebRoutes.STATUS;
-    }
-    
-    @PostMapping("/kill")
-    public String killSession(HttpSession session, @RequestParam String pid) throws Exception {
-        String sessionId = session.getId();
-        monitoringService.killSession(sessionId, pid);
-        return "redirect:" + WebRoutes.STATUS;
-    }
+    return "status/dashboard";
+  }
+
+  @PostMapping("/control")
+  public String controlService(HttpSession session, @RequestParam String action) throws Exception {
+    String sessionId = session.getId();
+    monitoringService.controlService(sessionId, action);
+    return "redirect:" + WebRoutes.STATUS;
+  }
+
+  @PostMapping("/kill")
+  public String killSession(HttpSession session, @RequestParam String pid) throws Exception {
+    String sessionId = session.getId();
+    monitoringService.killSession(sessionId, pid);
+    return "redirect:" + WebRoutes.STATUS;
+  }
 }

@@ -13,28 +13,28 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SambaGlobalConfigDto {
 
-    @NotBlank(message = "Рабочая группа не может быть пустой")
-    @Pattern(regexp = "^[a-zA-Z0-9_.-]+$", message = "Недопустимые символы в имени рабочей группы")
-    private String workgroup = "WORKGROUP";
+  @NotBlank(message = "Рабочая группа не может быть пустой")
+  @Pattern(regexp = "^[a-zA-Z0-9_.-]+$", message = "Недопустимые символы в имени рабочей группы")
+  private String workgroup = "WORKGROUP";
 
-    private String serverString = "Samba Server";
-    private String netbiosName;
+  private String serverString = "Samba Server";
+  private String netbiosName;
 
-    // Режим аутентификации: user, ads
-    private String security = "user";
+  // Режим аутентификации: user, ads
+  private String security = "user";
 
-    // Поведение для неизвестных пользователей: Bad User (для гостевого доступа), Never
-    private String mapToGuest = "Bad User";
+  // Поведение для неизвестных пользователей: Bad User (для гостевого доступа), Never
+  private String mapToGuest = "Bad User";
 
-    // Сетевые привязки
-    private String interfaces;
-    private boolean bindInterfacesOnly = false;
+  // Сетевые привязки
+  private String interfaces;
+  private boolean bindInterfacesOnly = false;
 
-    // Оптимизация (отключение принтеров для чистого файлового сервера)
-    private boolean loadPrinters = false;
-    private boolean disableNetbios = false;
+  // Оптимизация (отключение принтеров для чистого файлового сервера)
+  private boolean loadPrinters = false;
+  private boolean disableNetbios = false;
 
-    // Версии протокола SMB (по умолчанию min=SMB2, max=SMB3)
-    private String serverMinProtocol = "SMB2";
-    private String serverMaxProtocol = "SMB3";
+  // Версии протокола SMB (по умолчанию min=SMB2, max=SMB3)
+  private String serverMinProtocol = "SMB2";
+  private String serverMaxProtocol = "SMB3";
 }

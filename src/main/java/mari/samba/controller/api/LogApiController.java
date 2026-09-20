@@ -11,19 +11,17 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/logs")
 public class LogApiController {
 
-    @Autowired
-    private SambaLogService logService;
+  @Autowired private SambaLogService logService;
 
-    @GetMapping("/raw")
-    public ResponseEntity<ApiResponse<String>> fetchRawLogs(
-            @RequestParam(defaultValue = "100") int lines,
-            HttpSession httpSession) {
-        String sessionId = httpSession.getId();
-        try {
-            String logs = logService.getRecentLogs(sessionId, lines);
-            return ResponseEntity.ok(ApiResponse.ok(logs));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-        }
+  @GetMapping("/raw")
+  public ResponseEntity<ApiResponse<String>> fetchRawLogs(
+      @RequestParam(defaultValue = "100") int lines, HttpSession httpSession) {
+    String sessionId = httpSession.getId();
+    try {
+      String logs = logService.getRecentLogs(sessionId, lines);
+      return ResponseEntity.ok(ApiResponse.ok(logs));
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
     }
+  }
 }

@@ -7,17 +7,16 @@ import lombok.Setter;
 @Getter
 public class SambaUser {
 
-    private String username;
-    private String fullName;
-    private boolean accountEnabled;
-    private String lastChange;
-    private String passwordHash;
+  private String username;
+  private String fullName;
+  private boolean accountEnabled;
+  private String lastChange;
+  private String passwordHash;
 
-    public SambaUser() {}
+  public SambaUser() {}
 
-    public SambaUser(String username) {
-        this.username = username;
-        this.accountEnabled = true;
-    }
-
+  public SambaUser(String username) {
+    this.username = username;
+    this.accountEnabled = true;
+  }
 }
