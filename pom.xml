@@ -97,6 +97,7 @@
                 <artifactId>spotless-maven-plugin</artifactId>
                 <version>${spotless.version}</version>
                 <configuration>
+                    <lineEndings>GIT_ATTRIBUTES</lineEndings>
                     <java>
                         <googleJavaFormat>
                             <version>${google-java-format.version}</version>
