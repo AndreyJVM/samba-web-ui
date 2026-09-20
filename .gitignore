@@ -34,3 +34,5 @@ build/
 ### Docker ###
 .env
 .mvn/*
+# Local AI config
+GEMINI.md
