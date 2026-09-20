@@ -1,122 +1,135 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: header('Мониторинг — Samba Web UI')}"></head>
-<body>
+<head th:replace="~{fragments/layout :: header('Samba Web UI - Статус')}"></head>
+<body class="bg-light">
 
-<div th:replace="~{fragments/layout :: navbar('status')}"></div>
+<div th:replace="~{fragments/layout :: navbar('home')}"></div>
 
-<div class="container-fluid content mt-4 mb-5">
+<div class="container-fluid content px-4 py-4 mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-0 text-dark">
-            <i class="fas fa-chart-pie me-2 opacity-75"></i>Дашборд и Мониторинг
-        </h2>
-        <a href="/status" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-sync-alt me-1"></i> Обновить
-        </a>
+        <div>
+            <h2 class="mb-0 text-dark fw-bold">
+                <i class="fas fa-server me-2 opacity-75"></i>Дашборд и Мониторинг
+            </h2>
+            <small class="text-muted">Дашборд и мониторинг активности Samba</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div id="serviceStatusBadge" class="badge rounded-pill border py-2 px-3 fw-normal" 
+                 th:classappend="${serverStatus.status == 'active'} ? 'bg-success bg-opacity-10 text-success border-success' : 'bg-danger bg-opacity-10 text-danger border-danger'">
+                 <i class="fas me-1" th:classappend="${serverStatus.status == 'active'} ? 'fa-check-circle' : 'fa-times-circle'"></i>
+                 <span th:text="${serverStatus.status == 'active'} ? 'Samba Работает' : 'Samba Остановлена'"></span>
+            </div>
+            <a href="/status" class="btn btn-outline-secondary btn-sm rounded-pill px-3 ms-2">
+                <i class="fas fa-sync-alt me-1"></i>Обновить
+            </a>
+        </div>
     </div>
-
-    <!-- Блок уведомлений -->
-    <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show">
-        <i class="fas fa-check-circle me-1"></i> Служба smbd успешно перезапущена!
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    <div th:if="${param.killSuccess}" class="alert alert-warning alert-dismissible fade show">
-        <i class="fas fa-user-slash me-1"></i> Сессия (PID: <span th:text="${param.pid}"></span>) была принудительно разорвана.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show">
-        <i class="fas fa-exclamation-circle me-1"></i> <span th:text="${param.error}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-
-    <!-- Основные метрики (Карточки) -->
-    <div class="row mb-4">
-        <!-- Статус Samba -->
-        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
-            <div class="card stats-card h-100 shadow-sm border-0">
+    
+    <!-- Карточки метрик (диски) -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
+        <!-- System Disk -->
+        <div class="col" th:if="${systemDisk != null}">
+            <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="text-muted fw-bold mb-0 text-uppercase small">Служба Samba</h6>
-                        <form th:action="@{/status/control}" method="post" class="m-0">
-                            <input type="hidden" name="action" value="restart">
-                            <button type="submit" class="btn btn-sm btn-light text-secondary border-0 p-1" title="Перезапустить">
-                                <i class="fas fa-redo"></i>
-                            </button>
-                        </form>
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase fw-bold"><i class="fas fa-microchip me-2"></i>Системный Диск</h6>
+                            <h3 class="mb-0 fw-bold text-dark" th:text="${systemDisk.usePercent} + '%'">0%</h3>
+                        </div>
+                        <div class="icon-circle bg-light text-secondary rounded-circle d-flex justify-content-center align-items-center" style="width: 48px; height: 48px;">
+                            <i class="fas fa-hdd fs-5"></i>
+                        </div>
                     </div>
-                    <div class="fs-4 fw-bold">
-                        <span th:if="${isRunning}" class="text-success"><i class="fas fa-check-circle fa-sm me-1"></i> Активна</span>
-                        <span th:unless="${isRunning}" class="text-danger"><i class="fas fa-times-circle fa-sm me-1"></i> Остановлена</span>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-dark" role="progressbar" 
+                             th:style="'width: ' + ${systemDisk.usePercent} + '%'"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 small text-muted">
+                        <span th:text="${systemDisk.used} + ' занято'"></span>
+                        <span th:text="${systemDisk.total} + ' всего'"></span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Дисковое пространство -->
-        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
-            <div class="card stats-card h-100 shadow-sm border-0">
+        <!-- Samba Disk (Только если отличается от системного) -->
+        <div class="col" th:if="${sambaDisk != null and (systemDisk == null or systemDisk.mountPoint != sambaDisk.mountPoint)}">
+            <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
-                    <h6 class="text-muted fw-bold mb-3 text-uppercase small">Хранилище диска (/)</h6>
-                    
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="fs-4 fw-bold text-dark" th:text="${diskUsage.free} + ' своб.'"></span>
-                        <span class="text-muted small" th:text="'из ' + ${diskUsage.total}"></span>
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase fw-bold"><i class="fas fa-folder me-2"></i>Диск Данных Samba</h6>
+                            <h3 class="mb-0 fw-bold text-dark" th:text="${sambaDisk.usePercent} + '%'">0%</h3>
+                        </div>
+                        <div class="icon-circle bg-light text-secondary rounded-circle d-flex justify-content-center align-items-center" style="width: 48px; height: 48px;">
+                            <i class="fas fa-database fs-5"></i>
+                        </div>
                     </div>
-                    
-                    <div class="progress" style="height: 8px;">
-                        <div class="progress-bar" 
-                             th:classappend="${T(java.lang.Integer).parseInt(diskUsage.percent) > 90 ? 'bg-danger' : 
-                                              (T(java.lang.Integer).parseInt(diskUsage.percent) > 75 ? 'bg-warning' : 'bg-dark')}"
-                             role="progressbar" 
-                             th:style="'width: ' + ${diskUsage.percent} + '%'" 
-                             th:aria-valuenow="${diskUsage.percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-dark" role="progressbar" 
+                             th:style="'width: ' + ${sambaDisk.usePercent} + '%'"></div>
                     </div>
-                    <div class="text-end mt-1">
-                        <small class="text-muted" th:text="'Занято: ' + ${diskUsage.percent} + '%'"></small>
+                    <div class="d-flex justify-content-between mt-2 small text-muted">
+                        <span th:text="${sambaDisk.used} + ' занято'"></span>
+                        <span th:text="${sambaDisk.total} + ' всего'"></span>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Онлайн клиенты -->
-        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
-            <div class="card stats-card h-100 shadow-sm border-0">
-                <div class="card-body position-relative">
-                    <h6 class="text-muted fw-bold mb-2 text-uppercase small">Активные клиенты</h6>
-                    <div class="fs-1 fw-bold text-dark" th:text="${connections != null ? connections.size() : 0}">0</div>
-                    <i class="fas fa-users text-muted opacity-25 position-absolute" style="font-size: 3rem; bottom: 15px; right: 15px;"></i>
+        
+        <!-- Active Connections count -->
+        <div class="col">
+            <div class="card shadow-sm border-0 h-100 bg-primary text-white" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="text-white-50 mb-1 small text-uppercase fw-bold">Онлайн Сессии</h6>
+                            <h3 class="mb-0 fw-bold text-white" th:text="${connections != null ? connections.size() : 0}">0</h3>
+                        </div>
+                        <div class="icon-circle bg-white bg-opacity-25 text-white rounded-circle d-flex justify-content-center align-items-center" style="width: 48px; height: 48px;">
+                            <i class="fas fa-network-wired fs-5"></i>
+                        </div>
+                    </div>
+                    <p class="mt-4 mb-0 small text-white-50">Активных подключений пользователей</p>
                 </div>
             </div>
         </div>
 
-        <!-- Открытые файлы -->
-        <div class="col-md-3 col-sm-6">
-            <div class="card stats-card h-100 shadow-sm border-0">
-                <div class="card-body position-relative">
-                    <h6 class="text-muted fw-bold mb-2 text-uppercase small">Файлы в работе</h6>
-                    <div class="fs-1 fw-bold text-dark" th:text="${openFiles != null ? openFiles.size() : 0}">0</div>
-                    <i class="fas fa-file-signature text-muted opacity-25 position-absolute" style="font-size: 3rem; bottom: 15px; right: 15px;"></i>
+        <!-- Open Files count -->
+        <div class="col">
+            <div class="card shadow-sm border-0 h-100 bg-success text-white" style="background: linear-gradient(135deg, #198754, #157347);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="text-white-50 mb-1 small text-uppercase fw-bold">Используемые файлы</h6>
+                            <h3 class="mb-0 fw-bold text-white" th:text="${openFiles != null ? openFiles.size() : 0}">0</h3>
+                        </div>
+                        <div class="icon-circle bg-white bg-opacity-25 text-white rounded-circle d-flex justify-content-center align-items-center" style="width: 48px; height: 48px;">
+                            <i class="fas fa-file-signature fs-5"></i>
+                        </div>
+                    </div>
+                    <p class="mt-4 mb-0 small text-white-50">Заблокировано для чтения/записи</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Таблицы детализации -->
+    <!-- Таблицы: Сессии и Файлы -->
     <div class="row">
-        <!-- Левая колонка: Подключения -->
+        <!-- Левая колонка: Сессии -->
         <div class="col-xl-5 mb-4">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white p-3 border-bottom d-flex align-items-center">
                     <i class="fas fa-network-wired me-2 text-muted"></i>
-                    <h5 class="mb-0 fw-bold text-dark">Онлайн сессии</h5>
+                    <h5 class="mb-0 fw-bold text-dark">Онлайн сессии (<span th:text="${connections != null ? connections.size() : 0}"></span>)</h5>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
+                            <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
                             <tr>
-                                <th class="ps-4">Пользователь</th>
-                                <th>IP адрес</th>
+                                <th class="ps-4">Пользователь (PID)</th>
+                                <th>Хост (IP)</th>
                                 <th class="text-end pe-4">Действия</th>
                             </tr>
                             </thead>
@@ -199,8 +212,31 @@
             </div>
         </div>
     </div>
+    
+    <!-- Блок Логов (Объединенная визуализация) -->
+    <div class="row mt-2">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 bg-dark">
+                <div class="card-header bg-dark text-white border-bottom border-secondary border-opacity-50 d-flex justify-content-between align-items-center py-3 px-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex gap-1 me-2">
+                            <div class="rounded-circle bg-danger" style="width: 12px; height: 12px;"></div>
+                            <div class="rounded-circle bg-warning" style="width: 12px; height: 12px;"></div>
+                            <div class="rounded-circle bg-success" style="width: 12px; height: 12px;"></div>
+                        </div>
+                        <span class="small font-monospace text-secondary">log.smbd - Последние системные логи</span>
+                    </div>
+                    <span id="lastUpdated" class="badge bg-secondary bg-opacity-25 text-light font-monospace fw-normal">Загрузка...</span>
+                </div>
+                <div class="card-body p-0">
+                    <pre id="logTerminal" class="m-0 p-4 text-light" style="height: 400px; overflow-y: auto; font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-all; background: #1e1e1e;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
+<script th:src="@{/js/dashboard-logs.js}"></script>
 </body>
 </html>

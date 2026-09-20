@@ -30,7 +30,6 @@
             <a href="/shares" class="sidebar-brand">
                 <i class="fas fa-cube me-1"></i> Samba Web UI
             </a>
-            <!-- Кнопка закрытия для мобилок -->
             <button type="button" class="btn-close d-lg-none" onclick="document.getElementById('sidebar').classList.remove('show'); document.getElementById('sidebar-backdrop').classList.remove('show');"></button>
         </div>
 
@@ -63,11 +62,6 @@
             <li class="nav-item">
                 <a class="nav-link" th:classappend="${activeTab == 'status'} ? ' active' : ''" href="/status">
                     <i class="fas fa-chart-bar"></i> Мониторинг
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" th:classappend="${activeTab == 'logs'} ? ' active' : ''" href="/logs">
-                    <i class="fas fa-terminal"></i> Логи
                 </a>
             </li>
         </ul>
