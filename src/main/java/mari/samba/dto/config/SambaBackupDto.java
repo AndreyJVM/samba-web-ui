@@ -1,16 +1,7 @@
 package mari.samba.dto.config;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class SambaBackupDto {
-    private String filename;
-    private String createdAt;
-    private String size;
-}
+public record SambaBackupDto(
+        String filename,
+        String createdAt,
+        String size
+) {}
