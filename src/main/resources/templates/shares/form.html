@@ -30,8 +30,8 @@
                                     <div class="col-md-6 mb-3">
                                         <label for="path" class="form-label text-muted fw-bold small text-uppercase">Абсолютный путь <span class="text-danger">*</span></label>
                                         <div class="input-group">
-                                            <input type="text" id="path" th:field="*{path}" class="form-control" placeholder="/srv/samba/share" required th:readonly="${isEdit}">
-                                            <button th:if="${!isEdit}" class="btn btn-outline-primary" type="button" onclick="openDirectoryBrowser('path')">
+                                            <input type="text" id="path" th:field="*{path}" class="form-control" placeholder="/srv/samba/share" required >
+                                            <button class="btn btn-outline-secondary" type="button" onclick="openDirectoryBrowser('path')">
                                                 <i class="fas fa-folder-open"></i>
                                             </button>
                                         </div>
