@@ -45,5 +45,5 @@ public final class WebRoutes {
     public static final String STATUS_CONTROL_MAPPING = "/control";
 
     // --- Логи ---
-    public static final String LOGS = "/logs";
+    
 }

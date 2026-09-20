@@ -1,5 +1,5 @@
 function loadDashboardLogs() {
-    fetch('/api/logs?lines=200')
+    fetch('/api/logs/raw?lines=200')
         .then(res => res.json())
         .then(data => {
             const terminal = document.getElementById('logTerminal');
