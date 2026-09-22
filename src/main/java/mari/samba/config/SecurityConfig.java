@@ -15,8 +15,19 @@ public class SecurityConfig {
     http.authorizeHttpRequests(
             authz ->
                 authz
-                    // Разрешаем доступ к статике и странице логина
-                    .requestMatchers("/", "/connect", "/css/**", "/js/**", "/images/**", "/error")
+                    // Разрешаем доступ к статике, странице логина и swagger api-docs
+                    .requestMatchers(
+                        "/",
+                        "/connect",
+                        "/css/**",
+                        "/js/**",
+                        "/images/**",
+                        "/error",
+                        "/v3/api-docs/**",
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/swagger-resources/**",
+                        "/webjars/**")
                     .permitAll()
                     // Все остальные запросы должны быть аутентифицированы
                     .anyRequest()
@@ -25,6 +36,8 @@ public class SecurityConfig {
         // потому что у нас используется своя форма на главной (/)
         .formLogin(form -> form.disable())
         .httpBasic(basic -> basic.disable())
+        // Временно отключаем CSRF для API (на следующих этапах перейдем на Stateless/JWT)
+        .csrf(csrf -> csrf.disable())
         // Применяем настройки logout (можно потом привязать к /disconnect)
         .logout(
             logout ->
@@ -33,9 +46,6 @@ public class SecurityConfig {
                     .logoutSuccessUrl("/")
                     .invalidateHttpSession(true)
                     .deleteCookies("JSESSIONID"));
-
-    // Примечание: CSRF включен по умолчанию, Thymeleaf сам будет вставлять
-    // <input type="hidden" name="_csrf" value="..."> во все POST-формы
 
     return http.build();
   }
