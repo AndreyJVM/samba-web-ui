@@ -3,6 +3,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import Layout from "./components/Layout";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import SharesPage from "./pages/shares/SharesPage";
 
 function App() {
   return (
@@ -14,10 +15,7 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route 
-            path="/shares" 
-            element={<PlaceholderPage title="Общие папки (Shares)" description="Управление общими папками Samba" />} 
-          />
+          <Route path="/shares" element={<SharesPage />} />
           <Route 
             path="/users" 
             element={<PlaceholderPage title="Пользователи" description="Управление пользователями и правами" />} 
