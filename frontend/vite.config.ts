@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: '/ui/', // Указываем базовый путь для генерации ассетов
   server: {
     port: 5173,
     proxy: {
