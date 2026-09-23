@@ -1,0 +1,59 @@
+FROM ubuntu:22.04
+
+# Отключаем интерактивные запросы apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Устанавливаем Samba, SSH сервер и необходимые утилиты (sudo, smbclient для проверок)
+RUN apt-get update && apt-get install -y \
+    samba \
+    openssh-server \
+    sudo \
+    smbclient \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# Настраиваем SSH
+RUN mkdir /var/run/sshd
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# Создаем тестового пользователя-администратора
+# В приложении мы будем логиниться под admin:admin
+RUN useradd -m -s /bin/bash admin && \
+    echo 'admin:admin' | chpasswd && \
+    usermod -aG sudo admin
+
+# Создаем директорию для общих папок Samba
+RUN mkdir -p /srv/samba/public && \
+    chown -R admin:admin /srv/samba/public && \
+    chmod -R 0755 /srv/samba/public
+
+# Создаем базовую конфигурацию Samba, к которой будет обращаться приложение
+RUN mv /etc/samba/smb.conf /etc/samba/smb.conf.bak && \
+    echo "[global]" > /etc/samba/smb.conf && \
+    echo "   workgroup = WORKGROUP" >> /etc/samba/smb.conf && \
+    echo "   server string = Samba Sandbox Server" >> /etc/samba/smb.conf && \
+    echo "   security = user" >> /etc/samba/smb.conf && \
+    echo "   map to guest = bad user" >> /etc/samba/smb.conf && \
+    echo "" >> /etc/samba/smb.conf && \
+    echo "[public]" >> /etc/samba/smb.conf && \
+    echo "   path = /srv/samba/public" >> /etc/samba/smb.conf && \
+    echo "   browsable = yes" >> /etc/samba/smb.conf && \
+    echo "   writable = yes" >> /etc/samba/smb.conf && \
+    echo "   guest ok = yes" >> /etc/samba/smb.conf && \
+    echo "   read only = no" >> /etc/samba/smb.conf
+
+# Добавляем пользователя admin в Samba базу (пароль: admin)
+RUN (echo "admin"; echo "admin") | smbpasswd -s -a admin
+
+# Открываем порты SSH (22) и Samba (139, 445)
+EXPOSE 22 139 445
+
+# Скрипт для запуска демонов при старте контейнера
+RUN echo '#!/bin/bash\n\
+service smbd start\n\
+service nmbd start\n\
+/usr/sbin/sshd -D\n\
+' > /start.sh && chmod +x /start.sh
+
+CMD ["/start.sh"]
