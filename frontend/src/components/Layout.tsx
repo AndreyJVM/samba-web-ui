@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Server, LayoutDashboard, FolderKanban, Users, Settings, LogOut, UserCircle2 } from "lucide-react";
+import { Server, LayoutDashboard, FolderKanban, Users, Settings, LogOut, UserCircle2, HardDrive } from "lucide-react";
 import { Button } from "./ui/button";
 
 export default function Layout() {
@@ -26,6 +26,7 @@ export default function Layout() {
   const navItems = [
     { name: "Дашборд", path: "/dashboard", icon: LayoutDashboard },
     { name: "Общие папки", path: "/shares", icon: FolderKanban },
+    { name: "Файловый менеджер", path: "/files", icon: HardDrive },
     { name: "Группы пользователей", path: "/groups", icon: Users },
     { name: "Пользователи Samba", path: "/users", icon: UserCircle2 },
     { name: "Конфигурация", path: "/config", icon: Settings },

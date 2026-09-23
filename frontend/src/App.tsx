@@ -6,6 +6,7 @@ import SharesPage from "./pages/shares/SharesPage";
 import UsersPage from "./pages/users/UsersPage";
 import ConfigPage from "./pages/config/ConfigPage";
 import GroupsPage from "./pages/groups/GroupsPage";
+import FilesPage from "./pages/files/FilesPage";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/shares" element={<SharesPage />} />
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/files" element={<FilesPage />} />
           <Route path="/config" element={<ConfigPage />} />
         </Route>
       </Routes>
