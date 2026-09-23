@@ -14,13 +14,14 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
   @Override
   public void addViewControllers(ViewControllerRegistry registry) {
-    // Перенаправляем корневой запрос / сразу на /ui/
-    registry.addViewController("/").setViewName("redirect:/ui/");
+    // Тихонько прокидываем короткие адреса на наш индексный файл (без редиректов в браузере)
+    registry.addViewController("/").setViewName("forward:/ui/index.html");
+    registry.addViewController("/ui").setViewName("forward:/ui/index.html");
+    registry.addViewController("/ui/").setViewName("forward:/ui/index.html");
   }
 
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    // Настраиваем отдачу статики и SPA-роутинг для React
     registry
         .addResourceHandler("/ui/**")
         .addResourceLocations("classpath:/static/ui/")
@@ -30,12 +31,17 @@ public class WebMvcConfig implements WebMvcConfigurer {
               @Override
               protected Resource getResource(String resourcePath, Resource location)
                   throws IOException {
-                // Пытаемся найти реально существующий файл (js, css, index.html)
                 Resource requestedResource = location.createRelative(resourcePath);
-                if (requestedResource.exists() && requestedResource.isReadable()) {
+
+                // Проверяем, что файл действительно существует и ВОЗМОЖНО является файлом
+                // (есть точка-расширение, т.к. "createRelative" может вернуть саму папку)
+                if (requestedResource.exists()
+                    && requestedResource.isReadable()
+                    && resourcePath.contains(".")) {
                   return requestedResource;
                 }
-                // Если файла нет (т.е. это роут React'а, например /ui/users), возвращаем index.html
+
+                // Все запросы без точки (роуты, папки) отдают React SPA index.html
                 return new ClassPathResource("/static/ui/index.html");
               }
             });
