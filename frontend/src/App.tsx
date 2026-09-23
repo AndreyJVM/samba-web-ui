@@ -1,19 +1,32 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
+import Layout from "./components/Layout";
+import PlaceholderPage from "./pages/PlaceholderPage";
 
 function App() {
   return (
     <BrowserRouter basename="/ui">
       <Routes>
-        {/* Базовый роут пока редиректит на логин */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        
-        {/* Роут логина */}
         <Route path="/login" element={<LoginPage />} />
         
-        {/* Роут дашборда (позже добавим проверку авторизации) */}
-        <Route path="/dashboard" element={<DashboardPage />} />
+        {/* Защищенные роуты с боковой панелью */}
+        <Route element={<Layout />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route 
+            path="/shares" 
+            element={<PlaceholderPage title="Общие папки (Shares)" description="Управление общими папками Samba" />} 
+          />
+          <Route 
+            path="/users" 
+            element={<PlaceholderPage title="Пользователи" description="Управление пользователями и правами" />} 
+          />
+          <Route 
+            path="/config" 
+            element={<PlaceholderPage title="Настройки (smb.conf)" description="Глобальная конфигурация Samba" />} 
+          />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
