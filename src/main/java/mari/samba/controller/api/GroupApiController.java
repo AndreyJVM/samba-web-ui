@@ -25,8 +25,7 @@ public class GroupApiController {
   @Operation(
       summary = "Get all groups",
       description = "Retrieves a list of all OS groups configured for Samba access.")
-  public ApiResponse<List<SambaGroup>> getAllGroups(
-      HttpSession session) throws Exception {
+  public ApiResponse<List<SambaGroup>> getAllGroups(HttpSession session) throws Exception {
     String sessionId = session.getId();
     return ApiResponse.ok(groupService.getAllGroups(sessionId));
   }
@@ -34,9 +33,7 @@ public class GroupApiController {
   @PostMapping
   @Operation(summary = "Create group", description = "Creates a new OS group.")
   public ApiResponse<Void> createGroup(
-      HttpSession session,
-      @Valid @RequestBody SambaGroupCreateDto dto)
-      throws Exception {
+      HttpSession session, @Valid @RequestBody SambaGroupCreateDto dto) throws Exception {
     String sessionId = session.getId();
     groupService.createGroup(sessionId, dto);
     return ApiResponse.ok("Группа успешно создана", null);

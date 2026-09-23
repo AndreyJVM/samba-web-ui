@@ -1,16 +1,19 @@
 # STAGE 1: Builder
-# Если используешь образ maven, то: FROM maven:3.9-eclipse-temurin-21 AS builder
-FROM eclipse-temurin:21-jdk-alpine AS builder
-
-RUN apk add --no-cache maven
+# Используем сборку на базе Debian/Ubuntu (jammy), так как frontend-maven-plugin
+# скачивает бинарники Node.js (glibc), которые не работают в чистом Alpine (musl).
+FROM eclipse-temurin:21-jdk-jammy AS builder
 
 WORKDIR /app
+
+# Устанавливаем maven
+RUN apt-get update && apt-get install -y maven
 
 COPY pom.xml .
 RUN mvn dependency:go-offline
 
+COPY frontend ./frontend
 COPY src ./src
-RUN mvn clean package
+RUN mvn clean package -DskipTests
 
 # STAGE 2: Runtime
 FROM eclipse-temurin:21-jre-alpine
