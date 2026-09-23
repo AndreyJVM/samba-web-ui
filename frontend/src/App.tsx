@@ -1,5 +1,3 @@
-import React from 'react';
-
 function App() {
   return (
     <div className="flex bg-muted items-center justify-center min-h-screen">
