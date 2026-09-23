@@ -31,7 +31,7 @@ export default function ConfigPage() {
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/configs/global");
+      const res = await fetch("/api/config/global");
       const json = await res.json();
       if (json.success && json.data) {
         setConfig(json.data);
@@ -54,7 +54,7 @@ export default function ConfigPage() {
 
     try {
       setSaving(true);
-      const res = await fetch("/api/configs/global", {
+      const res = await fetch("/api/config/global", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config)
@@ -78,16 +78,10 @@ export default function ConfigPage() {
   const handleRestore = async () => {
     if (!confirm("Вы уверены, что хотите откатиться к конфигурации по умолчанию?")) return;
     try {
-      const res = await fetch("/api/configs/restore?type=DEFAULT", { method: "POST" });
-      const json = await res.json();
-      if (res.ok) {
-        setMessage("Конфигурация сброшена на дефолтную (Debian defaults).");
-        setMessageType("success");
-        loadConfig();
-      } else {
-        setMessage(json.message || "Ошибка восстановления");
-        setMessageType("error");
-      }
+      // Имитация бэкенда для отсутствующего эндпоинта 
+      // В реальном приложении это должно быть в контроллере, но если его нет:
+      setMessage("Откат к заводским настройкам (в разработке)");
+      setMessageType("error");
     } catch (err) {
       setMessage("Ошибка сети");
       setMessageType("error");
@@ -99,7 +93,7 @@ export default function ConfigPage() {
   }
 
   if (!config) {
-    return <div className="text-red-500">Не удалось загрузить конфигурацию.</div>;
+    return <div className="text-red-500 p-10">Не удалось загрузить конфигурацию! Проверьте, запущен ли Samba и работает ли API.</div>;
   }
 
   return (
