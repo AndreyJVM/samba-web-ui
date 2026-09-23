@@ -36,3 +36,4 @@ build/
 .mvn/*
 # Local AI config
 GEMINI.md
+.gemini/**

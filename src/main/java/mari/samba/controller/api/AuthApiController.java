@@ -1,0 +1,92 @@
+package mari.samba.controller.api;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import java.util.Collections;
+import java.util.List;
+import mari.samba.dto.auth.ConnectionRequestDto;
+import mari.samba.dto.common.ApiResponse;
+import mari.samba.service.infra.SshSessionManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@Tag(
+    name = "Authentication",
+    description = "Operations for connecting and disconnecting from the Samba server")
+public class AuthApiController {
+
+  @Autowired private SshSessionManager sessionManager;
+
+  @PostMapping("/login")
+  @Operation(
+      summary = "Login / Connect",
+      description =
+          "Establishes an SSH connection to the remote Linux server and creates an authenticated Spring Security session.")
+  public ResponseEntity<ApiResponse<Void>> connect(
+      @Valid @RequestBody ConnectionRequestDto request, HttpServletRequest httpRequest) {
+
+    if (!request.isKeyAuth()
+        && (request.getPassword() == null || request.getPassword().isBlank())) {
+      return ResponseEntity.badRequest()
+          .body(ApiResponse.error("Пароль обязателен для аутентификации без ключа"));
+    }
+
+    try {
+      HttpSession httpSession = httpRequest.getSession(true);
+      String sessionId = httpSession.getId();
+
+      // 1. Создаем SSH-подключение
+      sessionManager.createSession(sessionId, request);
+
+      // 2. Инициализируем Spring Security Authenticate
+      List<SimpleGrantedAuthority> authorities =
+          Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
+      UsernamePasswordAuthenticationToken authentication =
+          new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
+
+      // 3. Сохраняем в контекст
+      SecurityContextHolder.getContext().setAuthentication(authentication);
+
+      // 4. Обязательно сохраняем контекст в сессию
+      httpSession.setAttribute(
+          HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+          SecurityContextHolder.getContext());
+
+      // 5. Визуальные метки для логов / фронтенда
+      httpSession.setAttribute(
+          "sambaHost",
+          request.getHost()
+              + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : ""));
+      httpSession.setAttribute("sambaUser", request.getUsername());
+
+      return ResponseEntity.ok(ApiResponse.ok("Успешно подключено к серверу", null));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(ApiResponse.error("Ошибка подключения: " + e.getMessage()));
+    }
+  }
+
+  @PostMapping("/logout")
+  @Operation(
+      summary = "Logout / Disconnect",
+      description = "Terminates the SSH connection and invalidates the session.")
+  public ResponseEntity<ApiResponse<Void>> disconnect(HttpSession httpSession) {
+    if (httpSession != null) {
+      String sessionId = httpSession.getId();
+      sessionManager.disconnect(sessionId);
+      httpSession.invalidate();
+    }
+    return ResponseEntity.ok(ApiResponse.ok("Успешно отключено", null));
+  }
+}
