@@ -26,9 +26,9 @@ export default function Layout() {
   const navItems = [
     { name: "Дашборд", path: "/dashboard", icon: LayoutDashboard },
     { name: "Общие папки", path: "/shares", icon: FolderKanban },
-    { name: "Группы (Скоро)", path: "/groups", icon: Users }, // Добавим заглушку для групп
-    { name: "Пользователи", path: "/users", icon: UserCircle2 },
-    { name: "Конфиг", path: "/config", icon: Settings },
+    { name: "Группы пользователей", path: "/groups", icon: Users },
+    { name: "Пользователи Samba", path: "/users", icon: UserCircle2 },
+    { name: "Конфигурация", path: "/config", icon: Settings },
   ];
 
   return (
@@ -41,7 +41,7 @@ export default function Layout() {
             <span>Samba Web UI</span>
           </div>
           {userInfo.host && (
-            <div className="text-xs text-muted-foreground mt-2 pl-9">
+            <div className="text-sm text-foreground/80 mt-2 pl-9">
               <div><span className="font-semibold">{userInfo.user}</span> @ {userInfo.host}</div>
             </div>
           )}

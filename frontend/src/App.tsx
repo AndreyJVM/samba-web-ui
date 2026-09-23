@@ -5,7 +5,7 @@ import Layout from "./components/Layout";
 import SharesPage from "./pages/shares/SharesPage";
 import UsersPage from "./pages/users/UsersPage";
 import ConfigPage from "./pages/config/ConfigPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
+import GroupsPage from "./pages/groups/GroupsPage";
 
 function App() {
   return (
@@ -18,7 +18,7 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/shares" element={<SharesPage />} />
-          <Route path="/groups" element={<PlaceholderPage title="Группы ОС" description="Управление группами Linux (В разработке)" />} />
+          <Route path="/groups" element={<GroupsPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/config" element={<ConfigPage />} />
         </Route>
