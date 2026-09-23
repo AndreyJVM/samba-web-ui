@@ -6,10 +6,11 @@ import { Input } from "../components/ui/input";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [host, setHost] = useState("127.0.0.1");
-  const [port, setPort] = useState("2222");
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin");
+  // Убрали автоподстановку данных, теперь поля по умолчанию пустые
+  const [host, setHost] = useState("");
+  const [port, setPort] = useState("22");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -21,7 +22,6 @@ export default function LoginPage() {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
-        // Меняем x-www-form-urlencoded на application/json, т.к. бэкенд ждет @RequestBody
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           host,
@@ -34,7 +34,6 @@ export default function LoginPage() {
       const result = await response.json();
       
       if (response.ok && result.success) {
-        // Успешный логин! Переходим на дашборд
         navigate("/dashboard");
       } else {
         setError(result.message || "Ошибка авторизации");
