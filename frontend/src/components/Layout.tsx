@@ -1,9 +1,22 @@
+import { useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Server, LayoutDashboard, FolderKanban, Users, Settings, LogOut } from "lucide-react";
+import { Server, LayoutDashboard, FolderKanban, Users, Settings, LogOut, UserCircle2 } from "lucide-react";
 import { Button } from "./ui/button";
 
 export default function Layout() {
   const location = useLocation();
+  const [userInfo, setUserInfo] = useState({ host: "", user: "" });
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setUserInfo(json.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -13,7 +26,8 @@ export default function Layout() {
   const navItems = [
     { name: "Дашборд", path: "/dashboard", icon: LayoutDashboard },
     { name: "Общие папки", path: "/shares", icon: FolderKanban },
-    { name: "Пользователи", path: "/users", icon: Users },
+    { name: "Группы (Скоро)", path: "/groups", icon: Users }, // Добавим заглушку для групп
+    { name: "Пользователи", path: "/users", icon: UserCircle2 },
     { name: "Конфиг", path: "/config", icon: Settings },
   ];
 
@@ -21,9 +35,16 @@ export default function Layout() {
     <div className="min-h-screen bg-muted/30 flex">
       {/* Боковая панель (Sidebar) */}
       <aside className="w-64 bg-background border-r border-border flex flex-col hidden md:flex">
-        <div className="p-6 flex items-center gap-3 font-bold text-lg border-b border-border">
-          <Server className="w-6 h-6 text-primary" />
-          <span>Samba Web UI</span>
+        <div className="p-6 flex flex-col gap-1 border-b border-border">
+          <div className="flex items-center gap-3 font-bold text-lg">
+            <Server className="w-6 h-6 text-primary" />
+            <span>Samba Web UI</span>
+          </div>
+          {userInfo.host && (
+            <div className="text-xs text-muted-foreground mt-2 pl-9">
+              <div><span className="font-semibold">{userInfo.user}</span> @ {userInfo.host}</div>
+            </div>
+          )}
         </div>
         
         <nav className="flex-1 p-4 flex flex-col gap-2">

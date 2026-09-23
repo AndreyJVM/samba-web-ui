@@ -6,7 +6,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import mari.samba.dto.auth.ConnectionRequestDto;
 import mari.samba.dto.common.ApiResponse;
 import mari.samba.service.infra.SshSessionManager;
@@ -75,6 +77,29 @@ public class AuthApiController {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
           .body(ApiResponse.error("Ошибка подключения: " + e.getMessage()));
     }
+  }
+
+  @GetMapping("/me")
+  @Operation(
+      summary = "Get current session info",
+      description = "Retrieves information about the currently logged in user and server.")
+  public ResponseEntity<ApiResponse<Map<String, String>>> getCurrentUser(HttpSession httpSession) {
+    if (httpSession == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    String host = (String) httpSession.getAttribute("sambaHost");
+    String user = (String) httpSession.getAttribute("sambaUser");
+
+    if (host == null || user == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    Map<String, String> data = new HashMap<>();
+    data.put("host", host);
+    data.put("user", user);
+
+    return ResponseEntity.ok(ApiResponse.ok(data));
   }
 
   @PostMapping("/logout")
