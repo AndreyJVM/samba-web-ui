@@ -1,16 +1,21 @@
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import DashboardPage from "./pages/DashboardPage";
+
 function App() {
   return (
-    <div className="flex bg-muted items-center justify-center min-h-screen">
-      <div className="bg-background max-w-sm rounded-xl p-8 border border-border shadow-soft text-center flex flex-col gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Samba Web UI</h1>
-        <p className="text-muted-foreground text-sm">
-          Frontend successfully scaffolded with React, Tailwind CSS, and Vite.
-        </p>
-        <button className="bg-primary text-primary-foreground font-medium rounded-md px-4 py-2 hover:opacity-90 transition-opacity">
-          Get Started
-        </button>
-      </div>
-    </div>
+    <BrowserRouter basename="/ui">
+      <Routes>
+        {/* Базовый роут пока редиректит на логин */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        
+        {/* Роут логина */}
+        <Route path="/login" element={<LoginPage />} />
+        
+        {/* Роут дашборда (позже добавим проверку авторизации) */}
+        <Route path="/dashboard" element={<DashboardPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
