@@ -6,7 +6,14 @@ import { Card, CardContent } from "../../components/ui/card";
 
 interface Share {
   name: string;
-  parameters: Record<string, string>;
+  path: string;
+  comment?: string;
+  readOnly: boolean;
+  guestOk: boolean;
+  browseable: boolean;
+  validUsers?: string;
+  writeList?: string;
+  isNew?: boolean;
 }
 
 export default function SharesPage() {
@@ -50,22 +57,22 @@ export default function SharesPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentShare?.name || !currentShare?.parameters?.path) return;
+    if (!currentShare?.name || !currentShare?.path) return;
 
-    const isNew = currentShare.parameters.isNew === "true";
+    const isNew = currentShare.isNew === true;
     const method = isNew ? "POST" : "PUT";
     const url = isNew ? "/api/shares" : `/api/shares/${currentShare.name}`;
 
     try {
       const dto = {
         name: currentShare.name,
-        path: currentShare.parameters.path,
-        comment: currentShare.parameters.comment || "",
-        readOnly: currentShare.parameters["read only"] === "yes",
-        browseable: currentShare.parameters.browseable !== "no",
-        guestOk: currentShare.parameters["guest ok"] === "yes",
-        validUsers: currentShare.parameters["valid users"] || "",
-        writeList: currentShare.parameters["write list"] || ""
+        path: currentShare.path,
+        comment: currentShare.comment || "",
+        readOnly: currentShare.readOnly,
+        browseable: currentShare.browseable,
+        guestOk: currentShare.guestOk,
+        validUsers: currentShare.validUsers || "",
+        writeList: currentShare.writeList || ""
       };
 
       const res = await fetch(url, {
@@ -87,11 +94,15 @@ export default function SharesPage() {
 
   const openEditor = (share?: Share) => {
     if (share) {
-      setCurrentShare(JSON.parse(JSON.stringify(share))); // clone
+      setCurrentShare({ ...share, isNew: false });
     } else {
       setCurrentShare({
         name: "",
-        parameters: { path: "", browseable: "yes", "read only": "yes", "guest ok": "no", isNew: "true" }
+        path: "",
+        browseable: true,
+        readOnly: true,
+        guestOk: false,
+        isNew: true
       });
     }
     setIsEditing(true);
@@ -103,7 +114,7 @@ export default function SharesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              {currentShare.parameters!.isNew === "true" ? "Новая общая папка" : `Редактирование: ${currentShare.name}`}
+              {currentShare.isNew ? "Новая общая папка" : `Редактирование: ${currentShare.name}`}
             </h1>
           </div>
           <Button onClick={() => setIsEditing(false)} className="!bg-transparent text-foreground border border-border hover:bg-muted">
@@ -120,7 +131,7 @@ export default function SharesPage() {
                   <Input 
                     required 
                     value={currentShare.name} 
-                    disabled={currentShare.parameters!.isNew !== "true"}
+                    disabled={!currentShare.isNew}
                     onChange={(e) => setCurrentShare({ ...currentShare, name: e.target.value })} 
                   />
                 </div>
@@ -128,8 +139,8 @@ export default function SharesPage() {
                   <label className="text-sm font-medium">Путь на сервере (/path/to/folder)</label>
                   <Input 
                     required 
-                    value={currentShare.parameters?.path || ""} 
-                    onChange={(e) => setCurrentShare({ ...currentShare, parameters: { ...currentShare.parameters!, path: e.target.value }})} 
+                    value={currentShare.path || ""} 
+                    onChange={(e) => setCurrentShare({ ...currentShare, path: e.target.value })} 
                   />
                 </div>
               </div>
@@ -137,30 +148,30 @@ export default function SharesPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Комментарий</label>
                 <Input 
-                  value={currentShare.parameters?.comment || ""} 
-                  onChange={(e) => setCurrentShare({ ...currentShare, parameters: { ...currentShare.parameters!, comment: e.target.value }})} 
+                  value={currentShare.comment || ""} 
+                  onChange={(e) => setCurrentShare({ ...currentShare, comment: e.target.value })} 
                 />
               </div>
 
               <div className="space-y-4 py-4 border-t border-b border-border text-sm">
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id="browseable" 
-                    checked={currentShare.parameters?.browseable !== "no"} 
-                    onChange={(e) => setCurrentShare({ ...currentShare, parameters: { ...currentShare.parameters!, browseable: e.target.checked ? "yes" : "no" }})} 
+                    checked={currentShare.browseable} 
+                    onChange={(e) => setCurrentShare({ ...currentShare, browseable: e.target.checked })} 
                   />
                   <label htmlFor="browseable">Видимая в сети (browseable)</label>
                 </div>
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id="ro" 
-                    checked={currentShare.parameters?.["read only"] === "yes"} 
-                    onChange={(e) => setCurrentShare({ ...currentShare, parameters: { ...currentShare.parameters!, "read only": e.target.checked ? "yes" : "no" }})} 
+                    checked={currentShare.readOnly} 
+                    onChange={(e) => setCurrentShare({ ...currentShare, readOnly: e.target.checked })} 
                   />
                   <label htmlFor="ro">Только для чтения (read only)</label>
                 </div>
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id="guest" 
-                    checked={currentShare.parameters?.["guest ok"] === "yes"} 
-                    onChange={(e) => setCurrentShare({ ...currentShare, parameters: { ...currentShare.parameters!, "guest ok": e.target.checked ? "yes" : "no" }})} 
+                    checked={currentShare.guestOk} 
+                    onChange={(e) => setCurrentShare({ ...currentShare, guestOk: e.target.checked })} 
                   />
                   <label htmlFor="guest">Доступ гостям (guest ok)</label>
                 </div>
@@ -170,8 +181,8 @@ export default function SharesPage() {
                 <label className="text-sm font-medium">Допустимые пользователи (valid users)</label>
                 <Input 
                   placeholder="@smbgroup, user1, user2" 
-                  value={currentShare.parameters?.["valid users"] || ""} 
-                  onChange={(e) => setCurrentShare({ ...currentShare, parameters: { ...currentShare.parameters!, "valid users": e.target.value }})} 
+                  value={currentShare.validUsers || ""} 
+                  onChange={(e) => setCurrentShare({ ...currentShare, validUsers: e.target.value })} 
                 />
               </div>
 
@@ -215,15 +226,15 @@ export default function SharesPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg leading-tight">[{share.name}]</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{share.parameters.comment || "Без описания"}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{share.comment || "Без описания"}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="text-sm text-foreground/80 space-y-1 bg-muted/30 p-3 rounded-md font-mono text-xs overflow-hidden text-ellipsis">
-                  <div><span className="text-muted-foreground">Path:</span> {share.parameters.path}</div>
-                  <div><span className="text-muted-foreground">Read Only:</span> {share.parameters["read only"] || "yes"}</div>
-                  <div><span className="text-muted-foreground">Guest Ok:</span> {share.parameters["guest ok"] || "no"}</div>
+                  <div><span className="text-muted-foreground">Path:</span> {share.path}</div>
+                  <div><span className="text-muted-foreground">Read Only:</span> {share.readOnly ? "Да" : "Нет"}</div>
+                  <div><span className="text-muted-foreground">Guest Ok:</span> {share.guestOk ? "Да" : "Нет"}</div>
                 </div>
               </CardContent>
               <div className="p-4 border-t border-border flex justify-end gap-2 bg-muted/10 rounded-b-xl">
