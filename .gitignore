@@ -37,3 +37,8 @@ build/
 # Local AI config
 GEMINI.md
 .gemini/**
+
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/node/
