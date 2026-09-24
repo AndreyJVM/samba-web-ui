@@ -6,7 +6,6 @@ import SharesPage from "./pages/shares/SharesPage";
 import UsersPage from "./pages/users/UsersPage";
 import ConfigPage from "./pages/config/ConfigPage";
 import GroupsPage from "./pages/groups/GroupsPage";
-import FilesPage from "./pages/files/FilesPage";
 
 function App() {
   return (
@@ -16,12 +15,11 @@ function App() {
         
         {/* Защищенные роуты с боковой панелью */}
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/shares" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/shares" element={<SharesPage />} />
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/users" element={<UsersPage />} />
-          <Route path="/files" element={<FilesPage />} />
           <Route path="/config" element={<ConfigPage />} />
         </Route>
       </Routes>

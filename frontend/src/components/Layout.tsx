@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Server, FolderKanban, Users, Settings, LogOut, UserCircle2, HardDrive, Play, Square, RefreshCw } from "lucide-react";
+import { Server, FolderKanban, Users, Settings, LogOut, UserCircle2, Play, Square, RefreshCw } from "lucide-react";
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
@@ -55,9 +55,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   };
 
   const navItems = [
-    { name: "Дашборд", path: "/dashboard", icon: Server },
+    { name: "Дашборд / Файлы", path: "/dashboard", icon: Server },
     { name: "Общие папки", path: "/shares", icon: FolderKanban },
-    { name: "Файловый менеджер", path: "/files", icon: HardDrive },
     { name: "Пользователи", path: "/users", icon: UserCircle2 },
     { name: "Группы ОС", path: "/groups", icon: Users },
     { name: "Системный конфиг", path: "/config", icon: Settings },
