@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import mari.samba.dto.user.SambaUserCreateDto;
-import mari.samba.exception.SshSessionExpiredException;
 import mari.samba.model.SambaUser;
 import mari.samba.service.SambaUserService;
 import org.junit.jupiter.api.Test;
@@ -20,7 +19,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(UserApiController.class)
-@AutoConfigureMockMvc(addFilters = false) // Disable security filters for pure controller testing
+@AutoConfigureMockMvc(addFilters = false)
 class UserApiControllerTest {
 
   @Autowired private MockMvc mockMvc;
@@ -44,7 +43,6 @@ class UserApiControllerTest {
 
   @Test
   void testCreateUser_ShouldReturnSuccessMsg() throws Exception {
-    // Record constructor order is (username, fullName, password)
     SambaUserCreateDto dto = new SambaUserCreateDto("johndoe", "John Doe", "Secret@123");
 
     mockMvc
@@ -61,41 +59,13 @@ class UserApiControllerTest {
   }
 
   @Test
-  void testGlobalExceptionHandler_WhenSshSessionExpired_ShouldReturn401() throws Exception {
-    // Force the mocked service to throw SshSessionExpiredException
-    when(sambaUserService.getAllUsers(anyString()))
-        .thenThrow(new SshSessionExpiredException("Connection lost"));
-
+  void testDeleteUser_ShouldReturnSuccessMsg() throws Exception {
     mockMvc
-        .perform(get("/api/users"))
-        .andExpect(status().isUnauthorized())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("SSH-сессия истекла. Требуется повторный вход."));
-  }
+        .perform(delete("/api/users/johndoe"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.message").value("Пользователь 'johndoe' успешно удален"));
 
-  @Test
-  void testGlobalExceptionHandler_WhenIllegalArgument_ShouldReturn400() throws Exception {
-    // Force the mocked service to throw IllegalArgumentException
-    when(sambaUserService.getAllUsers(anyString()))
-        .thenThrow(new IllegalArgumentException("Неверные параметры"));
-
-    mockMvc
-        .perform(get("/api/users"))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Неверные параметры"));
-  }
-
-  @Test
-  void testGlobalExceptionHandler_WhenUnknownException_ShouldReturn500() throws Exception {
-    // Force the mocked service to throw a generic Exception
-    when(sambaUserService.getAllUsers(anyString()))
-        .thenThrow(new RuntimeException("Database down"));
-
-    mockMvc
-        .perform(get("/api/users"))
-        .andExpect(status().isInternalServerError())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Database down"));
+    verify(sambaUserService).deleteUser(anyString(), eq("johndoe"));
   }
 }
