@@ -1,0 +1,10 @@
+FROM eclipse-temurin:21-jre-jammy
+
+WORKDIR /app
+
+# Копируем собранный jar-файл проекта
+COPY target/samba-web-ui-*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

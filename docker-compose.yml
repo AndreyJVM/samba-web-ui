@@ -1,21 +1,32 @@
 version: '3.8'
 
 services:
-  samba-test:
+  samba-sandbox:
     build:
-      context: docker
-      dockerfile: Dockerfile.samba
+      context: .
+      dockerfile: docker/Dockerfile.samba
     image: samba-test-server:latest
     container_name: samba-sandbox
     ports:
-      # Пробрасываем SSH на нестандартный порт, чтобы не конфликтовать с хостом
+      # Пробрасываем SSH на нестандартный порт для доступа с хоста
       - "2222:22"
-      # Пробрасываем порты Samba (хотя приложение обращается локально, можно тестировать с хоста)
+      # Пробрасываем порты Samba для тестирования подключения с хоста
       - "139:139"
       - "445:445"
     volumes:
       - samba_data:/srv/samba
-    # Имитируем реальную среду Linux-сервера (init system не запускаем, но нужные сервисы стартанем)
+    restart: unless-stopped
+
+  web-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    image: samba-web-ui:latest
+    container_name: samba-web-ui
+    ports:
+      - "8080:8080"
+    depends_on:
+      - samba-sandbox
     restart: unless-stopped
 
 volumes:

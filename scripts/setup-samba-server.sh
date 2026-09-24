@@ -16,12 +16,22 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# Ввод имени пользователя
-read -r -p "Введите имя администратора Samba [по умолчанию: samba-admin]: " ADMIN_USER
-ADMIN_USER=${ADMIN_USER:-samba-admin}
+# Поддержка автоматической (неинтерактивной) установки через переменные окружения
+if [ -n "$AUTO_ADMIN_USER" ] && [ -n "$AUTO_ADMIN_PASS" ]; then
+    ADMIN_USER="$AUTO_ADMIN_USER"
+    ADMIN_PASS="$AUTO_ADMIN_PASS"
+    INTERACTIVE=0
+    echo "Запуск в неинтерактивном режиме (CI/Docker). Пользователь: $ADMIN_USER"
+else
+    INTERACTIVE=1
+    # Ввод имени пользователя
+    read -r -p "Введите имя администратора Samba [по умолчанию: samba-admin]: " ADMIN_USER
+    ADMIN_USER=${ADMIN_USER:-samba-admin}
+fi
 
 # 1. Установка Samba
 echo ">>> [1/4] Установка пакета Samba..."
+export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y samba
 
@@ -32,15 +42,25 @@ if id "$ADMIN_USER" &>/dev/null; then
 else
     # Создаем без добавления в глобальную группу sudo/wheel
     useradd -m -s /bin/bash "$ADMIN_USER"
-    echo "Пожалуйста, задайте системный пароль (Linux) для '$ADMIN_USER':"
-    passwd "$ADMIN_USER"
+    
+    if [ "$INTERACTIVE" -eq 1 ]; then
+        echo "Пожалуйста, задайте системный пароль (Linux) для '$ADMIN_USER':"
+        passwd "$ADMIN_USER"
+    else
+        echo "$ADMIN_USER:$ADMIN_PASS" | chpasswd
+    fi
 fi
 
 # 3. Настройка Samba пароля
 echo ">>> [3/4] Добавление '$ADMIN_USER' в базу пользователей Samba..."
-echo "Пожалуйста, задайте пароль Samba для '$ADMIN_USER' (с ним будет происходить вход в Web UI):"
-smbpasswd -a "$ADMIN_USER"
-smbpasswd -e "$ADMIN_USER"
+if [ "$INTERACTIVE" -eq 1 ]; then
+    echo "Пожалуйста, задайте пароль Samba для '$ADMIN_USER' (с ним будет происходить вход в Web UI):"
+    smbpasswd -a "$ADMIN_USER"
+    smbpasswd -e "$ADMIN_USER"
+else
+    (echo "$ADMIN_PASS"; echo "$ADMIN_PASS") | smbpasswd -s -a "$ADMIN_USER"
+    smbpasswd -e "$ADMIN_USER"
+fi
 
 # 4. Настройка Sudoers (беспарольный доступ для Web UI)
 echo ">>> [4/4] Настройка прав sudoers для '$ADMIN_USER'..."
@@ -50,7 +70,6 @@ SUDO_ENTRIES=()
 
 # ==================================================================
 # 1. СТАТИЧЕСКИЕ КОМАНДЫ (Строго Ограниченные Аргументы)
-# Эти команды безопасны только если им переданы конкретные аргументы
 # ==================================================================
 
 # Безопасное управление службой Samba

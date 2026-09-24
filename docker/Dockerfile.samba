@@ -3,9 +3,8 @@ FROM ubuntu:22.04
 # Отключаем интерактивные запросы apt
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Устанавливаем Samba, SSH сервер и необходимые утилиты (sudo, smbclient для проверок)
+# Устанавливаем SSH сервер и утилиты (Samba установится скриптом)
 RUN apt-get update && apt-get install -y \
-    samba \
     openssh-server \
     sudo \
     smbclient \
@@ -17,13 +16,26 @@ RUN mkdir /var/run/sshd
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-# Создаем тестового пользователя-администратора
-# В приложении мы будем логиниться под admin:admin
-RUN useradd -m -s /bin/bash admin && \
-    echo 'admin:admin' | chpasswd && \
-    usermod -aG sudo admin
+# Эмуляция systemctl (В стандартном Docker нет systemd, а бэкенд использует systemctl)
+RUN echo '#!/bin/bash\n\
+if [ "$1" = "restart" ]; then service $2 restart; fi\n\
+if [ "$1" = "start" ]; then service $2 start; fi\n\
+if [ "$1" = "stop" ]; then service $2 stop; fi\n\
+if [ "$1" = "status" ]; then service $2 status; fi\n\
+if [ "$1" = "is-active" ]; then service $2 status | grep -q "is running" && echo "active" || echo "inactive"; fi\n\
+exit 0\n\
+' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl
 
-# Создаем директорию для общих папок Samba
+# Копируем скрипт установки
+COPY scripts/setup-samba-server.sh /setup-samba-server.sh
+RUN chmod +x /setup-samba-server.sh
+
+# Запускаем скрипт установки в неинтерактивном режиме с пользователем admin/admin
+ENV AUTO_ADMIN_USER=admin
+ENV AUTO_ADMIN_PASS=admin
+RUN /setup-samba-server.sh
+
+# Создаем директорию для общих папок Samba с правильными правами
 RUN mkdir -p /srv/samba/public && \
     chown -R admin:admin /srv/samba/public && \
     chmod -R 0755 /srv/samba/public
@@ -42,9 +54,6 @@ RUN mv /etc/samba/smb.conf /etc/samba/smb.conf.bak && \
     echo "   writable = yes" >> /etc/samba/smb.conf && \
     echo "   guest ok = yes" >> /etc/samba/smb.conf && \
     echo "   read only = no" >> /etc/samba/smb.conf
-
-# Добавляем пользователя admin в Samba базу (пароль: admin)
-RUN (echo "admin"; echo "admin") | smbpasswd -s -a admin
 
 # Открываем порты SSH (22) и Samba (139, 445)
 EXPOSE 22 139 445
