@@ -31,13 +31,26 @@ public class SambaMonitoringService {
       String[] lines = output.split("\\r?\\n");
 
       boolean parsingSessions = false;
+      int pidIdx = 0,
+          userIdx = 1,
+          machineIdx = 3; // В современных Samba между User и Machine идет Group
+
       for (String line : lines) {
         line = line.trim();
         if (line.startsWith("Samba version")) continue;
-        if (line.contains("PID") && line.contains("User") && line.contains("Machine")) {
+
+        // Читаем заголовок, чтобы понять где расположены колонки (версии Samba немного отличаются)
+        if (line.contains("PID") && line.contains("Username")) {
           parsingSessions = true;
+          String[] headers = line.split("\\s+");
+          for (int i = 0; i < headers.length; i++) {
+            if (headers[i].equalsIgnoreCase("PID")) pidIdx = i;
+            if (headers[i].equalsIgnoreCase("Username")) userIdx = i;
+            if (headers[i].equalsIgnoreCase("Machine")) machineIdx = i;
+          }
           continue;
         }
+
         if (line.startsWith("---")) continue;
         if (line.isEmpty()) {
           parsingSessions = false;
@@ -46,11 +59,11 @@ public class SambaMonitoringService {
 
         if (parsingSessions) {
           String[] parts = line.split("\\s+");
-          if (parts.length >= 3) {
+          if (parts.length > Math.max(userIdx, machineIdx)) {
             Map<String, String> conn = new HashMap<>();
-            conn.put("pid", parts[0]);
-            conn.put("user", parts[1]);
-            conn.put("machine", parts[2]);
+            conn.put("pid", parts[pidIdx]);
+            conn.put("user", parts[userIdx]);
+            conn.put("machine", parts[machineIdx]);
             connections.add(conn);
           }
         }
@@ -78,19 +91,23 @@ public class SambaMonitoringService {
 
         if (parsingFiles) {
           String[] parts = line.split("\\s+");
+          // Формат: Pid, Uid, DenyMode, Access, R/W, Oplock, SharePath, Name, Time
+          // Name начинается с 7-го индекса.
           if (parts.length >= 8) {
             Map<String, String> file = new HashMap<>();
             file.put("pid", parts[0]);
             file.put("rw", parts[4]); // RDONLY, WRONLY, RDWR
 
-            StringBuilder filePath = new StringBuilder();
-            for (int i = 6; i < parts.length; i++) {
+            StringBuilder fileName = new StringBuilder();
+            // Склеиваем имя файла, так как оно может содержать пробелы (parts с 7 индекса)
+            for (int i = 7; i < parts.length; i++) {
+              // Имена файлов заканчиваются, когда начинается Time (День недели)
               if (parts[i].matches("Mon|Tue|Wed|Thu|Fri|Sat|Sun")) {
                 break;
               }
-              filePath.append(parts[i]).append(" ");
+              fileName.append(parts[i]).append(" ");
             }
-            file.put("file", filePath.toString().trim());
+            file.put("file", fileName.toString().trim());
             openFiles.add(file);
           }
         }
