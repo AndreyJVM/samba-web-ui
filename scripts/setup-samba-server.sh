@@ -68,12 +68,20 @@ echo ">>> [4/4] Настройка прав sudoers для '$ADMIN_USER'..."
 SUDOERS_FILE="/etc/sudoers.d/samba-web-ui"
 SUDO_ENTRIES=()
 
+# Вспомогательная функция для безопасного поиска абсолютного пути к бинарнику.
+# Важно использовать `which` или `type -P`, а не `command -v`, так как command -v
+# для встроенных команд bash (например, kill) возвращает строку "kill",
+# а sudoers требует исключительно абсолютные пути (например, /bin/kill).
+resolve_cmd() {
+    which "$1" 2>/dev/null || true
+}
+
 # ==================================================================
 # 1. СТАТИЧЕСКИЕ КОМАНДЫ (Строго Ограниченные Аргументы)
 # ==================================================================
 
 # Безопасное управление службой Samba
-SYSTEMCTL_BIN=$(command -v systemctl 2>/dev/null || true)
+SYSTEMCTL_BIN=$(resolve_cmd systemctl)
 if [ -n "$SYSTEMCTL_BIN" ]; then
     for action in start stop restart reload status is-active; do
         SUDO_ENTRIES+=("$SYSTEMCTL_BIN $action smbd")
@@ -82,7 +90,7 @@ if [ -n "$SYSTEMCTL_BIN" ]; then
 fi
 
 # Безопасное чтение пользователей Samba
-PDBEDIT_BIN=$(command -v pdbedit 2>/dev/null || true)
+PDBEDIT_BIN=$(resolve_cmd pdbedit)
 [ -n "$PDBEDIT_BIN" ] && SUDO_ENTRIES+=("$PDBEDIT_BIN -L")
 
 
@@ -97,7 +105,7 @@ DYNAMIC_COMMANDS=(
 )
 
 for cmd in "${DYNAMIC_COMMANDS[@]}"; do
-    bin_path=$(command -v "$cmd" 2>/dev/null || true)
+    bin_path=$(resolve_cmd "$cmd")
     if [ -n "$bin_path" ]; then
         SUDO_ENTRIES+=("$bin_path")
     fi
