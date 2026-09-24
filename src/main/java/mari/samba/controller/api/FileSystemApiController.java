@@ -6,7 +6,6 @@ import mari.samba.dto.fs.DirectoryBrowseResultDto;
 import mari.samba.dto.fs.DiskUsageDto;
 import mari.samba.service.FileSystemService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,36 +15,24 @@ public class FileSystemApiController {
   @Autowired private FileSystemService fileSystemService;
 
   @GetMapping("/browse")
-  public ResponseEntity<ApiResponse<DirectoryBrowseResultDto>> browseDirectories(
-      @RequestParam(defaultValue = "/") String path, HttpSession httpSession) {
-    try {
-      DirectoryBrowseResultDto result =
-          fileSystemService.listDirectories(httpSession.getId(), path);
-      return ResponseEntity.ok(ApiResponse.ok(result));
-    } catch (Exception e) {
-      return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-    }
+  public ApiResponse<DirectoryBrowseResultDto> browseDirectories(
+      @RequestParam(defaultValue = "/") String path, HttpSession httpSession) throws Exception {
+    DirectoryBrowseResultDto result = fileSystemService.listDirectories(httpSession.getId(), path);
+    return ApiResponse.ok(result);
   }
 
   @PostMapping("/mkdir")
-  public ResponseEntity<ApiResponse<Void>> makeDirectory(
-      @RequestParam String parentPath, @RequestParam String name, HttpSession httpSession) {
-    try {
-      fileSystemService.createDirectory(httpSession.getId(), parentPath, name);
-      return ResponseEntity.ok(ApiResponse.ok("Каталог успешно создан", null));
-    } catch (Exception e) {
-      return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-    }
+  public ApiResponse<Void> makeDirectory(
+      @RequestParam String parentPath, @RequestParam String name, HttpSession httpSession)
+      throws Exception {
+    fileSystemService.createDirectory(httpSession.getId(), parentPath, name);
+    return ApiResponse.ok("Каталог успешно создан", null);
   }
 
   @GetMapping("/disk-usage")
-  public ResponseEntity<ApiResponse<DiskUsageDto>> getDiskUsage(
-      @RequestParam String path, HttpSession httpSession) {
-    try {
-      DiskUsageDto result = fileSystemService.getDiskUsage(httpSession.getId(), path);
-      return ResponseEntity.ok(ApiResponse.ok(result));
-    } catch (Exception e) {
-      return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
-    }
+  public ApiResponse<DiskUsageDto> getDiskUsage(@RequestParam String path, HttpSession httpSession)
+      throws Exception {
+    DiskUsageDto result = fileSystemService.getDiskUsage(httpSession.getId(), path);
+    return ApiResponse.ok(result);
   }
 }
