@@ -1,8 +1,5 @@
 package mari.samba.service;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import mari.samba.dto.fs.DirectoryBrowseResultDto;
@@ -23,10 +20,15 @@ public class FileSystemService {
       throws Exception {
     String safePath = normalizePath(requestedPath);
 
-    // Определяем родительский каталог
-    Path pathObj = Paths.get(safePath);
-    Path parentObj = pathObj.getParent();
-    String parentPath = parentObj != null ? parentObj.toString() : "/";
+    // Определяем родительский каталог без привязки к ОС (java.nio.file.Paths зависит от ОС, что
+    // ломает тесты на Windows)
+    String parentPath;
+    int lastSlash = safePath.lastIndexOf('/');
+    if (lastSlash <= 0) {
+      parentPath = "/";
+    } else {
+      parentPath = safePath.substring(0, lastSlash);
+    }
 
     // Читаем только папки с глубиной 1, исключая скрытые
     String cmd = LinuxCommands.findDirectories(safePath);
@@ -39,7 +41,8 @@ public class FileSystemService {
         String fullPath = line.trim();
         if (fullPath.isEmpty()) continue;
 
-        String name = fullPath.substring(fullPath.lastIndexOf(File.separator) + 1);
+        // В bash пути приходят через '/', поэтому используем '/' вместо File.separator
+        String name = fullPath.substring(fullPath.lastIndexOf('/') + 1);
         items.add(new DirectoryItemDto(name, fullPath));
       }
     }
@@ -82,7 +85,6 @@ public class FileSystemService {
     return unixPath.startsWith("/") ? unixPath : "/" + unixPath;
   }
 
-  /** Получение информации о свободном месте на диске по указанному пути */
   /** Получение информации о свободном месте на диске по указанному пути */
   public DiskUsageDto getDiskUsage(String sessionId, String path) throws Exception {
     String safePath = normalizePath(path);
