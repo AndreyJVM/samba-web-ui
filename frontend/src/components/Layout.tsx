@@ -55,6 +55,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   };
 
   const navItems = [
+    { name: "Дашборд", path: "/dashboard", icon: Server },
     { name: "Общие папки", path: "/shares", icon: FolderKanban },
     { name: "Файловый менеджер", path: "/files", icon: HardDrive },
     { name: "Пользователи", path: "/users", icon: UserCircle2 },

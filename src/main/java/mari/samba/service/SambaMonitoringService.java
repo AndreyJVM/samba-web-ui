@@ -115,23 +115,18 @@ public class SambaMonitoringService {
   }
 
   /** Получает статистику свободного места на дисках (/srv/samba или корня) */
-  public Map<String, String> getDiskUsage(String sessionId) {
-    Map<String, String> stats = new HashMap<>();
+  public List<String> getDiskUsage(String sessionId) {
+    List<String> stats = new ArrayList<>();
     try {
-      // Выполняем df -h, ищем строку с / или монтированием /srv
-      String output = commandExecutor.execute(sessionId, "df -h / | tail -n 1");
-      String[] parts = output.trim().split("\\s+");
-      if (parts.length >= 5) {
-        stats.put("total", parts[1]);
-        stats.put("used", parts[2]);
-        stats.put("free", parts[3]);
-        stats.put("percent", parts[4].replace("%", ""));
+      String output = commandExecutor.execute(sessionId, "df -h");
+      String[] lines = output.trim().split("\\r?\\n");
+      for (int i = 1; i < lines.length; i++) {
+        String[] parts = lines[i].trim().split("\\s+");
+        if (parts.length >= 6) {
+          stats.add(parts[5] + " " + parts[4] + " " + parts[1]);
+        }
       }
     } catch (Exception e) {
-      stats.put("total", "N/A");
-      stats.put("used", "N/A");
-      stats.put("free", "N/A");
-      stats.put("percent", "0");
     }
     return stats;
   }
