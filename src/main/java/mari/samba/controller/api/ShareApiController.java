@@ -1,8 +1,5 @@
 package mari.samba.controller.api;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -15,16 +12,11 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/shares")
-@Tag(name = "Shares", description = "Operations for managing Samba file shares")
 public class ShareApiController {
 
   @Autowired private SambaShareService shareService;
 
   @GetMapping
-  @Operation(
-      summary = "Get all shares",
-      description =
-          "Retrieves the list of all currently configured Samba shares (excluding internal sections like global).")
   public ApiResponse<List<SambaShare>> getAllShares(HttpSession session) throws Exception {
     String sessionId = session.getId();
     List<SambaShare> shares = shareService.getAllShares(sessionId);
@@ -32,13 +24,7 @@ public class ShareApiController {
   }
 
   @GetMapping("/{sharename}")
-  @Operation(
-      summary = "Get share by name",
-      description = "Retrieves the configuration for a specific Samba share.")
-  public ApiResponse<SambaShare> getShare(
-      @Parameter(description = "Name of the share", example = "public_share") @PathVariable
-          String sharename,
-      HttpSession session)
+  public ApiResponse<SambaShare> getShare(@PathVariable String sharename, HttpSession session)
       throws Exception {
     String sessionId = session.getId();
     SambaShare share = shareService.getShareByName(sessionId, sharename);
@@ -46,9 +32,6 @@ public class ShareApiController {
   }
 
   @PostMapping
-  @Operation(
-      summary = "Create share",
-      description = "Creates a new Samba share with the provided configuration.")
   public ApiResponse<Void> createShare(
       HttpSession session, @Valid @RequestBody SambaShareCreateDto dto) throws Exception {
     String sessionId = session.getId();
@@ -57,14 +40,9 @@ public class ShareApiController {
   }
 
   @PutMapping("/{sharename}")
-  @Operation(
-      summary = "Update share",
-      description = "Updates the configuration of an existing Samba share.")
   public ApiResponse<Void> updateShare(
       HttpSession session,
-      @Parameter(description = "Name of the share to update", example = "public_share")
-          @PathVariable
-          String sharename,
+      @PathVariable String sharename,
       @Valid @RequestBody SambaShareCreateDto dto)
       throws Exception {
     String sessionId = session.getId();
@@ -74,14 +52,7 @@ public class ShareApiController {
   }
 
   @DeleteMapping("/{sharename}")
-  @Operation(
-      summary = "Delete share",
-      description = "Deletes an existing Samba share configuration.")
-  public ApiResponse<Void> deleteShare(
-      HttpSession session,
-      @Parameter(description = "Name of the share to delete", example = "public_share")
-          @PathVariable
-          String sharename)
+  public ApiResponse<Void> deleteShare(HttpSession session, @PathVariable String sharename)
       throws Exception {
     String sessionId = session.getId();
     shareService.deleteShare(sessionId, sharename);

@@ -1,7 +1,5 @@
 package mari.samba.controller.api;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -23,18 +21,11 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@Tag(
-    name = "Authentication",
-    description = "Operations for connecting and disconnecting from the Samba server")
 public class AuthApiController {
 
   @Autowired private SshSessionManager sessionManager;
 
   @PostMapping("/login")
-  @Operation(
-      summary = "Login / Connect",
-      description =
-          "Establishes an SSH connection to the remote Linux server and creates an authenticated Spring Security session.")
   public ResponseEntity<ApiResponse<Void>> connect(
       @Valid @RequestBody ConnectionRequestDto request, HttpServletRequest httpRequest) {
 
@@ -80,9 +71,6 @@ public class AuthApiController {
   }
 
   @GetMapping("/me")
-  @Operation(
-      summary = "Get current session info",
-      description = "Retrieves information about the currently logged in user and server.")
   public ResponseEntity<ApiResponse<Map<String, String>>> getCurrentUser(HttpSession httpSession) {
     if (httpSession == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -103,9 +91,6 @@ public class AuthApiController {
   }
 
   @PostMapping("/logout")
-  @Operation(
-      summary = "Logout / Disconnect",
-      description = "Terminates the SSH connection and invalidates the session.")
   public ResponseEntity<ApiResponse<Void>> disconnect(HttpSession httpSession) {
     if (httpSession != null) {
       String sessionId = httpSession.getId();

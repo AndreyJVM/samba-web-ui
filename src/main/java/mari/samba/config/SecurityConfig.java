@@ -1,13 +1,12 @@
 package mari.samba.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletResponse;
-import mari.samba.dto.common.ApiResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
@@ -19,20 +18,15 @@ public class SecurityConfig {
     http.authorizeHttpRequests(
             authz ->
                 authz
-                    // Разрешаем доступ к SPA фронтенду, статике и эндпоинтам логина/swagger
+                    // Разрешаем доступ к SPA фронтенду, статике и эндпоинтам логина
                     .requestMatchers(
                         "/",
                         "/ui/**", // SPA Routes (React)
                         "/assets/**", // Vite static assets
                         "/index.html",
                         "/favicon.ico",
-                        "/api/auth/login", // Новый REST API логин
-                        "/error",
-                        "/v3/api-docs/**",
-                        "/swagger-ui.html",
-                        "/swagger-ui/**",
-                        "/swagger-resources/**",
-                        "/webjars/**")
+                        "/api/auth/login", // REST API логин
+                        "/error")
                     .permitAll()
                     // Все остальные запросы (включая /api/**) должны быть аутентифицированы
                     .anyRequest()
@@ -48,30 +42,10 @@ public class SecurityConfig {
                 exceptions
                     // Возвращаем JSON 401 для ВСЕХ неавторизованных запросов
                     .defaultAuthenticationEntryPointFor(
-                    (request, response, authException) -> {
-                      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                      response.setContentType("application/json;charset=UTF-8");
-                      ApiResponse<Void> apiResponse = ApiResponse.error("Требуется авторизация");
-                      ObjectMapper mapper = new ObjectMapper();
-                      response.getWriter().write(mapper.writeValueAsString(apiResponse));
-                    },
+                    new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                     new AntPathRequestMatcher("/**")))
-        // Настройка логаута (для обратной совместимости, хотя лучше использовать POST
-        // /api/auth/logout)
-        .logout(
-            logout ->
-                logout
-                    .logoutUrl("/api/auth/logout") // Переопределили на новый URL
-                    .logoutSuccessHandler(
-                        (request, response, authentication) -> {
-                          response.setStatus(HttpServletResponse.SC_OK);
-                          response.setContentType("application/json;charset=UTF-8");
-                          ApiResponse<Void> apiResponse = ApiResponse.ok("Успешно отключено", null);
-                          ObjectMapper mapper = new ObjectMapper();
-                          response.getWriter().write(mapper.writeValueAsString(apiResponse));
-                        })
-                    .invalidateHttpSession(true)
-                    .deleteCookies("JSESSIONID"));
+        // Разрешаем iframe с того же источника (если потребуется)
+        .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
     return http.build();
   }
