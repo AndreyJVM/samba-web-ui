@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HardDrive, Users, FileStack, Power } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -32,10 +32,10 @@ export default function DashboardPage() {
         setData(json.data);
         setError("");
       } else {
-        setError(json.message || "╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ ╨┤╨░╤И╨▒╨╛╤А╨┤╨░");
+        setError(json.message || "Ошибка загрузки дашборда");
       }
     } catch (err) {
-      setError("╨Ю╤И╨╕╨▒╨║╨░ ╤Б╨╛╨╡╨┤╨╕╨╜╨╡╨╜╨╕╤П ╤Б ╤Б╨╡╤А╨▓╨╡╤А╨╛╨╝");
+      setError("Ошибка соединения с сервером");
     } finally {
       setLoading(false);
     }
@@ -58,8 +58,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">╨Ф╨░╤И╨▒╨╛╤А╨┤</h1>
-        <p className="text-muted-foreground">╨Ь╨╛╨╜╨╕╤В╨╛╤А╨╕╨╜╨│ ╤А╨╡╤Б╤Г╤А╤Б╨╛╨▓ ╨╕ ╤Б╨╗╤Г╨╢╨▒╤Л Samba.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Дашборд</h1>
+        <p className="text-muted-foreground">Мониторинг ресурсов и службы Samba.</p>
       </div>
 
       {error && (
@@ -70,7 +70,7 @@ export default function DashboardPage() {
 
       {loading && !data && (
         <div className="flex justify-center py-20 text-muted-foreground animate-pulse">
-          ╨б╨╕╨╜╤Е╤А╨╛╨╜╨╕╨╖╨░╤Ж╨╕╤П ╤Б ╤Б╨╡╤А╨▓╨╡╤А╨╛╨╝...
+          Синхронизация с сервером...
         </div>
       )}
 
@@ -79,22 +79,22 @@ export default function DashboardPage() {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">╨б╤В╨░╤В╤Г╤Б ╨б╨╗╤Г╨╢╨▒╤Л (smbd)</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Статус Службы (smbd)</CardTitle>
               <Power className={`w-4 h-4 ${data.isRunning ? "text-green-500" : "text-red-500"}`} />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold mb-4">
-                {data.isRunning ? "╨Р╨║╤В╨╕╨▓╨╡╨╜" : "╨Ю╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜"}
+                {data.isRunning ? "Активен" : "Остановлен"}
               </div>
               <div className="flex gap-2">
                 {!data.isRunning && (
                   <Button className="w-full bg-green-600 hover:bg-green-700 text-white h-8 text-xs" onClick={() => handleServiceControl("start")}>
-                    ╨Ч╨░╨┐╤Г╤Б╤В╨╕╤В╤М
+                    Запустить
                   </Button>
                 )}
                 {data.isRunning && (
                   <Button className="w-full !bg-transparent border border-border text-foreground hover:bg-muted h-8 text-xs" onClick={() => handleServiceControl("restart")}>
-                    ╨Я╨╡╤А╨╡╨╖╨░╨┐╤Г╤Б╤В╨╕╤В╤М
+                    Перезапустить
                   </Button>
                 )}
               </div>
@@ -103,18 +103,18 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">╨Р╨║╤В╨╕╨▓╨╜╤Л╨╡ ╨о╨╖╨╡╤А╤Л</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Активные Юзеры</CardTitle>
               <Users className="w-4 h-4 text-blue-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{data.connections.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">╨Ъ╨╗╨╕╨╡╨╜╤В╨╛╨▓ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╛ ╤Б╨╡╨╣╤З╨░╤Б</p>
+              <p className="text-xs text-muted-foreground mt-1">Клиентов подключено сейчас</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">╨Ь╨╡╤Б╤В╨╛ ╨╜╨░ ╨┤╨╕╤Б╨║╨░╤Е</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Место на дисках</CardTitle>
               <HardDrive className="w-4 h-4 text-purple-500" />
             </CardHeader>
             <CardContent>
@@ -127,20 +127,20 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-2xl font-bold text-muted-foreground">╨Э/╨Ф</div>
+                <div className="text-2xl font-bold text-muted-foreground">Н/Д</div>
               )}
             </CardContent>
           </Card>
 
           <Card className="md:col-span-3">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>╨Ю╤В╨║╤А╤Л╤В╤Л╨╡ ╤Д╨░╨╣╨╗╤Л</CardTitle>
+              <CardTitle>Открытые файлы</CardTitle>
               <FileStack className="w-4 h-4 text-orange-500" />
             </CardHeader>
             <CardContent>
               {data.openFiles.length === 0 ? (
                 <p className="text-sm text-center py-6 text-muted-foreground bg-muted/20 rounded-md">
-                  ╨Т ╨┤╨░╨╜╨╜╤Л╨╣ ╨╝╨╛╨╝╨╡╨╜╤В ╨╜╨╕╨║╤В╨╛ ╨╜╨╡ ╤Б╨║╨░╤З╨╕╨▓╨░╨╡╤В ╨╕ ╨╜╨╡ ╨╛╤В╨║╤А╤Л╨▓╨░╨╡╤В ╤Д╨░╨╣╨╗╤Л
+                  В данный момент никто не скачивает и не открывает файлы
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -148,9 +148,9 @@ export default function DashboardPage() {
                     <thead className="text-muted-foreground border-b border-border">
                       <tr>
                         <th className="font-medium pb-2 pr-4">PID</th>
-                        <th className="font-medium pb-2 pr-4">╨Я╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╤М</th>
-                        <th className="font-medium pb-2 pr-4">╨д╨░╨╣╨╗</th>
-                        <th className="font-medium pb-2 pr-4">╨Ф╨╛╤Б╤В╤Г╨┐</th>
+                        <th className="font-medium pb-2 pr-4">Пользователь</th>
+                        <th className="font-medium pb-2 pr-4">Файл</th>
+                        <th className="font-medium pb-2 pr-4">Доступ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -176,4 +176,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
