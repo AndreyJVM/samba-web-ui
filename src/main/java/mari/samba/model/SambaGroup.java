@@ -1,16 +1,20 @@
 package mari.samba.model;
 
 import java.util.List;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class SambaGroup {
-  private String name;
-  private List<String> members;
+public record SambaGroup(String name, List<String> members) {
+
+  public SambaGroup {
+    if (members == null) {
+      members = List.of();
+    }
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public List<String> getMembers() {
+    return members;
+  }
 }

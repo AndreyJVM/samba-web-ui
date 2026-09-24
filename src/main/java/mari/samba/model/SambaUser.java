@@ -1,22 +1,33 @@
 package mari.samba.model;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Setter
-@Getter
-public class SambaUser {
-
-  private String username;
-  private String fullName;
-  private boolean accountEnabled;
-  private String lastChange;
-  private String passwordHash;
-
-  public SambaUser() {}
+public record SambaUser(
+    String username,
+    String fullName,
+    boolean accountEnabled,
+    String lastChange,
+    String passwordHash) {
 
   public SambaUser(String username) {
-    this.username = username;
-    this.accountEnabled = true;
+    this(username, "-", true, null, null);
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public String getFullName() {
+    return fullName;
+  }
+
+  public boolean isAccountEnabled() {
+    return accountEnabled;
+  }
+
+  public String getLastChange() {
+    return lastChange;
+  }
+
+  public String getPasswordHash() {
+    return passwordHash;
   }
 }

@@ -34,8 +34,8 @@ public class UserApiController {
   public ApiResponse<Void> createUser(
       HttpSession session, @Valid @RequestBody SambaUserCreateDto dto) throws Exception {
     String sessionId = session.getId();
-    userService.createUser(sessionId, dto.getUsername(), dto.getPassword(), dto.getFullName());
-    return ApiResponse.ok("Пользователь '" + dto.getUsername() + "' успешно создан", null);
+    userService.createUser(sessionId, dto.username(), dto.password(), dto.fullName());
+    return ApiResponse.ok("Пользователь '" + dto.username() + "' успешно создан", null);
   }
 
   @DeleteMapping("/{username}")

@@ -1,10 +1,8 @@
 package mari.samba.dto.user;
 
-import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
 
-@Data
-public class SambaUserCreateDto {
-  private String username;
-  private String fullName;
-  private String password;
-}
+public record SambaUserCreateDto(
+    @NotBlank(message = "Имя пользователя обязательно") String username,
+    String fullName,
+    @NotBlank(message = "Пароль обязателен") String password) {}

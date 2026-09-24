@@ -38,11 +38,9 @@ public class SambaUserService {
 
       String[] parts = line.split(":");
       if (parts.length >= 2) {
-        SambaUser user = new SambaUser();
-        user.setUsername(parts[0].trim());
-        user.setFullName((parts.length > 2 && !parts[2].trim().isEmpty()) ? parts[2].trim() : "-");
-        user.setAccountEnabled(true);
-        users.add(user);
+        String username = parts[0].trim();
+        String fullName = (parts.length > 2 && !parts[2].trim().isEmpty()) ? parts[2].trim() : "-";
+        users.add(new SambaUser(username, fullName, true, null, null));
       }
     }
     return users;
