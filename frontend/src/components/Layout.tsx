@@ -76,21 +76,21 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     { name: t("sidebar.shares"), path: "/shares", icon: FolderKanban },
     { name: t("sidebar.users"), path: "/users", icon: Users },
     { name: t("sidebar.groups"), path: "/groups", icon: Users },
-    { name: t("sidebar.settings"), path: "/config", icon: Settings },
+    { name: t("sidebar.settings"), path: "/config/global", icon: Settings },
   ];
 
   return (
     <div className="min-h-screen flex text-foreground bg-background font-sans selection:bg-brand/20">
-      <aside className="w-[240px] bg-surface flex-col hidden md:flex border-r border-border shrink-0 z-20">
-        <div className="h-14 px-4 flex items-center justify-between border-b border-border shrink-0">
-          <div className="flex items-center gap-2.5 font-semibold text-[15px] tracking-wide">
+      <aside className="w-[250px] bg-surface flex-col hidden md:flex border-r border-border shrink-0 z-20">
+        <div className="h-16 px-5 flex items-center justify-between border-b border-border shrink-0">
+          <div className="flex items-center gap-2.5 font-semibold text-[16px] tracking-wide">
             <div className="bg-brand text-brand-text p-1.5 rounded-md shadow-sm">
-              <Server className="w-4 h-4" />
+              <Server className="w-5 h-5" />
             </div>
-            <span>SAMBA<span className="opacity-50 font-bold ml-1 text-[11px] uppercase tracking-widest leading-none align-middle">ADM</span></span>
+            <span>SAMBA<span className="opacity-50 font-bold ml-1 text-xs uppercase tracking-widest leading-none align-middle">ADM</span></span>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={toggleLang} className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors text-[10px] font-bold uppercase tracking-widest hidden sm:flex items-center gap-1">
+            <button onClick={toggleLang} className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors text-xs font-bold uppercase tracking-widest hidden sm:flex items-center gap-1">
               {lang}
             </button>
             <button onClick={toggleDark} className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors hidden sm:block">
@@ -100,48 +100,48 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         </div>
 
         {userInfo.host && (
-          <div className="p-4 border-b border-border space-y-3">
-            <div className="text-[11px] font-mono flex flex-col gap-1">
+          <div className="p-5 border-b border-border space-y-4">
+            <div className="text-xs font-mono flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-status-disabled font-sans font-medium">{t("sidebar.server")}</span>
-                <span className="truncate max-w-[120px] bg-surface-hover px-1.5 py-0.5 rounded-sm border border-border" title={userInfo.host}>{userInfo.host}</span>
+                <span className="truncate max-w-[130px] bg-surface-hover px-2 py-0.5 rounded-sm border border-border" title={userInfo.host}>{userInfo.host}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-status-disabled font-sans font-medium">{t("sidebar.user")}</span>
-                <span className="text-foreground font-medium truncate max-w-[120px] bg-surface-hover px-1.5 py-0.5 rounded-sm border border-border" title={userInfo.user}>{userInfo.user}</span>
+                <span className="text-foreground font-medium truncate max-w-[130px] bg-surface-hover px-2 py-0.5 rounded-sm border border-border" title={userInfo.user}>{userInfo.user}</span>
               </div>
             </div>
             
-            <div className="flex items-center justify-between bg-surface-hover p-2.5 rounded-md border border-border shadow-sm-subtle">
-              <div className="flex items-center gap-2">
-                <div className="relative flex h-2.5 w-2.5">
+            <div className="flex items-center justify-between bg-surface-hover p-3 rounded-md border border-border shadow-sm-subtle">
+              <div className="flex items-center gap-2.5">
+                <div className="relative flex h-3 w-3">
                   {serverStatus === true && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-active opacity-40"></span>}
-                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'}`}></span>
+                  <span className={`relative inline-flex rounded-full h-3 w-3 ${serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'}`}></span>
                 </div>
-                <span className="text-[11px] font-semibold text-foreground">
+                <span className="text-xs font-semibold text-foreground">
                   {serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}
                 </span>
               </div>
-              <div className="flex gap-0.5">
+              <div className="flex gap-1">
                 {serverStatus === false && (
                   <button onClick={() => handleServiceControl("start")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md shadow-sm hover:shadow-sm-subtle transition-all" title="Start">
-                    <Play className="w-3.5 h-3.5" />
+                    <Play className="w-4 h-4" />
                   </button>
                 )}
                 {serverStatus === true && (
                   <button onClick={() => handleServiceControl("stop")} className="p-1.5 text-status-error hover:bg-surface border border-transparent hover:border-border rounded-md shadow-sm hover:shadow-sm-subtle transition-all" title="Stop">
-                    <Square className="w-3.5 h-3.5" />
+                    <Square className="w-4 h-4" />
                   </button>
                 )}
                 <button onClick={() => handleServiceControl("restart")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md shadow-sm hover:shadow-sm-subtle transition-all" title="Restart">
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <RefreshCw className="w-4 h-4" />
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-4 py-5 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
             const isActive = location.pathname.includes(item.path);
             const Icon = item.icon;
@@ -149,38 +149,38 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all text-[13px] font-medium ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all text-sm font-medium ${
                   isActive
                     ? "bg-brand text-brand-text shadow-sm"
                     : "text-foreground hover:bg-surface-hover"
                 }`}
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'opacity-100' : 'opacity-70'}`} />
+                <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'opacity-100' : 'opacity-70'}`} />
                 {item.name}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-3 border-t border-border shrink-0">
+        <div className="p-4 border-t border-border shrink-0">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors text-[13px] py-2 px-3 font-medium border border-transparent hover:border-border shadow-sm-subtle"
+            className="w-full flex items-center justify-center gap-2.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors text-sm py-2.5 px-3 font-medium border border-transparent hover:border-border shadow-sm-subtle"
           >
-            <LogOut className="w-4 h-4" /> {t("sidebar.logout")}
+            <LogOut className="w-[18px] h-[18px]" /> {t("sidebar.logout")}
           </button>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden">
-        <div className="h-14 border-b border-border bg-surface px-4 sm:px-6 flex items-center justify-between md:hidden shrink-0">
-           <div className="font-semibold text-sm flex items-center gap-2">
-             <div className="bg-brand text-brand-text p-1 rounded-sm"><Server className="w-3.5 h-3.5" /></div>
-             SAMBA<span className="text-status-disabled ml-1 text-[10px] uppercase font-bold">ADM</span>
+        <div className="h-16 border-b border-border bg-surface px-5 sm:px-6 flex items-center justify-between md:hidden shrink-0">
+           <div className="font-semibold text-base flex items-center gap-2.5">
+             <div className="bg-brand text-brand-text p-1.5 rounded-sm"><Server className="w-4 h-4" /></div>
+             SAMBA<span className="text-status-disabled ml-1 text-xs uppercase font-bold">ADM</span>
            </div>
-           <button onClick={toggleLang} className="text-xs font-bold uppercase">{lang}</button>
+           <button onClick={toggleLang} className="text-sm font-bold uppercase">{lang}</button>
         </div>
-        <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 p-5 sm:p-8 lg:p-10 overflow-y-auto custom-scrollbar">
           <div className="max-w-[1100px] w-full mx-auto pb-10">
             {children || <Outlet />}
           </div>
