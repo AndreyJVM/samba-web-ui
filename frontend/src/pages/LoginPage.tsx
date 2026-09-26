@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Server, Lock, Key, ArrowRight } from "lucide-react";
+import { Server, Lock, Key, ArrowRight, AlertTriangle } from "lucide-react";
 import { Input } from "../components/ui/input";
+import { api } from "../lib/api";
 
 export default function LoginPage() {
   const [host, setHost] = useState("");
@@ -18,27 +19,18 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          host,
-          port: parseInt(port),
-          username,
-          password: useKeyAuth ? undefined : password,
-          privateKey: useKeyAuth ? privateKey : undefined,
-          keyAuth: useKeyAuth
-        }),
+      await api.post("/api/auth/login", {
+        host,
+        port: parseInt(port),
+        username,
+        password: useKeyAuth ? undefined : password,
+        privateKey: useKeyAuth ? privateKey : undefined,
+        keyAuth: useKeyAuth
       });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        window.location.href = "/ui/";
-      } else {
-        setError(data.message || "Ошибка авторизации");
-      }
-    } catch (err) {
-      setError("Ошибка сети");
+      // Simple redirect since auth state isn't managed globally here
+      window.location.href = "/ui/";
+    } catch (err: any) {
+      setError(err.message || "Ошибка авторизации");
     } finally {
       setLoading(false);
     }
@@ -46,7 +38,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4 py-12 relative overflow-hidden font-sans">
-      {/* Декоративные фоновые элементы */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/5 blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/5 blur-[120px] pointer-events-none"></div>
       
@@ -62,8 +53,8 @@ export default function LoginPage() {
         <div className="bg-white rounded-[24px] shadow-2xl shadow-slate-200/50 border border-slate-100 p-8 sm:p-10 backdrop-blur-xl">
           <form onSubmit={handleLogin} className="space-y-6 flex flex-col">
             {error && (
-              <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-[14px] font-medium border border-rose-100/50 flex animate-in fade-in slide-in-from-top-2">
-                <span className="mr-2">⚠️</span> {error}
+              <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-[14px] font-medium border border-rose-100/50 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
               </div>
             )}
             
@@ -101,7 +92,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Тип авторизации */}
             <div className="flex bg-slate-100 p-1.5 rounded-xl shadow-inner my-2">
               <button 
                 type="button" 
@@ -163,7 +153,7 @@ export default function LoginPage() {
         </div>
         
         <p className="text-center text-slate-400 text-sm mt-8">
-          Samba Web UI © {new Date().getFullYear()}
+          Samba Web UI &copy; {new Date().getFullYear()}
         </p>
       </div>
     </div>

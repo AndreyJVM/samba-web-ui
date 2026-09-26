@@ -6,24 +6,30 @@ import SharesPage from "./pages/shares/SharesPage";
 import UsersPage from "./pages/users/UsersPage";
 import ConfigPage from "./pages/config/ConfigPage";
 import GroupsPage from "./pages/groups/GroupsPage";
+import { ToastProvider } from "./components/ui/toast";
+import { ConfirmProvider } from "./components/ui/confirm";
 
 function App() {
   return (
-    <BrowserRouter basename="/ui">
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        
-        {/* Защищенные роуты с боковой панелью */}
-        <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/shares" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/shares" element={<SharesPage />} />
-          <Route path="/groups" element={<GroupsPage />} />
-          <Route path="/users" element={<UsersPage />} />
-          <Route path="/config" element={<ConfigPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <ConfirmProvider>
+        <BrowserRouter basename="/ui">
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            
+            {/* Защищенные роуты с боковой панелью */}
+            <Route element={<Layout />}>
+              <Route path="/" element={<Navigate to="/shares" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/shares" element={<SharesPage />} />
+              <Route path="/groups" element={<GroupsPage />} />
+              <Route path="/users" element={<UsersPage />} />
+              <Route path="/config" element={<ConfigPage />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </ConfirmProvider>
+    </ToastProvider>
   );
 }
 

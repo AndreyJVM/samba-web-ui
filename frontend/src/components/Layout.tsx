@@ -1,34 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Server, FolderKanban, Users, Settings, LogOut, UserCircle2, Play, Square, RefreshCw } from "lucide-react";
+import { api } from "../lib/api";
+import { useToast } from "./ui/toast";
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const [userInfo, setUserInfo] = useState({ host: "", user: "" });
   const [serverStatus, setServerStatus] = useState<boolean | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => {
-        if (res.status === 401) {
-          window.location.href = "/ui/login";
-        }
-        return res.json();
-      })
-      .then((json) => {
-        if (json && json.success && json.data) {
-          setUserInfo(json.data);
-        }
-      })
+    api.get<{ host: string; user: string }>("/api/auth/me")
+      .then(res => setUserInfo(res))
       .catch(() => {});
   }, []);
 
   const fetchStatus = () => {
-    fetch("/api/monitoring/dashboard")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success && typeof json.data?.isRunning === "boolean") {
-          setServerStatus(json.data.isRunning);
+    api.get<{ isRunning: boolean }>("/api/monitoring/dashboard")
+      .then(res => {
+        if (typeof res?.isRunning === "boolean") {
+          setServerStatus(res.isRunning);
         }
       })
       .catch(() => {});
@@ -41,17 +33,21 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   }, []);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/ui/login";
+    try {
+      await api.post("/api/auth/logout");
+    } finally {
+      window.location.href = "/ui/login";
+    }
   };
 
   const handleServiceControl = async (action: string) => {
     try {
-      const res = await fetch(`/api/monitoring/control?action=${action}`, { method: "POST" });
-      if (res.ok) {
-        setTimeout(fetchStatus, 1500);
-      }
-    } catch (err) {}
+      await api.post(`/api/monitoring/control?action=${action}`);
+      toast("info", "Команда отправлена", `Сервис Samba получил команду ${action}`);
+      setTimeout(fetchStatus, 1500);
+    } catch (err: any) {
+      toast("error", "Ошибка управления", err.message);
+    }
   };
 
   const navItems = [
@@ -65,8 +61,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#f8fafc] flex font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
       {/* Боковая панель (Темная современная) */}
-      <aside className="w-[280px] bg-[#0b1120] flex flex-col hidden md:flex border-r border-slate-800/60 z-20 shadow-2xl relative">
-        {/* Абстрактный блик сверху */}
+      <aside className="w-[280px] bg-[#0b1120] flex flex-col hidden md:flex border-r border-slate-800/60 z-20 shadow-2xl relative shrink-0">
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-blue-600/10 to-transparent pointer-events-none"></div>
 
         <div className="p-6 flex flex-col gap-6 relative z-10">
@@ -97,7 +92,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                     <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${serverStatus === true ? 'bg-emerald-500' : serverStatus === false ? 'bg-rose-500' : 'bg-slate-500'}`}></span>
                   </div>
                   <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">
-                    {serverStatus === true ? "Рабoтает" : serverStatus === false ? "Остановлен" : "Связь..."}
+                    {serverStatus === true ? "Работает" : serverStatus === false ? "Остановлен" : "Связь..."}
                   </span>
                 </div>
                 <div className="flex gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
@@ -153,11 +148,10 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       </aside>
 
       {/* Основной контент */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] relative">
-        {/* Абстрактный фоновый паттерн для красоты */}
+      <main className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.015] mix-blend-overlay pointer-events-none z-0"></div>
         <div className="p-6 md:p-10 lg:p-12 overflow-y-auto h-screen relative z-10 w-full">
-          <div className="max-w-[1200px] mx-auto animate-in fade-in duration-500">
+          <div className="max-w-[1200px] mx-auto">
             {children || <Outlet />}
           </div>
         </div>

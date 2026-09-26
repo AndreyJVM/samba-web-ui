@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { Users, Plus, Trash2, Key, UserIcon } from "lucide-react";
+import { api } from "../../lib/api";
+import { useToast } from "../../components/ui/toast";
+import { useConfirm } from "../../components/ui/confirm";
+import { Modal } from "../../components/ui/modal";
 
 interface User {
   username: string;
@@ -9,7 +13,6 @@ interface User {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const [isCreating, setIsCreating] = useState(false);
   const [newUser, setNewUser] = useState({ username: "", fullName: "", password: "" });
@@ -18,18 +21,16 @@ export default function UsersPage() {
   const [passwordTarget, setPasswordTarget] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
+  const { toast, error: toastError, success } = useToast();
+  const { confirm } = useConfirm();
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/users");
-      const json = await res.json();
-      if (json.success) {
-        setUsers(json.data);
-      } else {
-        setError(json.message || "Ошибка загрузки списка пользователей");
-      }
-    } catch (err) {
-      setError("Ошибка API");
+      const res = await api.get<User[]>("/api/users");
+      setUsers(res);
+    } catch (err: any) {
+      toastError("Ошибка API", err.message);
     } finally {
       setLoading(false);
     }
@@ -40,55 +41,45 @@ export default function UsersPage() {
   }, []);
 
   const handleDelete = async (username: string) => {
-    if (!confirm(`Вы действительно хотите удалить пользователя ${username} из системы (Linux + Samba)?`)) return;
+    const ok = await confirm({
+      title: "Удаление пользователя",
+      message: `Вы действительно хотите удалить пользователя ${username} из системы (Linux + Samba)? Это действие необратимо.`,
+      destructive: true,
+      confirmText: "Да, удалить"
+    });
+    if (!ok) return;
+
     try {
-      const res = await fetch(`/api/users/${username}`, { method: "DELETE" });
-      if (res.ok) fetchUsers();
-      else alert("Ошибка удаления");
-    } catch (err) {
-      alert("Ошибка сети");
+      await api.delete(`/api/users/${username}`);
+      success("Удалено", `Пользователь ${username} успешно удален`);
+      fetchUsers();
+    } catch (err: any) {
+      toastError("Ошибка удаления", err.message);
     }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newUser)
-      });
-      if (res.ok) {
-        setIsCreating(false);
-        setNewUser({ username: "", fullName: "", password: "" });
-        fetchUsers();
-      } else {
-        const json = await res.json();
-        alert(json.message || "Ошибка создания");
-      }
-    } catch (err) {
-      alert("Ошибка сети");
+      await api.post("/api/users", newUser);
+      success("Пользователь создан", `Пользователь ${newUser.username} успешно создан`);
+      setIsCreating(false);
+      setNewUser({ username: "", fullName: "", password: "" });
+      fetchUsers();
+    } catch (err: any) {
+      toastError("Ошибка создания", err.message);
     }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch(`/api/users/${passwordTarget}/password`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newPassword })
-      });
-      if (res.ok) {
-        setPasswordModalOpen(false);
-        setNewPassword("");
-        alert(`Пароль для ${passwordTarget} успешно изменен`);
-      } else {
-        const json = await res.json();
-        alert(json.message || "Ошибка смены пароля");
-      }
-    } catch (err) {
-      alert("Ошибка сети");
+      await api.put(`/api/users/${passwordTarget}/password`, { newPassword });
+      success("Успех", `Пароль для ${passwordTarget} успешно изменен`);
+      setPasswordModalOpen(false);
+      setNewPassword("");
+    } catch (err: any) {
+      toastError("Ошибка смены пароля", err.message);
     }
   };
 
@@ -97,94 +88,6 @@ export default function UsersPage() {
     setNewPassword("");
     setPasswordModalOpen(true);
   };
-
-  if (isCreating) {
-    return (
-      <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto mt-10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Новый пользователь</h1>
-            <p className="text-slate-500 text-[15px] mt-2">Добавление системного пользвателя ОС и Samba (smbpasswd)</p>
-          </div>
-          <button onClick={() => setIsCreating(false)} className="px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-xl transition-all shadow-sm">
-            Отмена
-          </button>
-        </div>
-        <div className="bg-white rounded-[24px] shadow-sm border border-slate-200/60 p-8 sm:p-10">
-          <form onSubmit={handleCreate} className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Логин</label>
-              <input 
-                required 
-                pattern="^[a-z_][a-z0-9_-]*[$]?$"
-                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-4 px-4 text-base rounded-xl outline-none"
-                value={newUser.username} 
-                onChange={(e) => setNewUser({...newUser, username: e.target.value})} 
-                placeholder="john_doe"
-              />
-            </div>
-            <div className="space-y-3">
-              <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Полное имя</label>
-              <input 
-                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-4 px-4 text-base rounded-xl outline-none"
-                value={newUser.fullName} 
-                onChange={(e) => setNewUser({...newUser, fullName: e.target.value})} 
-                placeholder="John Doe"
-              />
-            </div>
-            <div className="space-y-3">
-              <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Пароль (Для SMB и ОС)</label>
-              <input 
-                required 
-                type="password"
-                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-4 px-4 text-base rounded-xl outline-none"
-                value={newUser.password} 
-                onChange={(e) => setNewUser({...newUser, password: e.target.value})} 
-                placeholder="••••••••"
-              />
-            </div>
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold tracking-wide shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5 mt-2">
-              Создать пользователя
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  if (passwordModalOpen) {
-    return (
-      <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto mt-10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Пароль SMB</h1>
-            <p className="text-slate-500 text-[15px] mt-2">Смена пароля доступа к ресурсам для {passwordTarget}</p>
-          </div>
-          <button onClick={() => setPasswordModalOpen(false)} className="px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-xl transition-all shadow-sm">
-            Отмена
-          </button>
-        </div>
-        <div className="bg-white rounded-[24px] shadow-sm border border-slate-200/60 p-8 sm:p-10">
-          <form onSubmit={handleChangePassword} className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Новый пароль</label>
-              <input 
-                required 
-                type="password"
-                className="w-full bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 hover:border-slate-300 transition-all py-4 px-4 text-base rounded-xl outline-none"
-                value={newPassword} 
-                onChange={(e) => setNewPassword(e.target.value)} 
-                placeholder="••••••••"
-              />
-            </div>
-            <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white px-8 py-4 rounded-xl font-bold tracking-wide shadow-lg shadow-amber-500/30 transition-all hover:-translate-y-0.5 mt-2">
-              Установить новый пароль
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -202,12 +105,6 @@ export default function UsersPage() {
           <Plus className="w-5 h-5" /> Добавить пользователя
         </button>
       </div>
-
-      {error && (
-        <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-[14px] font-medium border border-rose-100/50">
-          ⚠️ {error}
-        </div>
-      )}
       
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -229,11 +126,16 @@ export default function UsersPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {users.map((user) => (
             <div key={user.username} className="bg-white rounded-[20px] p-5 shadow-sm border border-slate-200/60 flex items-center justify-between group hover:shadow-md transition-all">
-              <div className="flex flex-col">
-                <div className="font-bold text-slate-800 text-lg">@{user.username}</div>
-                <div className="text-slate-500 text-sm">{user.fullName || "—"}</div>
+              <div className="flex flex-col overflow-hidden w-full">
+                <div className="font-bold text-slate-800 text-lg flex items-center gap-2 truncate">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                    <UserIcon className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <span className="truncate">@{user.username}</span>
+                </div>
+                <div className="text-slate-500 text-sm mt-1 ml-10 truncate">{user.fullName || "—"}</div>
               </div>
-              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity pl-2">
                 <button onClick={() => openPasswordModal(user.username)} className="p-2.5 text-amber-500 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors bg-white border border-slate-100 shadow-sm hover:shadow" title="Сменить пароль">
                   <Key className="w-4 h-4" />
                 </button>
@@ -245,6 +147,86 @@ export default function UsersPage() {
           ))}
         </div>
       )}
+
+      <Modal 
+        isOpen={isCreating} 
+        onClose={() => setIsCreating(false)}
+        title="Новый пользователь"
+        description="Добавление системного пользователя ОС и базы Samba (smbpasswd)"
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Логин</label>
+            <input 
+              required 
+              pattern="^[a-z_][a-z0-9_-]*[$]?$"
+              className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-3 px-4 text-base rounded-xl outline-none"
+              value={newUser.username} 
+              onChange={(e) => setNewUser({...newUser, username: e.target.value})} 
+              placeholder="john_doe"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Полное имя</label>
+            <input 
+              className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-3 px-4 text-base rounded-xl outline-none"
+              value={newUser.fullName} 
+              onChange={(e) => setNewUser({...newUser, fullName: e.target.value})} 
+              placeholder="John Doe"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Пароль (Для SMB и ОС)</label>
+            <input 
+              required 
+              type="password"
+              className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-3 px-4 text-base rounded-xl outline-none"
+              value={newUser.password} 
+              onChange={(e) => setNewUser({...newUser, password: e.target.value})} 
+              placeholder="••••••••"
+            />
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+             <button type="button" onClick={() => setIsCreating(false)} className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl font-medium text-slate-700 transition-colors">
+               Отмена
+             </button>
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold tracking-wide shadow-lg shadow-blue-500/30 transition-all">
+              Создать
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal 
+        isOpen={passwordModalOpen} 
+        onClose={() => setPasswordModalOpen(false)}
+        title="Смена пароля"
+        description={`Изменение пароля для доступа ${passwordTarget}`}
+        maxWidth="sm"
+      >
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Новый пароль</label>
+            <input 
+              required 
+              type="password"
+              className="w-full bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 hover:border-slate-300 transition-all py-3 px-4 text-base rounded-xl outline-none"
+              value={newPassword} 
+              onChange={(e) => setNewPassword(e.target.value)} 
+              placeholder="••••••••"
+            />
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+             <button type="button" onClick={() => setPasswordModalOpen(false)} className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl font-medium text-slate-700 transition-colors">
+               Отмена
+             </button>
+            <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2.5 rounded-xl font-bold tracking-wide shadow-lg shadow-amber-500/30 transition-all">
+              Сохранить
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

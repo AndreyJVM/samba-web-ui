@@ -1,8 +1,8 @@
-﻿import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+﻿import { useEffect, useState, useCallback } from "react";
 import { HardDrive, Users, FileStack, Power, Folder, ArrowUp, FolderPlus, ChevronRight, Server } from "lucide-react";
+import { api } from "../lib/api";
+import { useToast } from "../components/ui/toast";
 
-// --- Interfaces ---
 interface DashboardData {
   isRunning: boolean;
   diskUsage: string[];
@@ -30,60 +30,43 @@ interface DiskUsage {
 }
 
 export default function DashboardPage() {
-  const navigate = useNavigate();
-
-  // Dashboard State
   const [data, setData] = useState<DashboardData | null>(null);
   const [dashLoading, setDashLoading] = useState(true);
-  const [dashError, setDashError] = useState("");
 
-  // Files State
   const [currentPath, setCurrentPath] = useState("/");
   const [browseData, setBrowseData] = useState<BrowseResult | null>(null);
   const [diskUsage, setDiskUsage] = useState<DiskUsage | null>(null);
   const [filesLoading, setFilesLoading] = useState(false);
-  const [filesError, setFilesError] = useState("");
+  
   const [isCreatingDir, setIsCreatingDir] = useState(false);
   const [newDirName, setNewDirName] = useState("");
 
-  const fetchDashboard = async () => {
+  const { toast, error: toastError, success } = useToast();
+
+  const fetchDashboard = useCallback(async () => {
     try {
-      const res = await fetch("/api/monitoring/dashboard");
-      if (res.status === 401) {
-        navigate("/login");
-        return;
-      }
-      const json = await res.json();
-      if (json.success) {
-        setData(json.data);
-        setDashError("");
-      } else {
-        setDashError(json.message || "Ошибка загрузки дашборда");
-      }
-    } catch (err) {
-      setDashError("Ошибка соединения с сервером");
+      const res = await api.get<DashboardData>("/api/monitoring/dashboard");
+      setData(res);
+    } catch (err: any) {
+      // Don't show toast for interval background requests if it's identical constantly,
+      // but initial loading failures should be handled.
+      if (!data) toastError("Ошибка дашборда", err.message);
     } finally {
       setDashLoading(false);
     }
-  };
+  }, [data, toastError]);
 
   const fetchFiles = async (path: string) => {
     setFilesLoading(true);
-    setFilesError("");
     try {
       const [browseRes, diskRes] = await Promise.all([
-        fetch(`/api/fs/browse?path=${encodeURIComponent(path)}`),
-        fetch(`/api/fs/disk-usage?path=${encodeURIComponent(path)}`)
+        api.get<BrowseResult>(`/api/fs/browse?path=${encodeURIComponent(path)}`).catch(() => null),
+        api.get<DiskUsage>(`/api/fs/disk-usage?path=${encodeURIComponent(path)}`).catch(() => null)
       ]);
-      const browseJson = await browseRes.json();
-      const diskJson = await diskRes.json();
-
-      if (browseJson.success) setBrowseData(browseJson.data);
-      else setFilesError(browseJson.message || "Ошибка загрузки пути");
-
-      if (diskJson.success) setDiskUsage(diskJson.data);
-    } catch (err) {
-      setFilesError("Ошибка API файловой системы");
+      if (browseRes) setBrowseData(browseRes);
+      if (diskRes) setDiskUsage(diskRes);
+    } catch (err: any) {
+      toastError("Ошибка файлов", err.message);
     } finally {
       setFilesLoading(false);
     }
@@ -93,7 +76,7 @@ export default function DashboardPage() {
     fetchDashboard();
     const interval = setInterval(fetchDashboard, 10000);
     return () => clearInterval(interval);
-  }, [navigate]);
+  }, [fetchDashboard]);
 
   useEffect(() => {
     fetchFiles(currentPath);
@@ -101,28 +84,25 @@ export default function DashboardPage() {
 
   const handleServiceControl = async (action: string) => {
     try {
-      const res = await fetch(`/api/monitoring/control?action=${action}`, { method: "POST" });
-      if (res.ok) fetchDashboard();
-    } catch (err) {}
+      await api.post(`/api/monitoring/control?action=${action}`);
+      toast("info", "Команда отправлена", `Действие: ${action}`);
+      setTimeout(fetchDashboard, 1500);
+    } catch (err: any) {
+      toastError("Ошибка управления", err.message);
+    }
   };
 
   const handleCreateDirectory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDirName) return;
     try {
-      const res = await fetch(`/api/fs/mkdir?parentPath=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(newDirName)}`, {
-        method: "POST"
-      });
-      if (res.ok) {
-        setIsCreatingDir(false);
-        setNewDirName("");
-        fetchFiles(currentPath);
-      } else {
-        const json = await res.json();
-        alert(json.message || "Ошибка создания папки");
-      }
-    } catch (err) {
-      alert("Сетевая ошибка");
+      await api.post(`/api/fs/mkdir?parentPath=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(newDirName)}`);
+      success("Создано", `Директория ${newDirName} успешно создана`);
+      setIsCreatingDir(false);
+      setNewDirName("");
+      fetchFiles(currentPath);
+    } catch (err: any) {
+      toastError("Ошибка создания папки", err.message);
     }
   };
 
@@ -130,8 +110,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
-      
-      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
@@ -144,13 +122,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {dashError && (
-        <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-[14px] font-medium border border-rose-100/50">
-          ⚠️ {dashError}
-        </div>
-      )}
-
-      {dashLoading && !data && (
+      {dashLoading && !data ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[1,2,3].map(i => (
              <div key={i} className="h-32 bg-white/50 rounded-[24px] border border-slate-100 p-6 animate-pulse flex flex-col justify-between">
@@ -159,13 +131,8 @@ export default function DashboardPage() {
              </div>
           ))}
         </div>
-      )}
-
-      {/* MONITORING / DASHBOARD WIDGETS */}
-      {data && (
+      ) : data ? (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          
-          {/* Service Status */}
           <div className="bg-white rounded-[24px] shadow-sm border border-slate-200/60 p-6 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Служба smbd</h3>
@@ -201,55 +168,44 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Connections */}
           <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[24px] shadow-md border border-blue-500 p-6 flex flex-col text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
             <div className="flex items-center justify-between mb-4 relative z-10">
               <h3 className="text-[13px] font-bold text-blue-200 uppercase tracking-wider">Активные сессии</h3>
               <Users className="w-5 h-5 text-blue-300" />
             </div>
-            <div className="text-4xl font-black mb-1 relative z-10">{data.connections.length}</div>
+            <div className="text-4xl font-black mb-1 relative z-10">{data.connections?.length || 0}</div>
             <p className="text-[13px] text-blue-200 font-medium relative z-10 mt-auto">подключенных клиентов</p>
           </div>
 
-          {/* Open Files */}
           <div className="md:col-span-1 lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-slate-200/60 p-6 flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Открытые файлы</h3>
               <FileStack className="w-5 h-5 text-orange-500" />
             </div>
-            <div className="text-3xl font-black text-slate-800 mb-2">{data.openFiles.length}</div>
+            <div className="text-3xl font-black text-slate-800 mb-2">{data.openFiles?.length || 0}</div>
             <div className="flex-1 overflow-y-auto max-h-[80px] custom-scrollbar text-sm mt-2">
-              {data.openFiles.length === 0 ? (
+              {!data.openFiles || data.openFiles.length === 0 ? (
                  <p className="text-slate-400 font-medium italic mt-2">Нет открытых клиентами файлов</p>
               ) : (
                  <div className="flex flex-col gap-1">
-                   {data.openFiles.slice(0, 3).map((f, i) => (
+                   {data.openFiles.slice(0, 3).map((f: any, i: number) => (
                      <div key={i} className="flex justify-between items-center bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                       <span className="font-mono text-[12px] truncate max-w-[70%] text-slate-600" title={typeof f === 'object' ? f.path : f.toString()}>{typeof f === 'object' ? f.path : f.toString()}</span>
-                       <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200">{typeof f === 'object' ? f.user : '-'}</span>
+                       <span className="font-mono text-[12px] truncate max-w-[70%] text-slate-600" title={f.path || f.toString()}>{f.path || f.toString()}</span>
+                       <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200">{f.user || '-'}</span>
                      </div>
                    ))}
                  </div>
               )}
             </div>
           </div>
-          
         </div>
-      )}
+      ) : null}
 
-      {/* Divider */}
       <div className="border-t border-slate-200/70 pt-8 mt-12 mb-4 relative">
          <span className="absolute -top-3 left-6 bg-[#f8fafc] px-3 font-bold text-[11px] uppercase tracking-widest text-slate-400">Менеджер файлов</span>
       </div>
 
-      {filesError && (
-        <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-[14px] font-medium border border-rose-100/50">
-          ⚠️ {filesError}
-        </div>
-      )}
-
-      {/* Disk Usage Widget (File Browser Level) */}
       {diskUsage && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white rounded-[24px] p-6 shadow-sm border border-slate-200/60">
           <div className="col-span-1 md:col-span-4 flex items-center justify-between mb-2">
@@ -262,7 +218,6 @@ export default function DashboardPage() {
                style={{ width: `${diskUsage.usePercent}%` }}
              ></div>
           </div>
-          
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
             <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Всего</div>
             <div className="text-xl font-extrabold text-slate-700">{diskUsage.total}</div>
@@ -282,7 +237,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Breadcrumb & Create Dir */}
       <div className="bg-white rounded-[24px] shadow-sm border border-slate-200/60 overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b border-slate-100 flex flex-col gap-4 sm:flex-row sm:items-center justify-between bg-slate-50/50">
           <div className="flex flex-wrap items-center gap-1 text-[15px] font-medium text-slate-600">
@@ -325,7 +279,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Directory List */}
         <div className="p-2 sm:p-4 min-h-[150px]">
            {filesLoading ? (
              <div className="flex justify-center p-10">
@@ -344,7 +297,6 @@ export default function DashboardPage() {
                    <span className="font-medium text-slate-700">.. (наверх)</span>
                  </button>
                )}
-
                {browseData?.directories.map(dir => (
                  <button 
                    key={dir.fullPath}
@@ -357,7 +309,6 @@ export default function DashboardPage() {
                    <span className="font-medium text-slate-700 truncate" title={dir.name}>{dir.name}</span>
                  </button>
                ))}
-               
                {(!browseData?.directories || browseData.directories.length === 0) && !browseData?.parentPath && (
                  <div className="col-span-full text-center text-slate-400 py-10 italic">
                    Нет вложенных папок

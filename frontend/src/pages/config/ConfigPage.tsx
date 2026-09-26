@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Settings, Save, RotateCcw, AlertTriangle, Fingerprint, Shield, Network, Zap } from "lucide-react";
+import { Settings, Save, RotateCcw, Fingerprint, Shield, Network, Zap } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-// Использование нативных чекбоксов и селектов вместо отсутствующих UI компонентов
-// для избеания ошибок компиляции TypeScript
+import { api } from "../../lib/api";
+import { useToast } from "../../components/ui/toast";
+import { useConfirm } from "../../components/ui/confirm";
 
 interface GlobalConfig {
   workgroup: string;
@@ -23,22 +24,18 @@ export default function ConfigPage() {
   const [config, setConfig] = useState<GlobalConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error">("success");
-
   const [activeTab, setActiveTab] = useState<"general" | "network" | "security">("general");
+
+  const { toast, error: toastError, success } = useToast();
+  const { confirm } = useConfirm();
 
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/config/global");
-      const json = await res.json();
-      if (json.success && json.data) {
-        setConfig(json.data);
-      }
-    } catch (err) {
-      setMessage("Ошибка загрузки конфигурации");
-      setMessageType("error");
+      const res = await api.get<GlobalConfig>("/api/config/global");
+      setConfig(res);
+    } catch (err: any) {
+      toastError("Ошибка загрузки конфигурации", err.message);
     } finally {
       setLoading(false);
     }
@@ -54,37 +51,28 @@ export default function ConfigPage() {
 
     try {
       setSaving(true);
-      const res = await fetch("/api/config/global", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config)
-      });
-      const json = await res.json();
-      if (res.ok) {
-        setMessage("Конфигурация успешно сохранена! Перезапустите службу Samba во вкладке статуса.");
-        setMessageType("success");
-      } else {
-        setMessage(json.message || "Ошибка сохранения");
-        setMessageType("error");
-      }
-    } catch (err) {
-      setMessage("Ошибка сети");
-      setMessageType("error");
+      await api.put("/api/config/global", config);
+      success("Конфигурация сохранена", "Перезапустите службу Samba во вкладке статуса.");
+    } catch (err: any) {
+      toastError("Ошибка сохранения", err.message);
     } finally {
       setSaving(false);
     }
   };
 
   const handleRestore = async () => {
-    if (!confirm("Вы уверены, что хотите откатиться к конфигурации по умолчанию?")) return;
+    const ok = await confirm({
+      title: "Откат конфигурации",
+      message: "Вы уверены, что хотите откатиться к конфигурации по умолчанию? Все текущие изменения будут потеряны.",
+      destructive: true,
+      confirmText: "Да, сбросить"
+    });
+    if (!ok) return;
+
     try {
-      // Имитация бэкенда для отсутствующего эндпоинта 
-      // В реальном приложении это должно быть в контроллере, но если его нет:
-      setMessage("Откат к заводским настройкам (в разработке)");
-      setMessageType("error");
-    } catch (err) {
-      setMessage("Ошибка сети");
-      setMessageType("error");
+      toast("info", "Откат к заводским настройкам (в разработке)");
+    } catch (err: any) {
+      toastError("Ошибка сети", err.message);
     }
   };
 
@@ -97,7 +85,7 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-800">Глобальная конфигурация</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -105,14 +93,6 @@ export default function ConfigPage() {
         </p>
       </div>
 
-      {message && (
-        <div className={`p-4 rounded-lg flex items-center gap-3 shadow-sm border ${messageType === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-          <span className="text-sm font-medium">{message}</span>
-        </div>
-      )}
-
-      {/* Выбор вкладок */}
       <div className="flex bg-white rounded-lg p-1.5 shadow-sm border border-slate-200 gap-1 w-full max-w-2xl">
         <button 
           onClick={() => setActiveTab('general')} 
@@ -137,7 +117,6 @@ export default function ConfigPage() {
       <form onSubmit={handleSave} className="space-y-6">
         <Card className="border-slate-200 shadow-xl shadow-slate-200/40 rounded-xl overflow-hidden">
           
-          {/* ОБЩИЕ НАСТРОЙКИ */}
           {activeTab === 'general' && (
             <>
               <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
@@ -200,7 +179,6 @@ export default function ConfigPage() {
             </>
           )}
 
-          {/* СЕТЕВЫЕ НАСТРОЙКИ */}
           {activeTab === 'network' && (
             <>
               <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
@@ -255,7 +233,6 @@ export default function ConfigPage() {
             </>
           )}
 
-          {/* БЕЗОПАСНОСТЬ */}
           {activeTab === 'security' && (
             <>
               <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
