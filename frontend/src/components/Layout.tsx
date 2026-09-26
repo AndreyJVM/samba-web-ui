@@ -76,7 +76,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     { name: t("sidebar.shares"), path: "/shares", icon: FolderKanban },
     { name: t("sidebar.users"), path: "/users", icon: Users },
     { name: t("sidebar.groups"), path: "/groups", icon: Users },
-    { name: t("sidebar.settings"), path: "/config/global", icon: Settings },
+    { name: t("sidebar.settings"), path: "/config", icon: Settings },
   ];
 
   return (
