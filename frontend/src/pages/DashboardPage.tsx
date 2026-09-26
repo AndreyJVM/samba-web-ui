@@ -9,25 +9,9 @@ interface DashboardData {
   connections: any[];
   openFiles: any[];
 }
-
-interface DirectoryItem {
-  name: string;
-  fullPath: string;
-}
-
-interface BrowseResult {
-  currentPath: string;
-  parentPath: string | null;
-  directories: DirectoryItem[];
-}
-
-interface DiskUsage {
-  total: string;
-  used: string;
-  available: string;
-  usePercent: number;
-  mountPoint: string;
-}
+interface DirectoryItem { name: string; fullPath: string; }
+interface BrowseResult { currentPath: string; parentPath: string | null; directories: DirectoryItem[]; }
+interface DiskUsage { total: string; used: string; available: string; usePercent: number; mountPoint: string; }
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -41,16 +25,16 @@ export default function DashboardPage() {
   const [isCreatingDir, setIsCreatingDir] = useState(false);
   const [newDirName, setNewDirName] = useState("");
 
-  const { toast, error: toastError, success } = useToast();
+  const { info, error: toastError, success } = useToast();
+
+  const navigateTo = (path: string) => setCurrentPath(path);
 
   const fetchDashboard = useCallback(async () => {
     try {
       const res = await api.get<DashboardData>("/api/monitoring/dashboard");
       setData(res);
     } catch (err: any) {
-      // Don't show toast for interval background requests if it's identical constantly,
-      // but initial loading failures should be handled.
-      if (!data) toastError("Ошибка дашборда", err.message);
+      if (!data) toastError("Error", err.message);
     } finally {
       setDashLoading(false);
     }
@@ -66,7 +50,7 @@ export default function DashboardPage() {
       if (browseRes) setBrowseData(browseRes);
       if (diskRes) setDiskUsage(diskRes);
     } catch (err: any) {
-      toastError("Ошибка файлов", err.message);
+      toastError("FS Error", err.message);
     } finally {
       setFilesLoading(false);
     }
@@ -85,10 +69,10 @@ export default function DashboardPage() {
   const handleServiceControl = async (action: string) => {
     try {
       await api.post(`/api/monitoring/control?action=${action}`);
-      toast("info", "Команда отправлена", `Действие: ${action}`);
+      info("Command Sent", `Action: ${action} initiated`);
       setTimeout(fetchDashboard, 1500);
     } catch (err: any) {
-      toastError("Ошибка управления", err.message);
+      toastError("Control Error", err.message);
     }
   };
 
@@ -97,156 +81,142 @@ export default function DashboardPage() {
     if (!newDirName) return;
     try {
       await api.post(`/api/fs/mkdir?parentPath=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(newDirName)}`);
-      success("Создано", `Директория ${newDirName} успешно создана`);
+      success("Created", `Directory ${newDirName} created successfully`);
       setIsCreatingDir(false);
       setNewDirName("");
       fetchFiles(currentPath);
     } catch (err: any) {
-      toastError("Ошибка создания папки", err.message);
+      toastError("Creation Error", err.message);
     }
   };
 
-  const navigateTo = (path: string) => setCurrentPath(path);
-
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-            <div className="bg-blue-100/50 p-2 rounded-2xl ring-1 ring-blue-500/10">
-              <Server className="w-7 h-7 text-blue-600" />
-            </div>
-            Дашборд / Файлы
-          </h1>
-          <p className="text-slate-500 text-[15px] mt-2">Мониторинг ресурсов службы Samba и файловый менеджер</p>
-        </div>
+    <div className="space-y-6 animate-in fade-in duration-500 pb-10 max-w-6xl">
+      <div className="flex items-center gap-3 pb-4 border-b border-border">
+        <Server className="w-5 h-5 text-foreground" />
+        <h1 className="text-xl font-semibold text-foreground tracking-tight">System Overview</h1>
       </div>
 
       {dashLoading && !data ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1,2,3].map(i => (
-             <div key={i} className="h-32 bg-white/50 rounded-[24px] border border-slate-100 p-6 animate-pulse flex flex-col justify-between">
-                <div className="w-1/3 h-4 bg-slate-200/50 rounded-full mb-4"></div>
-                <div className="w-full h-2 bg-slate-100 rounded-full mb-2"></div>
-             </div>
+             <div key={i} className="h-28 bg-surface border border-border p-4 animate-pulse rounded-md" />
           ))}
         </div>
       ) : data ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-[24px] shadow-sm border border-slate-200/60 p-6 flex flex-col">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          <div className="bg-surface border border-border p-5 rounded-md shadow-sm-subtle flex flex-col justify-between group">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Служба smbd</h3>
-              <Power className={`w-5 h-5 ${data.isRunning ? "text-emerald-500" : "text-rose-500"}`} />
+              <h3 className="text-xs font-bold text-status-disabled uppercase tracking-wide">Service Status</h3>
+              <Power className={`w-4 h-4 ${data.isRunning ? "text-status-active" : "text-status-error"}`} />
             </div>
-            <div className="text-3xl font-black text-slate-800 mb-6">
-              {data.isRunning ? "Онлайн" : "Остановлен"}
+            <div className="flex items-baseline gap-2 mb-5">
+              <span className={`text-2xl font-mono font-bold ${data.isRunning ? "text-status-active" : "text-status-error"}`}>
+                {data.isRunning ? "RUNNING" : "STOPPED"}
+              </span>
+              <span className="text-[10px] text-status-disabled uppercase tracking-widest">smbd</span>
             </div>
-            <div className="flex gap-3 mt-auto">
+            <div className="grid grid-cols-2 gap-2 mt-auto">
               {!data.isRunning ? (
-                <button 
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl transition-colors shadow-sm"
-                  onClick={() => handleServiceControl("start")}
-                >
-                  Запуск
+                <button onClick={() => handleServiceControl("start")} className="col-span-2 text-xs font-semibold bg-status-active/10 text-status-active hover:bg-status-active/20 py-2 rounded transition-colors border border-status-active/20">
+                  START SERVICE
                 </button>
               ) : (
                 <>
-                  <button 
-                    className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2.5 rounded-xl transition-colors"
-                    onClick={() => handleServiceControl("stop")}
-                  >
-                    Остановка
+                  <button onClick={() => handleServiceControl("stop")} className="text-xs font-semibold bg-status-error/10 text-status-error hover:bg-status-error/20 py-2 rounded transition-colors border border-status-error/20">
+                    STOP
                   </button>
-                  <button 
-                    className="flex-1 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl transition-colors"
-                    onClick={() => handleServiceControl("restart")}
-                  >
-                    Рестарт
+                  <button onClick={() => handleServiceControl("restart")} className="text-xs font-semibold bg-surface-hover text-foreground hover:bg-border-strong py-2 rounded transition-colors border border-border">
+                    RESTART
                   </button>
                 </>
               )}
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[24px] shadow-md border border-blue-500 p-6 flex flex-col text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
-            <div className="flex items-center justify-between mb-4 relative z-10">
-              <h3 className="text-[13px] font-bold text-blue-200 uppercase tracking-wider">Активные сессии</h3>
-              <Users className="w-5 h-5 text-blue-300" />
+          <div className="bg-surface border border-border p-5 rounded-md shadow-sm-subtle flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-status-disabled uppercase tracking-wide">Active Sessions</h3>
+              <Users className="w-4 h-4 text-brand" />
             </div>
-            <div className="text-4xl font-black mb-1 relative z-10">{data.connections?.length || 0}</div>
-            <p className="text-[13px] text-blue-200 font-medium relative z-10 mt-auto">подключенных клиентов</p>
+            <div className="flex items-end gap-2 mb-2">
+              <span className="text-3xl font-mono font-bold text-foreground">{data.connections?.length || 0}</span>
+              <span className="text-xs text-status-disabled mb-1 font-medium">clients</span>
+            </div>
           </div>
 
-          <div className="md:col-span-1 lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-slate-200/60 p-6 flex flex-col">
+          <div className="bg-surface border border-border p-5 rounded-md shadow-sm-subtle flex flex-col justify-between">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[13px] font-bold text-slate-500 uppercase tracking-wider">Открытые файлы</h3>
-              <FileStack className="w-5 h-5 text-orange-500" />
+              <h3 className="text-xs font-bold text-status-disabled uppercase tracking-wide">Open Files</h3>
+              <FileStack className="w-4 h-4 text-status-warning" />
             </div>
-            <div className="text-3xl font-black text-slate-800 mb-2">{data.openFiles?.length || 0}</div>
-            <div className="flex-1 overflow-y-auto max-h-[80px] custom-scrollbar text-sm mt-2">
-              {!data.openFiles || data.openFiles.length === 0 ? (
-                 <p className="text-slate-400 font-medium italic mt-2">Нет открытых клиентами файлов</p>
-              ) : (
-                 <div className="flex flex-col gap-1">
-                   {data.openFiles.slice(0, 3).map((f: any, i: number) => (
-                     <div key={i} className="flex justify-between items-center bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                       <span className="font-mono text-[12px] truncate max-w-[70%] text-slate-600" title={f.path || f.toString()}>{f.path || f.toString()}</span>
-                       <span className="text-[11px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded-md border border-slate-200">{f.user || '-'}</span>
-                     </div>
-                   ))}
+            <div className="flex items-end gap-2">
+              <span className="text-3xl font-mono font-bold text-foreground">{data.openFiles?.length || 0}</span>
+              <span className="text-xs text-status-disabled mb-1 font-medium">locked</span>
+            </div>
+            <div className="h-[40px] mt-2 overflow-y-auto custom-scrollbar flex flex-col gap-1">
+               {data.openFiles?.length > 0 ? data.openFiles.slice(0, 2).map((f: any, idx: number) => (
+                 <div key={idx} className="flex justify-between items-center text-[10px] font-mono bg-background px-2 py-1 rounded border border-border">
+                   <span className="truncate max-w-[70%]">{typeof f === 'object' ? f.path : f.toString()}</span>
+                   <span className="text-brand font-bold">{typeof f === 'object' ? f.user : '-'}</span>
                  </div>
-              )}
+               )) : (
+                 <span className="text-xs text-status-disabled italic mt-1">No files in use</span>
+               )}
             </div>
           </div>
         </div>
       ) : null}
 
-      <div className="border-t border-slate-200/70 pt-8 mt-12 mb-4 relative">
-         <span className="absolute -top-3 left-6 bg-[#f8fafc] px-3 font-bold text-[11px] uppercase tracking-widest text-slate-400">Менеджер файлов</span>
+      <div className="pt-6">
+         <div className="flex items-center gap-3 pb-3 border-b border-border">
+            <HardDrive className="w-4 h-4 text-status-disabled" />
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-widest">Storage & Explorer</h2>
+         </div>
       </div>
 
       {diskUsage && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white rounded-[24px] p-6 shadow-sm border border-slate-200/60">
-          <div className="col-span-1 md:col-span-4 flex items-center justify-between mb-2">
-            <h3 className="font-bold text-slate-800 tracking-tight flex items-center gap-2"><HardDrive className="w-5 h-5 text-blue-500" /> Использование хранилища</h3>
-            <span className="text-[13px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">{diskUsage.usePercent}%</span>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-surface rounded-md p-5 border border-border shadow-sm-subtle relative overflow-hidden">
+          <div className="col-span-2 lg:col-span-4 flex items-center gap-4 mb-2">
+            <div className="flex-1 bg-background border border-border rounded-sm h-3 overflow-hidden">
+               <div 
+                 className={`h-full transition-all duration-500 ${diskUsage.usePercent > 90 ? 'bg-status-error' : diskUsage.usePercent > 70 ? 'bg-status-warning' : 'bg-status-active'}`} 
+                 style={{ width: `${diskUsage.usePercent}%` }}
+               />
+            </div>
+            <span className="text-xs font-mono font-bold w-10 text-right">{diskUsage.usePercent}%</span>
           </div>
-          <div className="col-span-1 md:col-span-4 w-full bg-slate-100 rounded-full h-2 mb-4 overflow-hidden">
-             <div 
-               className={`h-2 rounded-full ${diskUsage.usePercent > 90 ? 'bg-rose-500' : diskUsage.usePercent > 70 ? 'bg-amber-500' : 'bg-blue-500'}`} 
-               style={{ width: `${diskUsage.usePercent}%` }}
-             ></div>
+
+          <div className="flex flex-col">
+            <span className="text-[10px] text-status-disabled uppercase font-bold tracking-widest mb-0.5">Total</span>
+            <span className="text-sm font-mono font-medium">{diskUsage.total}</span>
           </div>
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-            <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Всего</div>
-            <div className="text-xl font-extrabold text-slate-700">{diskUsage.total}</div>
+          <div className="flex flex-col">
+            <span className="text-[10px] text-status-disabled uppercase font-bold tracking-widest mb-0.5">Used</span>
+            <span className="text-sm font-mono font-medium">{diskUsage.used}</span>
           </div>
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-            <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Занято</div>
-            <div className="text-xl font-extrabold text-slate-700">{diskUsage.used}</div>
+          <div className="flex flex-col">
+            <span className="text-[10px] text-status-disabled uppercase font-bold tracking-widest mb-0.5">Free</span>
+            <span className="text-sm font-mono font-medium text-status-active">{diskUsage.available}</span>
           </div>
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-            <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Свободно</div>
-            <div className="text-xl font-extrabold text-emerald-600">{diskUsage.available}</div>
-          </div>
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-            <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Точка монтирования</div>
-            <div className="text-lg font-bold text-slate-700 truncate" title={diskUsage.mountPoint}>{diskUsage.mountPoint}</div>
+          <div className="flex flex-col">
+            <span className="text-[10px] text-status-disabled uppercase font-bold tracking-widest mb-0.5">Mount</span>
+            <span className="text-sm font-mono text-status-disabled truncate" title={diskUsage.mountPoint}>{diskUsage.mountPoint}</span>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-[24px] shadow-sm border border-slate-200/60 overflow-hidden flex flex-col">
-        <div className="px-6 py-4 border-b border-slate-100 flex flex-col gap-4 sm:flex-row sm:items-center justify-between bg-slate-50/50">
-          <div className="flex flex-wrap items-center gap-1 text-[15px] font-medium text-slate-600">
-            <button onClick={() => navigateTo("/")} className="hover:text-blue-600 transition-colors">root</button>
+      <div className="bg-surface rounded-md border border-border shadow-sm-subtle flex flex-col">
+        <div className="px-4 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-hover/30">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
+            <button onClick={() => navigateTo("/")} className="text-brand hover:underline font-semibold">root</button>
             {browseData?.currentPath.split("/").filter(Boolean).map((part, index, array) => {
               const p = "/" + array.slice(0, index + 1).join("/");
               return (
-                <div key={p} className="flex items-center gap-1">
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                  <button onClick={() => navigateTo(p)} className="hover:text-blue-600 transition-colors">{part}</button>
+                <div key={p} className="flex items-center gap-1.5">
+                  <ChevronRight className="w-3 h-3 text-status-disabled" />
+                  <button onClick={() => navigateTo(p)} className="text-brand hover:underline font-semibold">{part}</button>
                 </div>
               );
             })}
@@ -254,64 +224,61 @@ export default function DashboardPage() {
 
           <div className="flex items-center gap-2">
             {!isCreatingDir ? (
-              <button onClick={() => setIsCreatingDir(true)} className="text-[13px] font-bold text-slate-600 bg-white border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-colors flex items-center gap-2 shadow-sm">
-                <FolderPlus className="w-4 h-4" /> Создать папку
+              <button 
+                onClick={() => setIsCreatingDir(true)} 
+                className="text-[11px] font-bold uppercase tracking-wider text-foreground bg-background border border-border px-3 py-1.5 rounded-sm hover:bg-surface-hover transition-colors flex items-center gap-1.5"
+              >
+                <FolderPlus className="w-3.5 h-3.5" /> MKDIR
               </button>
             ) : (
-              <form onSubmit={handleCreateDirectory} className="flex gap-2">
+              <form onSubmit={handleCreateDirectory} className="flex gap-2 isolate">
                 <input 
-                  autoFocus
-                  required
-                  pattern="[a-zA-Z0-9_.-]+"
-                  className="text-[13px] border border-slate-200 px-3 py-2 rounded-xl focus:outline-none focus:border-blue-500 bg-white shadow-sm w-40"
-                  placeholder="Новая папка..."
+                  autoFocus required pattern="[a-zA-Z0-9_.-]+"
+                  className="text-xs font-mono border border-border bg-background px-2.5 py-1.5 rounded-sm focus:outline-none focus:border-brand w-48 text-foreground"
+                  placeholder="dirname"
                   value={newDirName}
                   onChange={e => setNewDirName(e.target.value)}
                 />
-                <button type="submit" className="text-[13px] font-bold text-white bg-blue-600 px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors shadow-sm">
-                  ОК
+                <button type="submit" className="text-xs font-bold text-brand-text bg-brand px-3 py-1.5 rounded-sm hover:bg-brand-hover transition-colors">
+                  OK
                 </button>
-                <button type="button" onClick={() => setIsCreatingDir(false)} className="text-[13px] font-bold text-slate-600 bg-white border border-slate-200 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors shadow-sm">
-                  Отмена
+                <button type="button" onClick={() => setIsCreatingDir(false)} className="text-xs font-bold text-foreground bg-background border border-border px-3 py-1.5 rounded-sm hover:bg-surface-hover transition-colors">
+                  Cancel
                 </button>
               </form>
             )}
           </div>
         </div>
 
-        <div className="p-2 sm:p-4 min-h-[150px]">
+        <div className="min-h-[200px]">
            {filesLoading ? (
-             <div className="flex justify-center p-10">
-               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+             <div className="flex justify-center items-center h-40">
+               <div className="w-5 h-5 border-2 border-border border-t-brand rounded-full animate-spin"></div>
              </div>
            ) : (
-             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-[1px] bg-border p-[1px]">
                {browseData?.parentPath && (
                  <button 
                    onClick={() => navigateTo(browseData.parentPath!)}
-                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-left transition-colors group"
+                   className="flex items-center gap-3 p-3 bg-surface hover:bg-surface-hover text-left transition-colors group"
                  >
-                   <div className="bg-slate-100 p-2 rounded-lg group-hover:bg-blue-100 transition-colors">
-                     <ArrowUp className="w-5 h-5 text-slate-500 group-hover:text-blue-600" />
-                   </div>
-                   <span className="font-medium text-slate-700">.. (наверх)</span>
+                   <ArrowUp className="w-4 h-4 text-status-disabled group-hover:text-foreground" />
+                   <span className="text-xs font-mono font-medium text-foreground">..</span>
                  </button>
                )}
                {browseData?.directories.map(dir => (
                  <button 
                    key={dir.fullPath}
                    onClick={() => navigateTo(dir.fullPath)}
-                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-left transition-colors group border border-transparent hover:border-slate-100"
+                   className="flex items-center gap-3 p-3 bg-surface hover:bg-surface-hover text-left transition-colors group"
                  >
-                   <div className="bg-blue-50 p-2 rounded-lg group-hover:bg-blue-100 transition-colors">
-                     <Folder className="w-5 h-5 text-blue-500 group-hover:text-blue-600 fill-blue-100" />
-                   </div>
-                   <span className="font-medium text-slate-700 truncate" title={dir.name}>{dir.name}</span>
+                   <Folder className="w-4 h-4 text-status-disabled group-hover:text-brand" />
+                   <span className="text-xs font-mono font-medium text-foreground truncate" title={dir.name}>{dir.name}</span>
                  </button>
                ))}
                {(!browseData?.directories || browseData.directories.length === 0) && !browseData?.parentPath && (
-                 <div className="col-span-full text-center text-slate-400 py-10 italic">
-                   Нет вложенных папок
+                 <div className="col-span-full bg-surface text-center text-xs text-status-disabled font-mono py-12">
+                   Directory is empty
                  </div>
                )}
              </div>

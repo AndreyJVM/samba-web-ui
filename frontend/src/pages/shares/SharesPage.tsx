@@ -38,7 +38,7 @@ export default function SharesPage() {
   const [currentShare, setCurrentShare] = useState<Partial<Share> | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   
-  const { toast, error: toastError, success } = useToast();
+  const { error: toastError, success } = useToast();
   const { confirm } = useConfirm();
 
   const fetchAll = async () => {
@@ -53,7 +53,7 @@ export default function SharesPage() {
       setUsers(usRes || []);
       setGroups(grRes || []);
     } catch (err: any) {
-      toastError("Ошибка API", err.message);
+      toastError("API Error", err.message);
     } finally {
       setLoading(false);
     }
@@ -65,19 +65,19 @@ export default function SharesPage() {
 
   const handleDelete = async (name: string) => {
     const ok = await confirm({
-      title: "Удаление",
-      message: `Точно удалить общую папку [${name}]?`,
+      title: "Delete Share",
+      message: `Permanently delete the network share [${name}]?`,
       destructive: true,
-      confirmText: "Удалить"
+      confirmText: "Delete"
     });
     if (!ok) return;
 
     try {
       await api.delete(`/api/shares/${name}`);
-      success("Удалено", `Папка ${name} успешно удалена`);
+      success("Deleted", `Share ${name} removed`);
       fetchAll();
     } catch (err: any) {
-      toastError("Ошибка удаления", err.message);
+      toastError("Delete Error", err.message);
     }
   };
 
@@ -113,11 +113,11 @@ export default function SharesPage() {
         await api.put(url, dto);
       }
       
-      success(isNew ? "Создано" : "Обновлено", "Конфигурация успешно сохранена");
+      success(isNew ? "Created" : "Updated", "Configuration saved");
       setIsEditing(false);
       fetchAll();
     } catch (err: any) {
-      toastError("Ошибка сохранения", err.message);
+      toastError("Save Error", err.message);
     }
   };
 
@@ -152,89 +152,72 @@ export default function SharesPage() {
   const activeTokens = (currentShare?.validUsers || "").split(",").map(t => t.trim());
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 flex items-center gap-3">
-            <div className="bg-blue-100/50 p-2 rounded-2xl ring-1 ring-blue-500/10">
-              <FolderKanban className="w-7 h-7 text-blue-600" />
-            </div>
-            Сетевые ресурсы
-          </h1>
-          <p className="text-slate-500 text-[15px] mt-2">Папки доступные клиентам Samba из сети</p>
+    <div className="space-y-6 animate-in fade-in duration-500 pb-10 max-w-6xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <FolderKanban className="w-5 h-5 text-foreground" />
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">Network Shares</h1>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => openEditor()} className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-medium tracking-wide flex items-center gap-2 shadow-lg shadow-slate-900/20 transition-all hover:shadow-xl hover:-translate-y-0.5">
-            <Plus className="w-5 h-5" /> Создать шару
-          </button>
-        </div>
+        <button onClick={() => openEditor()} className="text-[11px] font-bold uppercase tracking-wider text-brand-text bg-brand px-4 py-2 rounded-sm hover:bg-brand-hover transition-colors flex items-center gap-2">
+          <Plus className="w-3.5 h-3.5" /> New Share
+        </button>
       </div>
 
       {loading ? (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-[1px] bg-border p-[1px] rounded-md overflow-hidden">
           {[1,2,3,4].map(i => (
-             <div key={i} className="h-16 bg-white/50 rounded-[20px] border border-slate-100 p-4 animate-pulse flex items-center justify-between">
-                <div className="w-1/4 h-5 bg-slate-200/50 rounded-full"></div>
-                <div className="w-1/4 h-3 bg-slate-100 rounded-full"></div>
-             </div>
+             <div key={i} className="h-12 bg-surface animate-pulse" />
           ))}
         </div>
       ) : shares.filter(s => s.name !== 'global').length === 0 ? (
-        <div className="text-center py-24 bg-white rounded-[24px] border border-dashed border-slate-200/60 shadow-sm relative overflow-hidden">
-          <FolderKanban className="w-16 h-16 text-blue-100 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-slate-800 tracking-tight">Нет доступных директорий</h3>
-          <p className="text-slate-500 mt-2 mb-6">Создайте первую папку для доступа по локальной сети.</p>
-          <button onClick={() => openEditor()} className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-6 py-2.5 rounded-xl font-semibold transition-colors">
-            Новая папка
+        <div className="text-center py-20 bg-surface rounded-md border border-border border-dashed">
+          <FolderKanban className="w-10 h-10 text-status-disabled mx-auto mb-3 opacity-50" />
+          <h3 className="text-sm font-bold text-foreground">No shares available</h3>
+          <p className="text-xs text-status-disabled mt-1 mb-4">Create your first directory to share over the network.</p>
+          <button onClick={() => openEditor()} className="text-xs font-bold text-brand hover:underline">
+             + Create Share
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-[24px] border border-slate-200/60 shadow-sm overflow-hidden overflow-x-auto">
-          <table className="w-full text-left font-medium min-w-[800px]">
-             <thead className="bg-slate-50/70 text-slate-500 text-[12px] uppercase tracking-wider border-b border-slate-200/60">
+        <div className="bg-border rounded-md p-[1px] overflow-hidden overflow-x-auto shadow-sm-subtle">
+          <table className="w-full text-left min-w-[800px] border-collapse bg-surface">
+            <thead className="bg-surface-hover/50 text-[10px] font-bold uppercase tracking-widest text-status-disabled">
               <tr>
-                <th className="py-4 px-6 font-bold w-[20%]">Имя шары</th>
-                <th className="py-4 px-5 font-bold w-[25%]">Путь на диске</th>
-                <th className="py-4 px-5 font-bold w-[20%]">Описание</th>
-                <th className="py-4 px-5 font-bold w-[20%]">Доступ</th>
-                <th className="py-4 px-6 font-bold text-right w-[15%]">Действия</th>
+                <th className="py-3 px-4 w-[20%]">Share Name</th>
+                <th className="py-3 px-4 w-[30%]">Disk Path</th>
+                <th className="py-3 px-4 w-[20%]">Access</th>
+                <th className="py-3 px-4 text-right w-[10%]">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {shares.filter(s => s.name !== 'global').map((share) => (
-                <tr key={share.name} className="hover:bg-slate-50/70 transition-colors group">
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                       <div className="bg-blue-50 rounded-lg p-2 group-hover:bg-blue-100 transition-colors">
-                         <FolderKanban className="w-4 h-4 text-blue-600" />
-                       </div>
-                       <span className="text-slate-800 font-bold text-[15px]">{share.name}</span>
+                <tr key={share.name} className="hover:bg-surface-hover/50 transition-colors group">
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                       <FolderKanban className="w-3.5 h-3.5 text-brand" />
+                       <span className="text-foreground font-semibold text-sm">{share.name}</span>
                     </div>
+                    {share.comment && <div className="text-[10px] text-status-disabled mt-0.5 truncate max-w-[200px]" title={share.comment}>{share.comment}</div>}
                   </td>
-                  <td className="py-4 px-5">
-                    <span className="text-[13px] font-mono text-slate-500 bg-slate-100/50 border border-slate-200/60 px-2 py-1 rounded truncate block max-w-[200px]" title={share.path}>
+                  <td className="py-3 px-4">
+                    <span className="text-xs font-mono text-status-disabled" title={share.path}>
                       {share.path || '/'}
                     </span>
                   </td>
-                  <td className="py-4 px-5">
-                    <span className="text-[13px] text-slate-500 truncate block max-w-[150px]" title={share.comment}>
-                      {share.comment || <span className="text-slate-400 italic">—</span>}
-                    </span>
-                  </td>
-                  <td className="py-4 px-5">
+                  <td className="py-3 px-4">
                     <div className="flex flex-wrap gap-1.5">
-                      {share.readOnly && <span className="bg-rose-50 text-rose-600 text-[10px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-widest ring-1 ring-inset ring-rose-500/20">Только чтение</span>}
-                      {share.guestOk && <span className="bg-emerald-50 text-emerald-600 text-[10px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-widest ring-1 ring-inset ring-emerald-500/20">Гость</span>}
-                      {!share.readOnly && !share.guestOk && <span className="text-slate-400 text-[11px] italic">Приватная</span>}
+                      {share.readOnly && <span className="bg-status-warning/10 text-status-warning border border-status-warning/20 text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-widest">RO</span>}
+                      {share.guestOk && <span className="bg-status-active/10 text-status-active border border-status-active/20 text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-widest">GUEST</span>}
+                      {!share.readOnly && !share.guestOk && <span className="text-status-disabled text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5">PRIVATE</span>}
                     </div>
                   </td>
-                  <td className="py-4 px-6 text-right">
-                    <div className="flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditor(share)} className="p-2.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-blue-100 bg-white" title="Настроить">
+                  <td className="py-3 px-4 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => openEditor(share)} className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded" title="Configure">
                         <Settings2 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(share.name)} className="p-2.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-rose-100 bg-white" title="Удалить">
+                      <button onClick={() => handleDelete(share.name)} className="p-1.5 text-status-disabled hover:text-status-error hover:bg-surface-hover rounded" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -250,99 +233,84 @@ export default function SharesPage() {
         <Modal 
           isOpen={isEditing} 
           onClose={() => setIsEditing(false)}
-          title={currentShare.isNew ? "Новая общая папка" : `Настройка: ${currentShare.name}`}
-          description="Глобальные и дополнительные настройки SMB директории"
-          maxWidth="4xl"
+          title={currentShare.isNew ? "New Share" : `Configure: ${currentShare.name}`}
+          maxWidth="2xl"
         >
-          <form onSubmit={handleSave} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Имя папки (в сети)</label>
+          <form onSubmit={handleSave} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-status-disabled uppercase tracking-widest">Network Name</label>
                 <input 
                   required 
                   value={currentShare.name} 
                   disabled={!currentShare.isNew}
                   onChange={(e) => setCurrentShare({ ...currentShare, name: e.target.value })} 
-                  className={`w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-3 px-4 text-sm rounded-xl outline-none ${!currentShare.isNew ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className={`w-full bg-background border border-border focus:border-brand text-foreground transition-colors py-2 px-3 text-sm rounded-sm outline-none ${!currentShare.isNew ? 'opacity-60 cursor-not-allowed' : ''}`}
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Путь сервера</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-status-disabled uppercase tracking-widest">Server Path</label>
                 <input 
                   required 
                   value={currentShare.path || ""} 
                   onChange={(e) => setCurrentShare({ ...currentShare, path: e.target.value })} 
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-3 px-4 text-sm rounded-xl outline-none font-mono"
+                  className="w-full bg-background border border-border focus:border-brand text-foreground transition-colors py-2 px-3 text-sm rounded-sm outline-none font-mono"
                   placeholder="/mnt/disk1/data"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Комментарий</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-status-disabled uppercase tracking-widest">Comment / Description</label>
               <input 
                 value={currentShare.comment || ""} 
                 onChange={(e) => setCurrentShare({ ...currentShare, comment: e.target.value })} 
-                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-3 px-4 text-sm rounded-xl outline-none"
-                placeholder="Назначение директории"
+                className="w-full bg-background border border-border focus:border-brand text-foreground transition-colors py-2 px-3 text-sm rounded-sm outline-none"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100/50">
-                <input type="checkbox" id="browseable" 
-                   checked={currentShare.browseable} 
-                   onChange={(e) => setCurrentShare({ ...currentShare, browseable: e.target.checked })} 
-                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="browseable" className="text-sm font-semibold text-slate-700 cursor-pointer">Отображать в сети</label>
-              </div>
-              <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100/50">
-                <input type="checkbox" id="ro" 
-                   checked={currentShare.readOnly} 
-                   onChange={(e) => setCurrentShare({ ...currentShare, readOnly: e.target.checked })} 
-                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="ro" className="text-sm font-semibold text-slate-700 cursor-pointer">Только чтение</label>
-              </div>
-              <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100/50">
-                <input type="checkbox" id="guest" 
-                   checked={currentShare.guestOk} 
-                   onChange={(e) => setCurrentShare({ ...currentShare, guestOk: e.target.checked })} 
-                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="guest" className="text-sm font-semibold text-slate-700 cursor-pointer">Гостевой доступ</label>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3">
+              <label className="flex items-center gap-2 bg-background p-3 rounded-sm border border-border cursor-pointer hover:bg-surface-hover transition-colors">
+                <input type="checkbox" checked={currentShare.browseable} onChange={(e) => setCurrentShare({ ...currentShare, browseable: e.target.checked })} className="w-3.5 h-3.5 text-brand bg-background border-border rounded-sm focus:ring-brand accent-brand" />
+                <span className="text-xs font-semibold text-foreground uppercase tracking-wide">Browseable</span>
+              </label>
+              <label className="flex items-center gap-2 bg-background p-3 rounded-sm border border-border cursor-pointer hover:bg-surface-hover transition-colors">
+                <input type="checkbox" checked={currentShare.readOnly} onChange={(e) => setCurrentShare({ ...currentShare, readOnly: e.target.checked })} className="w-3.5 h-3.5 text-brand bg-background border-border rounded-sm focus:ring-brand accent-brand" />
+                <span className="text-xs font-semibold text-foreground uppercase tracking-wide">Read Only</span>
+              </label>
+              <label className="flex items-center gap-2 bg-background p-3 rounded-sm border border-border cursor-pointer hover:bg-surface-hover transition-colors">
+                <input type="checkbox" checked={currentShare.guestOk} onChange={(e) => setCurrentShare({ ...currentShare, guestOk: e.target.checked })} className="w-3.5 h-3.5 text-brand bg-background border-border rounded-sm focus:ring-brand accent-brand" />
+                <span className="text-xs font-semibold text-foreground uppercase tracking-wide">Guest Ok</span>
+              </label>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-slate-100">
-              <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-bold text-slate-700 uppercase tracking-wide">Доступ (valid users)</label>
-                <p className="text-[12px] text-slate-500">Кому разрешен вход. Группы начинаются с '@' (пусто = всем).</p>
+            <div className="space-y-3 pt-3 border-t border-border">
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] font-bold text-status-disabled uppercase tracking-widest">Valid Users / Access</label>
+                <p className="text-[11px] text-status-disabled">Groups start with '@'. Comma separated.</p>
               </div>
               
               <input 
                 value={currentShare.validUsers || ""} 
                 onChange={(e) => setCurrentShare({ ...currentShare, validUsers: e.target.value })} 
-                className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:border-slate-300 transition-all py-3 px-4 text-sm font-mono rounded-xl outline-none"
+                className="w-full bg-background border border-border focus:border-brand text-foreground transition-colors py-2 px-3 text-sm font-mono rounded-sm outline-none"
                 placeholder="user1, user2, @admins"
               />
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
+              <div className="bg-background p-3 rounded-sm border border-border space-y-3">
                 {groups.length > 0 && (
                   <div>
-                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5" /> Внешние группы ОС:
+                    <div className="text-[9px] font-bold text-status-disabled uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                      <Users className="w-3 h-3" /> External Groups
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                        {groups.map(g => {
                          const tk = `@${g.name}`;
                          const active = activeTokens.includes(tk);
                          return (
                            <button 
-                              key={g.name} type="button"
-                              onClick={() => toggleToValidUsers(tk)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${active ? 'bg-indigo-500 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-600'}`}
+                              key={g.name} type="button" onClick={() => toggleToValidUsers(tk)}
+                              className={`px-2 py-1 rounded-sm text-[10px] font-mono font-bold uppercase transition-colors border ${active ? 'bg-brand text-brand-text border-brand' : 'bg-surface border-border text-foreground hover:border-border-strong'}`}
                            >
                              {tk}
                            </button>
@@ -353,18 +321,17 @@ export default function SharesPage() {
                 )}
                 {users.length > 0 && (
                   <div>
-                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Локальные пользователи:
+                    <div className="text-[9px] font-bold text-status-disabled uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" /> Local Users
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                        {users.map(u => {
                          const tk = u.username;
                          const active = activeTokens.includes(tk);
                          return (
                            <button 
-                              key={u.username} type="button"
-                              onClick={() => toggleToValidUsers(tk)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${active ? 'bg-blue-500 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600'}`}
+                              key={u.username} type="button" onClick={() => toggleToValidUsers(tk)}
+                              className={`px-2 py-1 rounded-sm text-[10px] font-mono font-bold uppercase transition-colors border ${active ? 'bg-foreground text-background border-foreground' : 'bg-surface border-border text-foreground hover:border-border-strong'}`}
                            >
                              {tk}
                            </button>
@@ -376,109 +343,50 @@ export default function SharesPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100">
+            <div className="pt-2">
               <button 
                 type="button"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors p-4 rounded-xl border border-slate-200 text-slate-700 font-bold text-sm"
+                className="w-full flex items-center justify-between text-xs font-bold uppercase tracking-wider text-status-disabled hover:text-foreground py-2 border-b border-border transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <Settings2 className="w-4 h-4 text-slate-500" />
-                  Продвинутые опции безопасности и масок
+                  <Settings2 className="w-4 h-4" /> Advanced Options
                 </div>
-                {showAdvanced ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
               
               {showAdvanced && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-in slide-in-from-top-2 duration-300">
-                    {/* Write List */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Write List</label>
-                      <input 
-                        value={currentShare.writeList || ""} 
-                        onChange={(e) => setCurrentShare({ ...currentShare, writeList: e.target.value })} 
-                        className="w-full bg-white border border-slate-200 py-2 px-3 text-xs font-mono rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                        placeholder="@admins, user1"
-                      />
-                    </div>
-                    {/* Max Connections */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Max Connections</label>
-                      <input 
-                        value={currentShare.maxConnections || ""} 
-                        onChange={(e) => setCurrentShare({ ...currentShare, maxConnections: e.target.value })} 
-                        className="w-full bg-white border border-slate-200 py-2 px-3 text-xs font-mono rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                        placeholder="0 (без лимита)"
-                      />
-                    </div>
-                    {/* Create Mask */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Create Mask</label>
-                      <input 
-                        value={currentShare.createMask || ""} 
-                        onChange={(e) => setCurrentShare({ ...currentShare, createMask: e.target.value })} 
-                        className="w-full bg-white border border-slate-200 py-2 px-3 text-xs font-mono rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                        placeholder="0644"
-                      />
-                    </div>
-                    {/* Directory Mask */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Directory Mask</label>
-                      <input 
-                        value={currentShare.directoryMask || ""} 
-                        onChange={(e) => setCurrentShare({ ...currentShare, directoryMask: e.target.value })} 
-                        className="w-full bg-white border border-slate-200 py-2 px-3 text-xs font-mono rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                        placeholder="0755"
-                      />
-                    </div>
-                    {/* Force User */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Force User</label>
-                      <input 
-                        value={currentShare.forceUser || ""} 
-                        onChange={(e) => setCurrentShare({ ...currentShare, forceUser: e.target.value })} 
-                        className="w-full bg-white border border-slate-200 py-2 px-3 text-xs font-mono rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                      />
-                    </div>
-                    {/* Force Group */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Force Group</label>
-                      <input 
-                        value={currentShare.forceGroup || ""} 
-                        onChange={(e) => setCurrentShare({ ...currentShare, forceGroup: e.target.value })} 
-                        className="w-full bg-white border border-slate-200 py-2 px-3 text-xs font-mono rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                      />
-                    </div>
-                    {/* Hosts Allow */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Hosts Allow</label>
-                      <input 
-                        value={currentShare.hostsAllow || ""} 
-                        onChange={(e) => setCurrentShare({ ...currentShare, hostsAllow: e.target.value })} 
-                        className="w-full bg-white border border-slate-200 py-2 px-3 text-xs font-mono rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                        placeholder="192.168.1. 127."
-                      />
-                    </div>
-                    {/* Hosts Deny */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wide">Hosts Deny</label>
-                      <input 
-                        value={currentShare.hostsDeny || ""} 
-                        onChange={(e) => setCurrentShare({ ...currentShare, hostsDeny: e.target.value })} 
-                        className="w-full bg-white border border-slate-200 py-2 px-3 text-xs font-mono rounded-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                        placeholder="ALL"
-                      />
-                    </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 animate-in slide-in-from-top-2 duration-200 bg-surface p-3 rounded-sm border border-border">
+                    {[
+                      { l: "Write List", k: "writeList", p: "@admins, user1" },
+                      { l: "Max Connections", k: "maxConnections", p: "0" },
+                      { l: "Create Mask", k: "createMask", p: "0644" },
+                      { l: "Directory Mask", k: "directoryMask", p: "0755" },
+                      { l: "Force User", k: "forceUser", p: "user1" },
+                      { l: "Force Group", k: "forceGroup", p: "users" },
+                      { l: "Hosts Allow", k: "hostsAllow", p: "192.168.1." },
+                      { l: "Hosts Deny", k: "hostsDeny", p: "ALL" },
+                    ].map(field => (
+                      <div key={field.k} className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-status-disabled uppercase w-24 shrink-0 truncate" title={field.l}>{field.l}</label>
+                        <input 
+                          value={(currentShare as any)[field.k] || ""} 
+                          onChange={(e) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
+                          className="flex-1 bg-background border border-border py-1 px-2 text-xs font-mono rounded-sm focus:outline-none focus:border-brand text-foreground"
+                          placeholder={field.p}
+                        />
+                      </div>
+                    ))}
                  </div>
               )}
             </div>
 
-            <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
-               <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl font-medium text-slate-700 transition-colors">
-                 Отмена
+            <div className="pt-4 flex justify-end gap-2 border-t border-border mt-6">
+               <button type="button" onClick={() => setIsEditing(false)} className="text-xs font-bold uppercase tracking-widest text-foreground bg-background border border-border px-5 py-2 rounded-sm hover:bg-surface-hover transition-colors">
+                 Cancel
                </button>
-               <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-xl font-bold tracking-wide shadow-lg shadow-blue-500/30 transition-all">
-                 Сохранить
+               <button type="submit" className="text-xs font-bold uppercase tracking-widest text-brand-text bg-brand px-6 py-2 rounded-sm hover:bg-brand-hover transition-colors">
+                 Save
                </button>
             </div>
           </form>
