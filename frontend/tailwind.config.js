@@ -4,24 +4,43 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class', 
   theme: {
+    fontFamily: {
+      sans: ['Inter', 'SF Pro Display', 'system-ui', 'sans-serif'],
+      mono: ['JetBrains Mono', 'Fira Code', 'Menlo', 'monospace'],
+    },
     extend: {
       colors: {
-        // Здесь мы определим палитру в стиле Cloudflare/Vercel (воздушная, контрастная)
-        background: '#ffffff',
-        foreground: '#171717',
-        primary: {
-          DEFAULT: '#000000',
-          foreground: '#ffffff',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        surface: 'var(--surface)',
+        'surface-hover': 'var(--surface-hover)',
+        border: 'var(--border)',
+        'border-strong': 'var(--border-strong)',
+        brand: {
+          DEFAULT: 'var(--brand)',
+          hover: 'var(--brand-hover)',
+          text: 'var(--brand-text)',
         },
-        muted: {
-          DEFAULT: '#fafafa',
-          foreground: '#737373',
-        },
-        border: '#e5e5e5'
+        status: {
+          active: 'var(--status-active)',
+          warning: 'var(--status-warning)',
+          error: 'var(--status-error)',
+          disabled: 'var(--status-disabled)',
+        }
       },
       boxShadow: {
-        'soft': '0 4px 14px 0 rgba(0, 0, 0, 0.05)',
+        'sm-subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        'subtle': '0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0,0,0,0.04)',
+      },
+      transitionDuration: {
+        DEFAULT: '150ms',
+      },
+      borderRadius: {
+        sm: '6px',
+        md: '8px',
+        lg: '12px',
       }
     },
   },

@@ -3,7 +3,68 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: #fafafa;
+    --foreground: #09090b;
+    --surface: #ffffff;
+    --surface-hover: #f4f4f5;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    
+    --brand: #18181b;
+    --brand-hover: #27272a;
+    --brand-text: #ffffff;
+
+    --status-active: #10b981;
+    --status-warning: #f59e0b;
+    --status-error: #ef4444;
+    --status-disabled: #71717a;
+  }
+
+  .dark {
+    --background: #000000;
+    --foreground: #ededed;
+    --surface: #0a0a0a;
+    --surface-hover: #171717;
+    --border: #262626;
+    --border-strong: #404040;
+    
+    --brand: #ededed;
+    --brand-hover: #fafafa;
+    --brand-text: #0a0a0a;
+
+    --status-active: #10b981;
+    --status-warning: #f59e0b;
+    --status-error: #ef4444;
+    --status-disabled: #a3a3a3;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
   body {
-    font-family: Inter, system-ui, -apple-system, sans-serif;
+    background-color: var(--background);
+    color: var(--foreground);
+    @apply antialiased;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-border-strong rounded-full;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-[#404040];
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-status-disabled;
   }
 }

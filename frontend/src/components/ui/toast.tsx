@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import { AlertCircle, CheckCircle, Info, X } from "lucide-react";
 
 export type ToastType = "success" | "error" | "info";
@@ -27,7 +27,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     setToasts((prev) => [...prev, { id, type, title, message }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 5000); // 5 sec auto dismiss
+    }, 5000);
   };
 
   const removeToast = (id: string) => {

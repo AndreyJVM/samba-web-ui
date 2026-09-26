@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Server, FolderKanban, Users, Settings, LogOut, UserCircle2, Play, Square, RefreshCw } from "lucide-react";
+import { Server, FolderKanban, Users, Settings, LogOut, Play, Square, RefreshCw, Moon, Sun } from "lucide-react";
 import { api } from "../lib/api";
 import { useToast } from "./ui/toast";
+import { useTranslation } from "../lib/i18n";
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const [userInfo, setUserInfo] = useState({ host: "", user: "" });
   const [serverStatus, setServerStatus] = useState<boolean | null>(null);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
   const { toast } = useToast();
+  const { t, lang, setLanguage } = useTranslation();
 
   useEffect(() => {
     api.get<{ host: string; user: string }>("/api/auth/me")
@@ -28,7 +31,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 10000); 
+    const interval = setInterval(fetchStatus, 5000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -43,80 +46,102 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const handleServiceControl = async (action: string) => {
     try {
       await api.post(`/api/monitoring/control?action=${action}`);
-      toast("info", "Команда отправлена", `Сервис Samba получил команду ${action}`);
-      setTimeout(fetchStatus, 1500);
+      toast("info", "Command Sent", `Action: ${action}`);
+      setTimeout(fetchStatus, 1000);
     } catch (err: any) {
-      toast("error", "Ошибка управления", err.message);
+      toast("error", "Error", err.message);
     }
   };
 
+  const toggleDark = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+  };
+
+  const toggleLang = () => {
+    setLanguage(lang === "ru" ? "en" : "ru");
+  };
+
+  useEffect(() => {
+    if (localStorage.getItem("theme") === "dark") {
+      setIsDark(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
   const navItems = [
-    { name: "Дашборд / Файлы", path: "/dashboard", icon: Server },
-    { name: "Общие папки", path: "/shares", icon: FolderKanban },
-    { name: "Пользователи", path: "/users", icon: UserCircle2 },
-    { name: "Группы ОС", path: "/groups", icon: Users },
-    { name: "Системный конфиг", path: "/config", icon: Settings },
+    { name: t("sidebar.dashboard"), path: "/dashboard", icon: Server },
+    { name: t("sidebar.shares"), path: "/shares", icon: FolderKanban },
+    { name: t("sidebar.users"), path: "/users", icon: Users },
+    { name: t("sidebar.groups"), path: "/groups", icon: Users },
+    { name: t("sidebar.settings"), path: "/config", icon: Settings },
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
-      {/* Боковая панель (Темная современная) */}
-      <aside className="w-[280px] bg-[#0b1120] flex flex-col hidden md:flex border-r border-slate-800/60 z-20 shadow-2xl relative shrink-0">
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-blue-600/10 to-transparent pointer-events-none"></div>
-
-        <div className="p-6 flex flex-col gap-6 relative z-10">
-          <div className="flex items-center gap-3 font-extrabold text-2xl text-white tracking-tight">
-            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-xl shadow-lg shadow-blue-500/20 ring-1 ring-white/10">
-              <Server className="w-5 h-5 text-white" />
+    <div className="min-h-screen flex text-foreground bg-background font-sans selection:bg-brand/20">
+      <aside className="w-[240px] bg-surface flex-col hidden md:flex border-r border-border shrink-0 z-20">
+        <div className="h-14 px-4 flex items-center justify-between border-b border-border shrink-0">
+          <div className="flex items-center gap-2.5 font-semibold text-[15px] tracking-wide">
+            <div className="bg-brand text-brand-text p-1.5 rounded-md shadow-sm">
+              <Server className="w-4 h-4" />
             </div>
-            SambaUI
+            <span>SAMBA<span className="opacity-50 font-bold ml-1 text-[11px] uppercase tracking-widest leading-none align-middle">ADM</span></span>
           </div>
-
-          {userInfo.host && (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all"></div>
-              
-              <div className="text-[15px] text-white font-medium truncate flex items-center gap-2 mb-1 drop-shadow-sm" title={userInfo.user}>
-                <UserCircle2 className="w-4 h-4 text-blue-400" /> {userInfo.user}
-              </div>
-              <div className="text-[13px] text-slate-400 font-mono truncate px-1 py-0.5" title={userInfo.host}>
-                {userInfo.host}
-              </div>
-              
-              <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
-                <div className="flex items-center gap-2">
-                  <div className="relative flex h-2.5 w-2.5">
-                    {serverStatus === true && (
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    )}
-                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${serverStatus === true ? 'bg-emerald-500' : serverStatus === false ? 'bg-rose-500' : 'bg-slate-500'}`}></span>
-                  </div>
-                  <span className="text-xs font-medium text-slate-300 uppercase tracking-wider">
-                    {serverStatus === true ? "Работает" : serverStatus === false ? "Остановлен" : "Связь..."}
-                  </span>
-                </div>
-                <div className="flex gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
-                  {serverStatus === false && (
-                    <button onClick={() => handleServiceControl("start")} className="p-1.5 text-emerald-400 hover:bg-emerald-400/20 rounded-md transition-colors" title="Start">
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                    </button>
-                  )}
-                  {serverStatus === true && (
-                    <button onClick={() => handleServiceControl("stop")} className="p-1.5 text-rose-400 hover:bg-rose-400/20 rounded-md transition-colors" title="Stop">
-                      <Square className="w-3.5 h-3.5 fill-current" />
-                    </button>
-                  )}
-                  <button onClick={() => handleServiceControl("restart")} className="p-1.5 text-blue-400 hover:bg-blue-400/20 rounded-md transition-colors" title="Restart">
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-1">
+            <button onClick={toggleLang} className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors text-[10px] font-bold uppercase tracking-widest hidden sm:flex items-center gap-1">
+              {lang}
+            </button>
+            <button onClick={toggleDark} className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors hidden sm:block">
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
-        <nav className="flex-1 px-4 pb-4 flex flex-col gap-1.5 relative z-10 overflow-y-auto custom-scrollbar">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2 px-2 mt-2">Управление</div>
+        {userInfo.host && (
+          <div className="p-4 border-b border-border space-y-3">
+            <div className="text-[11px] font-mono flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <span className="text-status-disabled font-sans font-medium">{t("sidebar.server")}</span>
+                <span className="truncate max-w-[120px] bg-surface-hover px-1.5 py-0.5 rounded-sm border border-border" title={userInfo.host}>{userInfo.host}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-status-disabled font-sans font-medium">{t("sidebar.user")}</span>
+                <span className="text-foreground font-medium truncate max-w-[120px] bg-surface-hover px-1.5 py-0.5 rounded-sm border border-border" title={userInfo.user}>{userInfo.user}</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between bg-surface-hover p-2.5 rounded-md border border-border shadow-sm-subtle">
+              <div className="flex items-center gap-2">
+                <div className="relative flex h-2.5 w-2.5">
+                  {serverStatus === true && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-active opacity-40"></span>}
+                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'}`}></span>
+                </div>
+                <span className="text-[11px] font-semibold text-foreground">
+                  {serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}
+                </span>
+              </div>
+              <div className="flex gap-0.5">
+                {serverStatus === false && (
+                  <button onClick={() => handleServiceControl("start")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md shadow-sm hover:shadow-sm-subtle transition-all" title="Start">
+                    <Play className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {serverStatus === true && (
+                  <button onClick={() => handleServiceControl("stop")} className="p-1.5 text-status-error hover:bg-surface border border-transparent hover:border-border rounded-md shadow-sm hover:shadow-sm-subtle transition-all" title="Stop">
+                    <Square className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button onClick={() => handleServiceControl("restart")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md shadow-sm hover:shadow-sm-subtle transition-all" title="Restart">
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
             const isActive = location.pathname.includes(item.path);
             const Icon = item.icon;
@@ -124,34 +149,39 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all duration-200 text-[15px] font-medium group ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all text-[13px] font-medium ${
                   isActive
-                    ? "bg-blue-600/15 text-blue-400"
-                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                    ? "bg-brand text-brand-text shadow-sm"
+                    : "text-foreground hover:bg-surface-hover"
                 }`}
               >
-                <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-110 drop-shadow-md' : 'group-hover:scale-110'}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'opacity-100' : 'opacity-70'}`} />
                 {item.name}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-800/60 relative z-10">
+        <div className="p-3 border-t border-border shrink-0">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 bg-transparent border border-slate-700/50 text-slate-300 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/30 rounded-xl transition-all text-[15px] py-3.5 font-medium"
+            className="w-full flex items-center justify-center gap-2 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors text-[13px] py-2 px-3 font-medium border border-transparent hover:border-border shadow-sm-subtle"
           >
-            <LogOut className="w-4 h-4" /> Выйти
+            <LogOut className="w-4 h-4" /> {t("sidebar.logout")}
           </button>
         </div>
       </aside>
 
-      {/* Основной контент */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[#f8fafc] relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.015] mix-blend-overlay pointer-events-none z-0"></div>
-        <div className="p-6 md:p-10 lg:p-12 overflow-y-auto h-screen relative z-10 w-full">
-          <div className="max-w-[1200px] mx-auto">
+      <main className="flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden">
+        <div className="h-14 border-b border-border bg-surface px-4 sm:px-6 flex items-center justify-between md:hidden shrink-0">
+           <div className="font-semibold text-sm flex items-center gap-2">
+             <div className="bg-brand text-brand-text p-1 rounded-sm"><Server className="w-3.5 h-3.5" /></div>
+             SAMBA<span className="text-status-disabled ml-1 text-[10px] uppercase font-bold">ADM</span>
+           </div>
+           <button onClick={toggleLang} className="text-xs font-bold uppercase">{lang}</button>
+        </div>
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto custom-scrollbar">
+          <div className="max-w-[1100px] w-full mx-auto pb-10">
             {children || <Outlet />}
           </div>
         </div>
