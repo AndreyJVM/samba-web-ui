@@ -6,16 +6,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 public record ConnectionRequestDto(
-    @NotBlank(message = "IP Р°РґСЂРµСЃ РёР»Рё РёРјСЏ С…РѕСЃС‚Р° РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ")
+    @NotBlank(message = "Host IP or domain is mandatory")
         @Pattern(
             regexp =
                 "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$|^localhost$",
-            message = "Р’РІРµРґРёС‚Рµ РєРѕСЂСЂРµРєС‚РЅС‹Р№ IP Р°РґСЂРµСЃ РёР»Рё РґРѕРјРµРЅ")
+            message = "Invalid IP address or domain format")
         String host,
-    @Min(value = 1, message = "РџРѕСЂС‚ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РѕС‚ 1 РґРѕ 65535")
-        @Max(value = 65535, message = "РџРѕСЂС‚ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РѕС‚ 1 РґРѕ 65535")
+    @Min(value = 1, message = "Port must be accurately between 1 and 65535")
+        @Max(value = 65535, message = "Port must be accurately between 1 and 65535")
         Integer port,
-    @NotBlank(message = "РРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ") String username,
+    @NotBlank(message = "Username is mandatory") String username,
     String authType,
     String password,
     String privateKey,
