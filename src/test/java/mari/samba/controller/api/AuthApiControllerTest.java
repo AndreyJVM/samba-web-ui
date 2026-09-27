@@ -88,4 +88,3 @@ class AuthApiControllerTest {
     verify(sessionManager).disconnect(anyString());
   }
 }
-
