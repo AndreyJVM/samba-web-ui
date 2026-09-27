@@ -5,6 +5,7 @@ import DashboardPage from "./pages/DashboardPage";
 import SharesPage from "./pages/shares/SharesPage";
 import UsersPage from "./pages/users/UsersPage";
 import ConfigPage from "./pages/config/ConfigPage";
+import ActiveDirectoryPage from "./pages/ad/ActiveDirectoryPage";
 import GroupsPage from "./pages/groups/GroupsPage";
 import { ToastProvider } from "./components/ui/toast";
 import { ConfirmProvider } from "./components/ui/confirm";
@@ -25,6 +26,7 @@ function App() {
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/config" element={<ConfigPage />} />
+              <Route path="/ad" element={<ActiveDirectoryPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

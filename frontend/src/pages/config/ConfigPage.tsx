@@ -20,6 +20,14 @@ interface SmbGlobalConfig {
   loadPrinters: boolean;
   passdbBackend: string;
   guestAccount: string;
+
+  realm: string;
+  winbindUseDefaultDomain: boolean;
+  idmapDefaultBackend: string;
+  idmapDefaultRange: string;
+  idmapDomainBackend: string;
+  idmapDomainRange: string;
+  templateShell: string;
 }
 
 interface Backup {
@@ -94,7 +102,15 @@ export default function ConfigPage() {
       disableNetbios: true,
       loadPrinters: false,
       passdbBackend: "tdbsam",
-      guestAccount: "nobody"
+      guestAccount: "nobody",
+
+      realm: "",
+      winbindUseDefaultDomain: true,
+      idmapDefaultBackend: "tdb",
+      idmapDefaultRange: "3000-7999",
+      idmapDomainBackend: "rid",
+      idmapDomainRange: "10000-999999",
+      templateShell: "/bin/bash",
     });
     success("Restored", "Default values set. Save to apply.");
   };
@@ -252,6 +268,60 @@ export default function ConfigPage() {
               </div>
            </div>
         </div>
+
+        
+        {config.security === 'ads' && (
+        <div className="bg-surface rounded-lg shadow-sm-subtle border border-border overflow-hidden animate-fade-in fade-in">
+           <div className="bg-surface-hover/50 px-5 py-3 border-b border-border/50">
+             <h2 className="text-[13px] font-semibold tracking-wide uppercase text-status-disabled flex items-center gap-2">Idmap / Winbind Configuration</h2>
+           </div>
+           <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              <div className="space-y-2">
+                <label className="text-[13px] font-medium text-foreground">Domain Realm (e.g. ad.company.com)</label>
+                <input 
+                  value={config.realm} onChange={(e) => setConfig({...config, realm: e.target.value.toUpperCase()})} 
+                  className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-sm rounded-lg shadow-sm-subtle uppercase"
+                />
+              </div>
+
+              <div className="flex items-center bg-surface-hover p-4 rounded-lg border border-border/50">
+                <Toggle checked={config.winbindUseDefaultDomain} onChange={c => setConfig({ ...config, winbindUseDefaultDomain: c })} label="Winbind Use Default Domain" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[13px] font-medium text-foreground">Template Shell</label>
+                <input 
+                  value={config.templateShell} onChange={(e) => setConfig({...config, templateShell: e.target.value})} 
+                  className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-sm font-mono rounded-lg shadow-sm-subtle"
+                />
+              </div>
+              <div></div>
+
+              <div className="p-4 border border-border rounded-lg bg-surface-hover/30 space-y-4">
+                 <h3 className="text-sm font-semibold">Default IDMAP (TDB)</h3>
+                 <div className="space-y-2">
+                   <label className="text-[12px] font-medium text-status-disabled">Range (e.g. 3000-7999)</label>
+                   <input 
+                     value={config.idmapDefaultRange} onChange={(e) => setConfig({...config, idmapDefaultRange: e.target.value})} 
+                     className="w-full bg-surface border border-border focus:border-border-strong px-3 py-2 text-sm rounded-md"
+                   />
+                 </div>
+              </div>
+
+              <div className="p-4 border border-brand/50 rounded-lg bg-brand/5 space-y-4">
+                 <h3 className="text-sm font-semibold">Domain IDMAP (RID)</h3>
+                 <div className="space-y-2">
+                   <label className="text-[12px] font-medium text-status-disabled">Range (e.g. 10000-999999)</label>
+                   <input 
+                     value={config.idmapDomainRange} onChange={(e) => setConfig({...config, idmapDomainRange: e.target.value})} 
+                     className="w-full bg-surface border border-border focus:border-border-strong px-3 py-2 text-sm rounded-md"
+                   />
+                 </div>
+              </div>
+           </div>
+        </div>
+        )}
 
         {backups.length > 0 && (
           <div className="bg-surface rounded-lg shadow-sm-subtle border border-border overflow-hidden">

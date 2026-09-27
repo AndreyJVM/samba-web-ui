@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Server, FolderKanban, Users, Settings, LogOut, Play, Square, RefreshCw, Moon, Sun } from "lucide-react";
+import { Server, FolderKanban, Users, Settings, LogOut, Play, Square, RefreshCw, Moon, Sun, Shield } from "lucide-react";
 import { api } from "../lib/api";
 import { useToast } from "./ui/toast";
 import { useTranslation } from "../lib/i18n";
@@ -76,6 +76,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     { name: t("sidebar.shares"), path: "/shares", icon: FolderKanban },
     { name: t("sidebar.users"), path: "/users", icon: Users },
     { name: t("sidebar.groups"), path: "/groups", icon: Users },
+    { name: "Active Directory", path: "/ad", icon: Shield },
     { name: t("sidebar.settings"), path: "/config", icon: Settings },
   ];
 
