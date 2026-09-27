@@ -18,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -65,28 +66,23 @@ public class AuthApiController {
       String sessionId = session.getId();
       sessionManager.createSession(sessionId, request);
 
-      // Инициализируем Spring Security Authenticate
       List<SimpleGrantedAuthority> authorities =
           Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
       UsernamePasswordAuthenticationToken authentication =
           new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
 
-      // Сохраняем в контекст
       SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      // Обязательно сохраняем контекст в сессию
       session.setAttribute(
           HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
           SecurityContextHolder.getContext());
 
-      // Визуальные метки для логов / фронтенда
       session.setAttribute(
           "sambaHost",
           request.getHost()
               + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : ""));
       session.setAttribute("sambaUser", request.getUsername());
 
-      // Сброс счетчика неудачных попыток после успешного входа
       bruteForceService.resetFailedLogin(clientIp);
 
       return ResponseEntity.ok(ApiResponse.ok("Успешно подключено к серверу", null));
@@ -110,7 +106,18 @@ public class AuthApiController {
   }
 
   @GetMapping("/me")
-  public ResponseEntity<ApiResponse<Map<String, String>>> getCurrentUser(HttpSession httpSession) {
+  public ResponseEntity<ApiResponse<Map<String, String>>> getCurrentUser(
+      HttpServletRequest request, HttpSession httpSession) {
+
+    // ВАЖНО: В Spring Security 6.x CSRF-токен по умолчанию отложенный (deferred).
+    // Популярная проблема SPA: кука XSRF-TOKEN не отсылается в браузер, пока токен не будет
+    // запрошен явно.
+    // Запрашиваем его здесь (при загрузке интерфейса), чтобы Spring гарантированно прописал куку.
+    CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+    if (csrfToken != null) {
+      csrfToken.getToken();
+    }
+
     if (httpSession == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }

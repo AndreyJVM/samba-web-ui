@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
@@ -16,39 +17,38 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+    // В Spring 6 для SPA используется особый Handler
+    CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+    // Это важно для разрешения X-XSRF-TOKEN из заголовка SPA без _csrf параметра
+    requestHandler.setCsrfRequestAttributeName(null);
+
     http.authorizeHttpRequests(
             authz ->
                 authz
-                    // Доступ открыт к SPA Приложению, ассетам и странице логина
                     .requestMatchers(
                         "/",
-                        "/ui/**", // SPA Routes (React)
-                        "/assets/**", // Vite static assets
+                        "/ui/**",
+                        "/assets/**",
                         "/index.html",
                         "/favicon.ico",
-                        "/api/auth/login", // REST API Логина
+                        "/api/auth/login",
                         "/error")
                     .permitAll()
-                    // Все остальные пути (включая /api/**) только для авторизованных
                     .anyRequest()
                     .authenticated())
-        // Отключаем классические способы логина Spring Security
         .formLogin(form -> form.disable())
         .httpBasic(basic -> basic.disable())
-        // Включаем CSRF защитy (через Cookie) для предотвращения атак на JSESSIONID
         .csrf(
             csrf ->
                 csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                    .csrfTokenRequestHandler(requestHandler)
                     .ignoringRequestMatchers("/api/auth/login", "/api/auth/logout"))
-        // Настройка обработки ошибок (401)
         .exceptionHandling(
             exceptions ->
-                exceptions
-                    // Выдаем JSON 401 для всех не авторизованных путей
-                    .defaultAuthenticationEntryPointFor(
+                exceptions.defaultAuthenticationEntryPointFor(
                     new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                     new AntPathRequestMatcher("/**")))
-        // Для iframe и встраивания (если требуется)
         .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
     return http.build();
