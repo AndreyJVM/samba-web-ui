@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Save, RotateCcw } from "lucide-react";
+import { Save, RotateCcw, Clock, ArrowLeft } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/ui/toast";
 import { useConfirm } from "../../components/ui/confirm";
@@ -22,19 +22,30 @@ interface SmbGlobalConfig {
   guestAccount: string;
 }
 
+interface Backup {
+  filename: string;
+  createdAt: string;
+  size: string;
+}
+
 export default function ConfigPage() {
   const [config, setConfig] = useState<SmbGlobalConfig | null>(null);
+  const [backups, setBackups] = useState<Backup[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { error: toastError, success } = useToast();
   const { confirm } = useConfirm();
   const { t } = useTranslation();
 
-  const fetchConfig = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await api.get<SmbGlobalConfig>("/api/config/global");
-      setConfig(res);
+      const [resConfig, resBackups] = await Promise.all([
+        api.get<SmbGlobalConfig>("/api/config/global"),
+        api.get<Backup[]>("/api/config/backups").catch(() => []) 
+      ]);
+      setConfig(resConfig);
+      setBackups(resBackups || []);
     } catch (err: any) {
       toastError("API Error", err.message);
     } finally {
@@ -42,7 +53,7 @@ export default function ConfigPage() {
     }
   };
 
-  useEffect(() => { fetchConfig(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +63,8 @@ export default function ConfigPage() {
       setSaving(true);
       await api.put("/api/config/global", config);
       success("Saved", "Configuration applied. Restart service to apply fully.");
+      // Refetch to pull latest backups
+      fetchData();
     } catch (err: any) {
       toastError("Save Error", err.message);
     } finally {
@@ -84,6 +97,24 @@ export default function ConfigPage() {
       guestAccount: "nobody"
     });
     success("Restored", "Default values set. Save to apply.");
+  };
+
+  const handleRestoreBackup = async (filename: string) => {
+    const ok = await confirm({
+      title: t("config.restore"),
+      message: `Restore configuration from backup: ${filename}?`,
+      destructive: true,
+      confirmText: t("config.restore")
+    });
+    if (!ok) return;
+
+    try {
+      await api.post(`/api/config/backups/${filename}/restore`);
+      success("Restored", `Backup ${filename} restored successfully. Restart service applied.`);
+      fetchData(); // reload UI config values
+    } catch (err: any) {
+      toastError("Restore Error", err.message);
+    }
   };
 
   if (loading) {
@@ -221,6 +252,40 @@ export default function ConfigPage() {
               </div>
            </div>
         </div>
+
+        {backups.length > 0 && (
+          <div className="bg-surface rounded-lg shadow-sm-subtle border border-border overflow-hidden">
+             <div className="bg-surface-hover/50 px-5 py-3 border-b border-border/50 flex items-center gap-2">
+               <h2 className="text-[13px] font-semibold tracking-wide uppercase text-status-disabled">{t("config.backups")}</h2>
+             </div>
+             <div className="p-5">
+                <p className="text-sm text-status-disabled mb-4">{t("config.backupsDesc")}</p>
+                <div className="grid gap-3 select-none">
+                  {backups.map((bkp) => (
+                    <div key={bkp.filename} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-border/70 rounded-md bg-surface-hover/30 hover:border-border transition-colors group">
+                      <div className="flex items-center gap-3">
+                         <div className="bg-surface border border-border/50 p-2 rounded-md">
+                           <Clock className="w-5 h-5 text-status-disabled group-hover:text-foreground transition-colors" />
+                         </div>
+                         <div>
+                            <div className="text-sm font-semibold text-foreground font-mono">{bkp.filename}</div>
+                            <div className="text-xs text-status-disabled font-medium mt-0.5">{bkp.createdAt} • {bkp.size}</div>
+                         </div>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => handleRestoreBackup(bkp.filename)}
+                        className="text-xs font-medium bg-surface text-foreground hover:bg-surface-hover py-1.5 px-3 rounded-md transition-colors border border-border shadow-sm-subtle flex gap-1.5 items-center shrink-0"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        {t("config.restore")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+             </div>
+          </div>
+        )}
 
         <div className="flex justify-end pt-4 border-t border-border">
           <button 
