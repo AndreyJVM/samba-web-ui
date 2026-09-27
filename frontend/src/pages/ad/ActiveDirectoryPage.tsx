@@ -3,6 +3,7 @@ import { api } from '../../lib/api';
 import { useToast } from '../../components/ui/toast';
 import { useConfirm } from '../../components/ui/confirm';
 import { Server, Shield, Unlock, Lock, AlertCircle, RefreshCw, Users } from 'lucide-react';
+import { useTranslation } from '../../lib/i18n';
 
 interface AdStatus {
   isJoined: boolean;
@@ -14,6 +15,7 @@ interface AdStatus {
 }
 
 export default function ActiveDirectoryPage() {
+  const { t } = useTranslation();
     const { toast } = useToast();
   const { confirm } = useConfirm();
   const [status, setStatus] = useState<AdStatus | null>(null);
@@ -49,8 +51,8 @@ export default function ActiveDirectoryPage() {
     }
 
     const ok = await confirm({
-      title: 'Join Active Directory',
-      message: `Are you sure you want to join the domain ${domain}? This will reconfigure Kerberos and Winbind.`,
+      title: t('ad.joinConfirmTitle'),
+      message: t('ad.joinConfirmMsg').replace('{domain}', domain),
       confirmText: 'Join Domain',
       cancelText: 'Cancel'
     });
@@ -72,8 +74,8 @@ export default function ActiveDirectoryPage() {
 
   const handleLeave = async () => {
     const ok = await confirm({
-      title: 'Leave Active Directory',
-      message: 'Are you sure you want to leave the domain? Users will lose access to domain shares.',
+      title: t('ad.leaveConfirmTitle'),
+      message: t('ad.leaveConfirmMsg'),
       confirmText: 'Leave Domain',
       cancelText: 'Cancel'
     });
@@ -105,9 +107,9 @@ export default function ActiveDirectoryPage() {
   return (
     <div className="space-y-8 animate-fade-in fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Active Directory</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('ad.title')}</h1>
         <button onClick={fetchStatus} className="bg-surface hover:bg-surface-hover border border-border px-4 py-2 rounded-md shadow-sm flex items-center text-sm font-medium transition-colors">
-          <RefreshCw className="w-4 h-4 mr-2 text-brand" /> Refresh Status
+          <RefreshCw className="w-4 h-4 mr-2 text-brand" /> {t('ad.refresh')}
         </button>
       </div>
 
@@ -116,46 +118,46 @@ export default function ActiveDirectoryPage() {
         <div className="bg-surface border border-border rounded-lg shadow-sm">
           <div className="p-5 border-b border-border/50">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Server className="w-5 h-5 text-brand" /> Health & Status
+              <Server className="w-5 h-5 text-brand" /> {t('ad.healthStatus')}
             </h2>
-            <p className="text-sm text-status-disabled mt-1">Current domain integration state</p>
+            <p className="text-sm text-status-disabled mt-1">{t('ad.healthDesc')}</p>
           </div>
           
           <div className="p-5">
           {status ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-surface-hover rounded-lg border border-border">
-                <span className="font-medium text-foreground text-sm uppercase tracking-wider">Domain Join State</span>
+                <span className="font-medium text-foreground text-sm uppercase tracking-wider">{t('ad.domainJoinState')}</span>
                 {status.isJoined ? (
                   <span className="flex items-center gap-1.5 px-3 py-1 bg-brand/10 text-brand rounded-full text-xs font-bold uppercase tracking-widest border border-brand/20">
-                    <Shield className="w-3.5 h-3.5" /> Joined
+                    <Shield className="w-3.5 h-3.5" /> {t('ad.joined')}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1.5 px-3 py-1 bg-status-error/10 text-status-error rounded-full text-xs font-bold uppercase tracking-widest border border-status-error/20">
-                    <AlertCircle className="w-3.5 h-3.5" /> Not Joined
+                    <AlertCircle className="w-3.5 h-3.5" /> Not {t('ad.joined')}
                   </span>
                 )}
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                  <div className="p-3 bg-surface-hover rounded-md bg-opacity-50 border border-border flex flex-col justify-center">
-                   <div className="text-xs text-status-disabled uppercase tracking-widest mb-1.5 font-bold">Winbind Service</div>
+                   <div className="text-xs text-status-disabled uppercase tracking-widest mb-1.5 font-bold">{t('ad.winbindService')}</div>
                    <div className="font-semibold text-sm flex items-center gap-2">
                      <span className={`w-2 h-2 rounded-full ${status.winbindWorking ? 'bg-brand' : 'bg-status-error'}`}></span>
-                     {status.winbindWorking ? 'Operational' : 'Failing'}
+                     {status.winbindWorking ? t('ad.operational') : t('ad.failing')}
                    </div>
                  </div>
                  <div className="p-3 bg-surface-hover rounded-md bg-opacity-50 border border-border flex flex-col justify-center">
-                   <div className="text-xs text-status-disabled uppercase tracking-widest mb-1.5 font-bold">Kerberos / DNS</div>
+                   <div className="text-xs text-status-disabled uppercase tracking-widest mb-1.5 font-bold">{t('ad.kerberosDns')}</div>
                    <div className="font-semibold text-sm flex items-center gap-2">
                      <span className={`w-2 h-2 rounded-full ${status.kerberosWorking ? 'bg-brand' : 'bg-status-error'}`}></span>
-                     {status.kerberosWorking ? 'OK' : 'Errors Detected'}
+                     {status.kerberosWorking ? t('ad.ok') : t('ad.errorsDetected')}
                    </div>
                  </div>
               </div>
             </div>
           ) : (
-             <div className="text-center p-8 text-status-disabled border border-dashed border-border rounded-lg text-sm">Status not available</div>
+             <div className="text-center p-8 text-status-disabled border border-dashed border-border rounded-lg text-sm">{t('ad.statusNotAvailable')}</div>
           )}
           </div>
         </div>
@@ -164,23 +166,23 @@ export default function ActiveDirectoryPage() {
         <div className="bg-surface border border-border rounded-lg shadow-sm">
           <div className="p-5 border-b border-border/50">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Lock className="w-5 h-5 text-brand" /> Join / Leave Domain
+              <Lock className="w-5 h-5 text-brand" /> {t('ad.actionTitle')}
             </h2>
-            <p className="text-sm text-status-disabled mt-1">Manage server membership</p>
+            <p className="text-sm text-status-disabled mt-1">{t('ad.actionDesc')}</p>
           </div>
 
           <form onSubmit={handleJoin} className="p-5 space-y-4">
              <div className="space-y-1.5">
-               <label className="text-sm font-medium">Target Domain (Realm)</label>
+               <label className="text-sm font-medium">{t('ad.targetDomain')}</label>
                <input type="text" className="w-full bg-surface-hover border border-border focus:border-border-strong px-3 py-2 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all uppercase" placeholder="e.g. ad.company.com" value={domain} onChange={e => setDomain(e.target.value.toUpperCase())} required />
              </div>
              <div className="grid grid-cols-2 gap-4">
                <div className="space-y-1.5">
-                 <label className="text-sm font-medium">Admin User</label>
+                 <label className="text-sm font-medium">{t('ad.adminUser')}</label>
                  <input type="text" className="w-full bg-surface-hover border border-border focus:border-border-strong px-3 py-2 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all" value={username} onChange={e => setUsername(e.target.value)} required />
                </div>
                <div className="space-y-1.5">
-                 <label className="text-sm font-medium">Admin Password</label>
+                 <label className="text-sm font-medium">{t('ad.adminPass')}</label>
                  <input type="password" className="w-full bg-surface-hover border border-border focus:border-border-strong px-3 py-2 text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all" value={password} onChange={e => setPassword(e.target.value)} required />
                </div>
              </div>
@@ -188,11 +190,11 @@ export default function ActiveDirectoryPage() {
              <div className="pt-4 flex gap-3">
                 <button type="submit" disabled={isJoining || status?.isJoined === true} className="flex-1 bg-brand text-brand-text hover:bg-brand-hover border flex justify-center items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors disabled:opacity-50">
                    {isJoining ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Shield className="w-4 h-4 mr-2" />}
-                   Join Domain
+                   {t('ad.joinDomain')}
                 </button>
                 {status?.isJoined && (
                   <button type="button" onClick={handleLeave} disabled={isJoining} className="flex-1 bg-surface hover:bg-status-error/10 border border-status-error/50 text-status-error justify-center flex items-center px-4 py-2 rounded-md text-sm font-bold transition-colors disabled:opacity-50">
-                     <Unlock className="w-4 h-4 mr-2" /> Leave Domain
+                     <Unlock className="w-4 h-4 mr-2" /> {t('ad.leaveDomain')}
                   </button>
                 )}
              </div>
@@ -203,10 +205,10 @@ export default function ActiveDirectoryPage() {
       {/* ID Mapping Visualization */}
       <div className="bg-surface border border-brand/20 rounded-lg shadow-sm p-5 border-l-4 border-l-brand">
          <h2 className="text-lg font-semibold flex items-center gap-2 mb-2">
-            <Users className="w-5 h-5 text-brand" /> UID / GID Mapping Config
+            <Users className="w-5 h-5 text-brand" /> {t('ad.idmapTitle')}
          </h2>
          <p className="text-sm text-status-disabled flex items-center gap-1.5">
-           To configure specific range mappings, navigate to the <span className="text-foreground font-semibold px-2 py-0.5 bg-surface-hover border border-border rounded">Global Settings</span> tab. Samba will automatically allocate Unix UIDs for AD Users based on those configured IDMAP rules.
+           {t('ad.idmapDesc')} <span className="text-foreground font-semibold px-2 py-0.5 bg-surface-hover border border-border rounded">{t('ad.idmapTab')}</span> tab. Samba will automatically allocate Unix UIDs for AD Users based on those configured IDMAP rules.
          </p>
       </div>
 
