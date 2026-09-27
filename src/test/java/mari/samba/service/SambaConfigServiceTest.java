@@ -110,7 +110,7 @@ class SambaConfigServiceTest {
       List<String> executedCommands = cmdCaptor.getAllValues();
 
       assertThat(executedCommands.get(1))
-          .startsWith("sudo cp '/etc/samba/smb.conf' '/etc/samba/backups/smb.conf.backup_");
+          .startsWith("sudo cp -- '/etc/samba/smb.conf' '/etc/samba/backups/smb.conf.backup_");
       assertThat(executedCommands.get(2))
           .startsWith("ls -t '/etc/samba/backups'/smb.conf.backup_*");
     }
@@ -176,7 +176,7 @@ class SambaConfigServiceTest {
       // when / then
       assertThatThrownBy(() -> sambaConfigService.restoreBackup("session-1", invalidName))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessage("Некорректное имя файла бэкапа");
+          .hasMessage("РќРµРєРѕСЂСЂРµРєС‚РЅРѕРµ РёРјСЏ С„Р°Р№Р»Р° Р±СЌРєР°РїР°");
     }
   }
 

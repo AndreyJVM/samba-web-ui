@@ -22,9 +22,12 @@ class LinuxCommandsTest {
 
   @Test
   void testRequireValidUsername() {
-    // В Linux имена пользователей могут содержать заглавные буквы, поэтому тест `validUser_123`
-    // ошибочен для старого регулярного выражения или регулярку нужно обновить.
-    // Обновим тест, чтобы проверять валидные имена в соответствии со стандартным `useradd`
+    // Р’ Linux РёРјРµРЅР° РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ РјРѕРіСѓС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ
+    // Р·Р°РіР»Р°РІРЅС‹Рµ Р±СѓРєРІС‹, РїРѕСЌС‚РѕРјСѓ С‚РµСЃС‚ `validUser_123`
+    // РѕС€РёР±РѕС‡РµРЅ РґР»СЏ СЃС‚Р°СЂРѕРіРѕ СЂРµРіСѓР»СЏСЂРЅРѕРіРѕ РІС‹СЂР°Р¶РµРЅРёСЏ РёР»Рё
+    // СЂРµРіСѓР»СЏСЂРєСѓ РЅСѓР¶РЅРѕ РѕР±РЅРѕРІРёС‚СЊ.
+    // РћР±РЅРѕРІРёРј С‚РµСЃС‚, С‡С‚РѕР±С‹ РїСЂРѕРІРµСЂСЏС‚СЊ РІР°Р»РёРґРЅС‹Рµ РёРјРµРЅР° РІ
+    // СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРё СЃРѕ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рј `useradd`
     assertDoesNotThrow(() -> LinuxCommands.checkUserExists("validuser_123"));
     assertDoesNotThrow(() -> LinuxCommands.checkUserExists("admin-root"));
 
@@ -73,7 +76,7 @@ class LinuxCommandsTest {
   void testListBackupsDetailed_NowUsesEscape() {
     // Before, this was vulnerable to injection. Now it is strictly validated and escaped.
     String expected =
-        "ls -lh --time-style=\"+%Y-%m-%d %H:%M:%S\" '/etc/samba'/smb.conf.backup_* 2>/dev/null";
+        "ls -lh --time-style=\"+%Y-%m-%d %H:%M:%S\" -- /etc/samba/smb.conf.backup_* 2>/dev/null";
     assertEquals(expected, LinuxCommands.listBackupsDetailed("/etc/samba"));
 
     assertThrows(SecurityException.class, () -> LinuxCommands.listBackupsDetailed("/etc;samba"));
