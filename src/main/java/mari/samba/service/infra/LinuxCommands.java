@@ -71,7 +71,8 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // Файловые и Дисковые операции (С флагами безопасности --)
+  // Р¤Р°Р№Р»РѕРІС‹Рµ Рё Р”РёСЃРєРѕРІС‹Рµ РѕРїРµСЂР°С†РёРё (РЎ С„Р»Р°РіР°РјРё
+  // Р±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё --)
   // ==========================================
 
   public static String cat(String path) {
@@ -144,7 +145,7 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // Логи и Инструменты
+  // Р›РѕРіРё Рё РРЅСЃС‚СЂСѓРјРµРЅС‚С‹
   // ==========================================
 
   public static String tail(String filePath, int lines) {
@@ -157,7 +158,7 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // Сервисы (SYSTEMD)
+  // РЎРµСЂРІРёСЃС‹ (SYSTEMD)
   // ==========================================
 
   public static String systemctl(String action, String service) {
@@ -168,7 +169,7 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // ПОЛЬЗОВАТЕЛИ ОС
+  // РџРћР›Р¬Р—РћР’РђРўР•Р›Р РћРЎ
   // ==========================================
 
   public static String listSambaUsers() {
@@ -210,7 +211,7 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // МОНИТОРИНГ (SMBSTATUS)
+  // РњРћРќРРўРћР РРќР“ (SMBSTATUS)
   // ==========================================
 
   public static String smbstatus(String flag) {

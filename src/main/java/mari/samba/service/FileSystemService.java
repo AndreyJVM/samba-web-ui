@@ -30,14 +30,17 @@ public class FileSystemService {
     "/var/log"
   };
 
-  /** Запрашивает список вложенных папок в указанном пути */
-  public DirectoryBrowseResultDto listDirectories(String sessionId, String requestedPath)
-      throws Exception {
+  /**
+   * Р—Р°РїСЂР°С€РёРІР°РµС‚ СЃРїРёСЃРѕРє РІР»РѕР¶РµРЅРЅС‹С… РїР°РїРѕРє РІ СѓРєР°Р·Р°РЅРЅРѕРј
+   * РїСѓС‚Рё
+   */
+  public DirectoryBrowseResultDto listDirectories(String sessionId, String requestedPath) {
     String safePath = normalizePath(requestedPath);
     requireAllowedPath(safePath);
 
-    // Вычисляем родительскую директорию (java.nio.file.Paths тут не подходит, так
-    // как сервер может быть на Windows)
+    // Р’С‹С‡РёСЃР»СЏРµРј СЂРѕРґРёС‚РµР»СЊСЃРєСѓСЋ РґРёСЂРµРєС‚РѕСЂРёСЋ (java.nio.file.Paths С‚СѓС‚
+    // РЅРµ РїРѕРґС…РѕРґРёС‚, С‚Р°Рє
+    // РєР°Рє СЃРµСЂРІРµСЂ РјРѕР¶РµС‚ Р±С‹С‚СЊ РЅР° Windows)
     String parentPath;
     int lastSlash = safePath.lastIndexOf('/');
     if (lastSlash <= 0) {
@@ -46,7 +49,7 @@ public class FileSystemService {
       parentPath = safePath.substring(0, lastSlash);
     }
 
-    // Ищем только папки на глубине 1, обрезаем скрытые
+    // РС‰РµРј С‚РѕР»СЊРєРѕ РїР°РїРєРё РЅР° РіР»СѓР±РёРЅРµ 1, РѕР±СЂРµР·Р°РµРј СЃРєСЂС‹С‚С‹Рµ
     String cmd = LinuxCommands.findDirectories(safePath);
     String output = commandExecutor.execute(sessionId, cmd);
     List<DirectoryItemDto> items = new ArrayList<>();
@@ -57,7 +60,8 @@ public class FileSystemService {
         String fullPath = line.trim();
         if (fullPath.isEmpty()) continue;
 
-        // В bash это маловероятно, но безопасным будет использовать '/' вместо File.separator
+        // Р’ bash СЌС‚Рѕ РјР°Р»РѕРІРµСЂРѕСЏС‚РЅРѕ, РЅРѕ Р±РµР·РѕРїР°СЃРЅС‹Рј Р±СѓРґРµС‚
+        // РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ '/' РІРјРµСЃС‚Рѕ File.separator
         String name = fullPath.substring(fullPath.lastIndexOf('/') + 1);
         items.add(new DirectoryItemDto(name, fullPath));
       }
@@ -66,15 +70,15 @@ public class FileSystemService {
     return new DirectoryBrowseResultDto(safePath, parentPath, items);
   }
 
-  /** Создает новую папку по указанному пути */
-  public void createDirectory(String sessionId, String parentPath, String dirName)
-      throws Exception {
+  /** РЎРѕР·РґР°РµС‚ РЅРѕРІСѓСЋ РїР°РїРєСѓ РїРѕ СѓРєР°Р·Р°РЅРЅРѕРјСѓ РїСѓС‚Рё */
+  public void createDirectory(String sessionId, String parentPath, String dirName) {
     String safeParent = normalizePath(parentPath);
     requireAllowedPath(safeParent);
     String cleanName = dirName.trim();
 
     if (!cleanName.matches("^[a-zA-Z0-9._-]+$")) {
-      throw new IllegalArgumentException("Имя папки содержит недопустимые символы");
+      throw new IllegalArgumentException(
+          "РРјСЏ РїР°РїРєРё СЃРѕРґРµСЂР¶РёС‚ РЅРµРґРѕРїСѓСЃС‚РёРјС‹Рµ СЃРёРјРІРѕР»С‹");
     }
 
     String fullPath =
@@ -87,19 +91,24 @@ public class FileSystemService {
     commandExecutor.execute(sessionId, LinuxCommands.chmod("0775", fullPath));
   }
 
-  /** Приводит путь к формату Linux (это нужно для запуска на Windows), удаляет двойные слеши. */
+  /**
+   * РџСЂРёРІРѕРґРёС‚ РїСѓС‚СЊ Рє С„РѕСЂРјР°С‚Сѓ Linux (СЌС‚Рѕ РЅСѓР¶РЅРѕ РґР»СЏ Р·Р°РїСѓСЃРєР° РЅР°
+   * Windows), СѓРґР°Р»СЏРµС‚ РґРІРѕР№РЅС‹Рµ СЃР»РµС€Рё.
+   */
   private String normalizePath(String path) {
     if (path == null || path.isBlank()) {
       return "/";
     }
 
-    // 1. Заменяем возможные виндовые слеши, если кто-то послал
+    // 1. Р—Р°РјРµРЅСЏРµРј РІРѕР·РјРѕР¶РЅС‹Рµ РІРёРЅРґРѕРІС‹Рµ СЃР»РµС€Рё, РµСЃР»Рё РєС‚Рѕ-С‚Рѕ
+    // РїРѕСЃР»Р°Р»
     String unixPath = path.trim().replace("\\", "/");
 
-    // 2. Убираем лишние слеши (например, /srv//samba -> /srv/samba)
+    // 2. РЈР±РёСЂР°РµРј Р»РёС€РЅРёРµ СЃР»РµС€Рё (РЅР°РїСЂРёРјРµСЂ, /srv//samba -> /srv/samba)
     unixPath = unixPath.replaceAll("/+", "/");
 
-    // 3. Гарантируем, что путь начинается с корня (абсолютный путь)
+    // 3. Р“Р°СЂР°РЅС‚РёСЂСѓРµРј, С‡С‚Рѕ РїСѓС‚СЊ РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ РєРѕСЂРЅСЏ
+    // (Р°Р±СЃРѕР»СЋС‚РЅС‹Р№ РїСѓС‚СЊ)
     return unixPath.startsWith("/") ? unixPath : "/" + unixPath;
   }
 
@@ -115,8 +124,11 @@ public class FileSystemService {
     }
   }
 
-  /** Запрашивает информацию о пространстве жестких дисков по пути */
-  public DiskUsageDto getDiskUsage(String sessionId, String path) throws Exception {
+  /**
+   * Р—Р°РїСЂР°С€РёРІР°РµС‚ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРµ Р¶РµСЃС‚РєРёС…
+   * РґРёСЃРєРѕРІ РїРѕ РїСѓС‚Рё
+   */
+  public DiskUsageDto getDiskUsage(String sessionId, String path) {
     String safePath = normalizePath(path);
     requireAllowedPath(safePath);
 
@@ -124,16 +136,17 @@ public class FileSystemService {
     String output = commandExecutor.execute(sessionId, cmd);
 
     if (output == null || output.isBlank()) {
-      throw new RuntimeException("Пустой ответ от df для пути " + path);
+      throw new RuntimeException("РџСѓСЃС‚РѕР№ РѕС‚РІРµС‚ РѕС‚ df РґР»СЏ РїСѓС‚Рё " + path);
     }
 
-    // Парсим вторую строчку
+    // РџР°СЂСЃРёРј РІС‚РѕСЂСѓСЋ СЃС‚СЂРѕС‡РєСѓ
     String[] lines = output.trim().split("\\r?\\n");
     if (lines.length < 2) {
-      throw new RuntimeException("Не удалось распарсить df: " + output);
+      throw new RuntimeException("РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃРїР°СЂСЃРёС‚СЊ df: " + output);
     }
 
-    // Берем последнюю строчку (в случаях длинных маунтов Filesystem, 1024-blocks и т.д.)
+    // Р‘РµСЂРµРј РїРѕСЃР»РµРґРЅСЋСЋ СЃС‚СЂРѕС‡РєСѓ (РІ СЃР»СѓС‡Р°СЏС… РґР»РёРЅРЅС‹С… РјР°СѓРЅС‚РѕРІ
+    // Filesystem, 1024-blocks Рё С‚.Рґ.)
     String dataLine = lines[lines.length - 1];
     String[] parts = dataLine.trim().split("\\s+");
 
@@ -154,14 +167,16 @@ public class FileSystemService {
             usePercent,
             mountPoint);
       } catch (NumberFormatException e) {
-        throw new RuntimeException("Ошибка парсинга чисел в выводе df: " + dataLine);
+        throw new RuntimeException(
+            "РћС€РёР±РєР° РїР°СЂСЃРёРЅРіР° С‡РёСЃРµР» РІ РІС‹РІРѕРґРµ df: " + dataLine);
       }
     }
 
-    throw new RuntimeException("Неожиданный формат ответа парсинга: " + dataLine);
+    throw new RuntimeException(
+        "РќРµРѕР¶РёРґР°РЅРЅС‹Р№ С„РѕСЂРјР°С‚ РѕС‚РІРµС‚Р° РїР°СЂСЃРёРЅРіР°: " + dataLine);
   }
 
-  /** Преобразует байты в удобочитаемые KB, MB, GB, TB */
+  /** РџСЂРµРѕР±СЂР°Р·СѓРµС‚ Р±Р°Р№С‚С‹ РІ СѓРґРѕР±РѕС‡РёС‚Р°РµРјС‹Рµ KB, MB, GB, TB */
   private String formatSize(long bytes) {
     if (bytes < 1024) return bytes + " B";
     int exp = (int) (Math.log(bytes) / Math.log(1024));

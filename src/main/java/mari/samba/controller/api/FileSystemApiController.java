@@ -16,22 +16,21 @@ public class FileSystemApiController {
 
   @GetMapping("/browse")
   public ApiResponse<DirectoryBrowseResultDto> browseDirectories(
-      @RequestParam(defaultValue = "/") String path, HttpSession httpSession) throws Exception {
+      @RequestParam(defaultValue = "/") String path, HttpSession httpSession) {
     DirectoryBrowseResultDto result = fileSystemService.listDirectories(httpSession.getId(), path);
     return ApiResponse.ok(result);
   }
 
   @PostMapping("/mkdir")
   public ApiResponse<Void> makeDirectory(
-      @RequestParam String parentPath, @RequestParam String name, HttpSession httpSession)
-      throws Exception {
+      @RequestParam String parentPath, @RequestParam String name, HttpSession httpSession) {
     fileSystemService.createDirectory(httpSession.getId(), parentPath, name);
-    return ApiResponse.ok("Каталог успешно создан", null);
+    return ApiResponse.ok("РљР°С‚Р°Р»РѕРі СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅ", null);
   }
 
   @GetMapping("/disk-usage")
-  public ApiResponse<DiskUsageDto> getDiskUsage(@RequestParam String path, HttpSession httpSession)
-      throws Exception {
+  public ApiResponse<DiskUsageDto> getDiskUsage(
+      @RequestParam String path, HttpSession httpSession) {
     DiskUsageDto result = fileSystemService.getDiskUsage(httpSession.getId(), path);
     return ApiResponse.ok(result);
   }

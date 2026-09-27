@@ -6,16 +6,16 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 public record ConnectionRequestDto(
-    @NotBlank(message = "IP адрес или имя хоста обязательно")
+    @NotBlank(message = "IP Р°РґСЂРµСЃ РёР»Рё РёРјСЏ С…РѕСЃС‚Р° РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ")
         @Pattern(
             regexp =
                 "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,}$|^localhost$",
-            message = "Введите корректный IP адрес или домен")
+            message = "Р’РІРµРґРёС‚Рµ РєРѕСЂСЂРµРєС‚РЅС‹Р№ IP Р°РґСЂРµСЃ РёР»Рё РґРѕРјРµРЅ")
         String host,
-    @Min(value = 1, message = "Порт должен быть от 1 до 65535")
-        @Max(value = 65535, message = "Порт должен быть от 1 до 65535")
+    @Min(value = 1, message = "РџРѕСЂС‚ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РѕС‚ 1 РґРѕ 65535")
+        @Max(value = 65535, message = "РџРѕСЂС‚ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РѕС‚ 1 РґРѕ 65535")
         Integer port,
-    @NotBlank(message = "Имя пользователя обязательно") String username,
+    @NotBlank(message = "РРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ") String username,
     String authType,
     String password,
     String privateKey,

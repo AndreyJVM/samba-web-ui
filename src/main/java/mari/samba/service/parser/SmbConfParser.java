@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SmbConfParser {
 
-  /** Парсинг секции [global] в DTO */
+  /** РџР°СЂСЃРёРЅРі СЃРµРєС†РёРё [global] РІ DTO */
   public SambaGlobalConfigDto parseGlobalConfig(String content) {
     SambaGlobalConfigDto dto = new SambaGlobalConfigDto();
     if (content == null || content.isBlank()) {
@@ -80,7 +80,7 @@ public class SmbConfParser {
     return dto;
   }
 
-  /** Генерация новой секции [global] */
+  /** Р“РµРЅРµСЂР°С†РёСЏ РЅРѕРІРѕР№ СЃРµРєС†РёРё [global] */
   public String buildGlobalSection(SambaGlobalConfigDto dto) {
     StringBuilder sb = new StringBuilder();
     sb.append("[global]\n");
@@ -120,13 +120,16 @@ public class SmbConfParser {
     return sb.toString();
   }
 
-  /** Замена старой секции [global] в конфиге на новую с сохранением остальных секций */
+  /**
+   * Р—Р°РјРµРЅР° СЃС‚Р°СЂРѕР№ СЃРµРєС†РёРё [global] РІ РєРѕРЅС„РёРіРµ РЅР° РЅРѕРІСѓСЋ СЃ
+   * СЃРѕС…СЂР°РЅРµРЅРёРµРј РѕСЃС‚Р°Р»СЊРЅС‹С… СЃРµРєС†РёР№
+   */
   public String updateGlobalSection(String content, SambaGlobalConfigDto dto) {
     String updatedWithoutGlobal;
     try {
       updatedWithoutGlobal = removeSection(content, "global");
     } catch (Exception e) {
-      // Если [global] не было вовсе
+      // Р•СЃР»Рё [global] РЅРµ Р±С‹Р»Рѕ РІРѕРІСЃРµ
       updatedWithoutGlobal = content;
     }
 
@@ -239,7 +242,9 @@ public class SmbConfParser {
 
     if (!sectionFound) {
       throw new RuntimeException(
-          "Секция '" + sectionNameToRemove + "' не найдена в файле конфигурации");
+          "РЎРµРєС†РёСЏ '"
+              + sectionNameToRemove
+              + "' РЅРµ РЅР°Р№РґРµРЅР° РІ С„Р°Р№Р»Рµ РєРѕРЅС„РёРіСѓСЂР°С†РёРё");
     }
 
     return result.toString();

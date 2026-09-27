@@ -16,14 +16,14 @@ public class ConfigApiController {
   @Autowired private SambaConfigService configService;
 
   @GetMapping("/raw")
-  public ApiResponse<String> getRawConfig(HttpSession session) throws Exception {
+  public ApiResponse<String> getRawConfig(HttpSession session) {
     String sessionId = session.getId();
     String content = configService.getSmbConfContent(sessionId);
     return ApiResponse.ok(content);
   }
 
   @GetMapping("/global")
-  public ApiResponse<SambaGlobalConfigDto> getGlobalConfig(HttpSession session) throws Exception {
+  public ApiResponse<SambaGlobalConfigDto> getGlobalConfig(HttpSession session) {
     String sessionId = session.getId();
     SambaGlobalConfigDto globalConfig = configService.getGlobalConfig(sessionId);
     return ApiResponse.ok(globalConfig);
@@ -31,24 +31,25 @@ public class ConfigApiController {
 
   @PutMapping("/global")
   public ApiResponse<Void> updateGlobalConfig(
-      HttpSession session, @RequestBody SambaGlobalConfigDto globalConfig) throws Exception {
+      HttpSession session, @RequestBody SambaGlobalConfigDto globalConfig) {
     String sessionId = session.getId();
     configService.updateGlobalConfig(sessionId, globalConfig);
-    return ApiResponse.ok("Глобальная конфигурация успешно обновлена", null);
+    return ApiResponse.ok(
+        "Р“Р»РѕР±Р°Р»СЊРЅР°СЏ РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ СѓСЃРїРµС€РЅРѕ РѕР±РЅРѕРІР»РµРЅР°", null);
   }
 
   @GetMapping("/backups")
-  public ApiResponse<List<SambaBackupDto>> listBackups(HttpSession session) throws Exception {
+  public ApiResponse<List<SambaBackupDto>> listBackups(HttpSession session) {
     String sessionId = session.getId();
     List<SambaBackupDto> backups = configService.listBackups(sessionId);
     return ApiResponse.ok(backups);
   }
 
   @PostMapping("/backups/{filename}/restore")
-  public ApiResponse<Void> restoreBackup(HttpSession session, @PathVariable String filename)
-      throws Exception {
+  public ApiResponse<Void> restoreBackup(HttpSession session, @PathVariable String filename) {
     String sessionId = session.getId();
     configService.restoreBackup(sessionId, filename);
-    return ApiResponse.ok("Конфигурация восстановлена из " + filename, null);
+    return ApiResponse.ok(
+        "РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅР° РёР· " + filename, null);
   }
 }

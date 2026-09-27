@@ -24,7 +24,7 @@ public class SambaConfigService {
 
   @Autowired private SmbConfParser smbConfParser;
 
-  public String getSmbConfContent(String sessionId) throws Exception {
+  public String getSmbConfContent(String sessionId) {
     return commandExecutor.execute(sessionId, LinuxCommands.cat(SMB_CONF_PATH));
   }
 
@@ -40,7 +40,7 @@ public class SambaConfigService {
     return smbConfParser.removeSection(content, shareName);
   }
 
-  public void createBackup(String sessionId) throws Exception {
+  public void createBackup(String sessionId) {
     commandExecutor.execute(sessionId, LinuxCommands.mkdir(BACKUP_DIR));
     String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
     String backupFile = BACKUP_DIR + "/smb.conf.backup_" + timestamp;
@@ -75,9 +75,9 @@ public class SambaConfigService {
     return backups;
   }
 
-  public void restoreBackup(String sessionId, String filename) throws Exception {
+  public void restoreBackup(String sessionId, String filename) {
     if (!filename.matches("^smb\\.conf\\.backup_\\d{8}_\\d{6}$")) {
-      throw new IllegalArgumentException("Некорректное имя файла бэкапа");
+      throw new IllegalArgumentException("РќРµРєРѕСЂСЂРµРєС‚РЅРѕРµ РёРјСЏ С„Р°Р№Р»Р° Р±СЌРєР°РїР°");
     }
 
     String backupFile = BACKUP_DIR + "/" + filename;
@@ -87,7 +87,7 @@ public class SambaConfigService {
     commandExecutor.execute(sessionId, LinuxCommands.systemctl("restart", "smbd"));
   }
 
-  public void updateSmbConf(String sessionId, String content) throws Exception {
+  public void updateSmbConf(String sessionId, String content) {
     String tempFile = "/tmp/smb.conf.tmp";
 
     createBackup(sessionId);
@@ -97,12 +97,12 @@ public class SambaConfigService {
     commandExecutor.execute(sessionId, LinuxCommands.systemctl("restart", "smbd"));
   }
 
-  public SambaGlobalConfigDto getGlobalConfig(String sessionId) throws Exception {
+  public SambaGlobalConfigDto getGlobalConfig(String sessionId) {
     String content = getSmbConfContent(sessionId);
     return smbConfParser.parseGlobalConfig(content);
   }
 
-  public void updateGlobalConfig(String sessionId, SambaGlobalConfigDto dto) throws Exception {
+  public void updateGlobalConfig(String sessionId, SambaGlobalConfigDto dto) {
     String currentContent = getSmbConfContent(sessionId);
     String updatedContent = smbConfParser.updateGlobalSection(currentContent, dto);
     updateSmbConf(sessionId, updatedContent);

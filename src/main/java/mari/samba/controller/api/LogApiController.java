@@ -14,7 +14,7 @@ public class LogApiController {
 
   @GetMapping("/raw")
   public ApiResponse<String> fetchRawLogs(
-      @RequestParam(defaultValue = "100") int lines, HttpSession httpSession) throws Exception {
+      @RequestParam(defaultValue = "100") int lines, HttpSession httpSession) {
     String sessionId = httpSession.getId();
     String logs = logService.getRecentLogs(sessionId, lines);
     return ApiResponse.ok(logs);

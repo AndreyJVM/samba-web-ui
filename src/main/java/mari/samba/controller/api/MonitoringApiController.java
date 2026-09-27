@@ -35,18 +35,18 @@ public class MonitoringApiController {
   }
 
   @PostMapping("/control")
-  public ApiResponse<Void> controlService(HttpSession session, @RequestParam String action)
-      throws Exception {
+  public ApiResponse<Void> controlService(HttpSession session, @RequestParam String action) {
     String sessionId = session.getId();
     monitoringService.controlService(sessionId, action);
-    return ApiResponse.ok("Команда '" + action + "' успешно выполнена", null);
+    return ApiResponse.ok(
+        "РљРѕРјР°РЅРґР° '" + action + "' СѓСЃРїРµС€РЅРѕ РІС‹РїРѕР»РЅРµРЅР°", null);
   }
 
   @DeleteMapping("/sessions/{pid}")
-  public ApiResponse<Void> killSession(HttpSession session, @PathVariable String pid)
-      throws Exception {
+  public ApiResponse<Void> killSession(HttpSession session, @PathVariable String pid) {
     String sessionId = session.getId();
     monitoringService.killSession(sessionId, pid);
-    return ApiResponse.ok("Сессия (PID: " + pid + ") успешно завершена", null);
+    return ApiResponse.ok(
+        "РЎРµСЃСЃРёСЏ (PID: " + pid + ") СѓСЃРїРµС€РЅРѕ Р·Р°РІРµСЂС€РµРЅР°", null);
   }
 }

@@ -15,26 +15,27 @@ public class SambaShareService {
 
   @Autowired private CommandExecutor commandExecutor;
 
-  public List<SambaShare> getAllShares(String sessionId) throws Exception {
+  public List<SambaShare> getAllShares(String sessionId) {
     String content = configService.getSmbConfContent(sessionId);
     return configService.parseShares(content);
   }
 
-  public SambaShare getShareByName(String sessionId, String name) throws Exception {
+  public SambaShare getShareByName(String sessionId, String name) {
     List<SambaShare> shares = getAllShares(sessionId);
     return shares.stream()
         .filter(s -> s.getName().equalsIgnoreCase(name))
         .findFirst()
-        .orElseThrow(() -> new RuntimeException("Шара не найдена: " + name));
+        .orElseThrow(() -> new RuntimeException("РЁР°СЂР° РЅРµ РЅР°Р№РґРµРЅР°: " + name));
   }
 
-  public void createShare(String sessionId, SambaShareCreateDto dto) throws Exception {
+  public void createShare(String sessionId, SambaShareCreateDto dto) {
     List<SambaShare> existingShares = getAllShares(sessionId);
     boolean exists =
         existingShares.stream().anyMatch(s -> s.getName().equalsIgnoreCase(dto.getName()));
 
     if (exists) {
-      throw new RuntimeException("Шара с именем '" + dto.getName() + "' уже существует");
+      throw new RuntimeException(
+          "РЁР°СЂР° СЃ РёРјРµРЅРµРј '" + dto.getName() + "' СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚");
     }
 
     ensureDirectoryExists(sessionId, dto);
@@ -46,7 +47,7 @@ public class SambaShareService {
     configService.updateSmbConf(sessionId, newContent);
   }
 
-  public void updateShare(String sessionId, String name, SambaShareCreateDto dto) throws Exception {
+  public void updateShare(String sessionId, String name, SambaShareCreateDto dto) {
     ensureDirectoryExists(sessionId, dto);
 
     String content = configService.getSmbConfContent(sessionId);
@@ -57,16 +58,17 @@ public class SambaShareService {
     configService.updateSmbConf(sessionId, updatedContent);
   }
 
-  public void deleteShare(String sessionId, String name) throws Exception {
+  public void deleteShare(String sessionId, String name) {
     String content = configService.getSmbConfContent(sessionId);
     String updatedContent = configService.removeShareSection(content, name);
     configService.updateSmbConf(sessionId, updatedContent);
   }
 
-  private void ensureDirectoryExists(String sessionId, SambaShareCreateDto dto) throws Exception {
+  private void ensureDirectoryExists(String sessionId, SambaShareCreateDto dto) {
     String path = dto.getPath().trim();
     if (!path.startsWith("/")) {
-      throw new IllegalArgumentException("Путь к шаре должен быть абсолютным: " + path);
+      throw new IllegalArgumentException(
+          "РџСѓС‚СЊ Рє С€Р°СЂРµ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ Р°Р±СЃРѕР»СЋС‚РЅС‹Рј: " + path);
     }
 
     commandExecutor.execute(sessionId, LinuxCommands.mkdir(path));

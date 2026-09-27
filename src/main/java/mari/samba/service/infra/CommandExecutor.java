@@ -1,10 +1,20 @@
 package mari.samba.service.infra;
 
+import mari.samba.exception.SambaCommandException;
+
 public interface CommandExecutor {
 
-  /** Выполнить shell-команду на удаленном узле. */
-  String execute(String sessionId, String command) throws Exception;
+  /**
+   * Р’С‹РїРѕР»РЅСЏРµС‚ shell-РєРѕРјР°РЅРґСѓ РЅР° СѓРґР°Р»РµРЅРЅРѕРј С…РѕСЃС‚Рµ.
+   *
+   * @throws SambaCommandException if the command execution fails.
+   */
+  String execute(String sessionId, String command) throws SambaCommandException;
 
-  /** Выполнить shell-команду с передачей входных данных в stdin (для паролей, файлов). */
-  String execute(String sessionId, String command, String inputData) throws Exception;
+  /**
+   * Р’С‹РїРѕР»РЅСЏРµС‚ shell-РєРѕРјР°РЅРґСѓ СЃ РїРѕРґР°С‡РµР№ РІС…РѕРґРЅС‹С… РґР°РЅРЅС‹С… РІ stdin.
+   *
+   * @throws SambaCommandException if the command execution fails.
+   */
+  String execute(String sessionId, String command, String inputData) throws SambaCommandException;
 }

@@ -5,13 +5,14 @@ import jakarta.validation.constraints.Pattern;
 
 public class SambaShareCreateDto {
 
-  @NotBlank(message = "Имя шары обязательно")
+  @NotBlank(message = "РРјСЏ С€Р°СЂС‹ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ")
   @Pattern(
       regexp = "^[a-zA-Z0-9_-]+$",
-      message = "Имя может содержать только буквы, цифры, подчеркивания и дефисы")
+      message =
+          "РРјСЏ РјРѕР¶РµС‚ СЃРѕРґРµСЂР¶Р°С‚СЊ С‚РѕР»СЊРєРѕ Р±СѓРєРІС‹, С†РёС„СЂС‹, РїРѕРґС‡РµСЂРєРёРІР°РЅРёСЏ Рё РґРµС„РёСЃС‹")
   private String name;
 
-  @NotBlank(message = "Путь к папке обязателен")
+  @NotBlank(message = "РџСѓС‚СЊ Рє РїР°РїРєРµ РѕР±СЏР·Р°С‚РµР»РµРЅ")
   private String path;
 
   private String comment;

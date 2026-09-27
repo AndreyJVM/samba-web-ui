@@ -90,45 +90,49 @@ public class AuthApiController {
     if (!request.isKeyAuth()
         && (request.getPassword() == null || request.getPassword().isBlank())) {
       return ResponseEntity.badRequest()
-          .body(ApiResponse.error("Пароль обязателен для стандартной аутентификации"));
+          .body(
+              ApiResponse.error(
+                  "РџР°СЂРѕР»СЊ РѕР±СЏР·Р°С‚РµР»РµРЅ РґР»СЏ СЃС‚Р°РЅРґР°СЂС‚РЅРѕР№ Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё"));
     }
 
     try {
       HttpSession httpSession = httpRequest.getSession(true);
       String sessionId = httpSession.getId();
 
-      // 1. Создаем SSH-сессию
+      // 1. РЎРѕР·РґР°РµРј SSH-СЃРµСЃСЃРёСЋ
       sessionManager.createSession(sessionId, request);
 
-      // 2. Оформляем Spring Security Authenticate
+      // 2. РћС„РѕСЂРјР»СЏРµРј Spring Security Authenticate
       List<SimpleGrantedAuthority> authorities =
           Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
       UsernamePasswordAuthenticationToken authentication =
           new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
 
-      // 3. Записываем в контекст
+      // 3. Р—Р°РїРёСЃС‹РІР°РµРј РІ РєРѕРЅС‚РµРєСЃС‚
       SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      // 4. Устанавливаем куки-сессии (для интеграции с Spring Security API если нужно)
+      // 4. РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј РєСѓРєРё-СЃРµСЃСЃРёРё (РґР»СЏ РёРЅС‚РµРіСЂР°С†РёРё СЃ Spring
+      // Security API РµСЃР»Рё РЅСѓР¶РЅРѕ)
       httpSession.setAttribute(
           HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
           SecurityContextHolder.getContext());
 
-      // 5. Полезные данные для отображения
+      // 5. РџРѕР»РµР·РЅС‹Рµ РґР°РЅРЅС‹Рµ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ
       httpSession.setAttribute(
           "sambaHost",
           request.getHost()
               + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : ""));
       httpSession.setAttribute("sambaUser", request.getUsername());
 
-      // Очистка при успешном входе
+      // РћС‡РёСЃС‚РєР° РїСЂРё СѓСЃРїРµС€РЅРѕРј РІС…РѕРґРµ
       failedAttempts.remove(clientIp);
 
-      return ResponseEntity.ok(ApiResponse.ok("Успешно подключились к серверу!", null));
+      return ResponseEntity.ok(
+          ApiResponse.ok("РЈСЃРїРµС€РЅРѕ РїРѕРґРєР»СЋС‡РёР»РёСЃСЊ Рє СЃРµСЂРІРµСЂСѓ!", null));
     } catch (Exception e) {
       recordFailedAttempt(clientIp);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body(ApiResponse.error("Ошибка подключения: " + e.getMessage()));
+          .body(ApiResponse.error("РћС€РёР±РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ: " + e.getMessage()));
     }
   }
 
@@ -159,6 +163,6 @@ public class AuthApiController {
       sessionManager.disconnect(sessionId);
       httpSession.invalidate();
     }
-    return ResponseEntity.ok(ApiResponse.ok("Успешно отключились", null));
+    return ResponseEntity.ok(ApiResponse.ok("РЈСЃРїРµС€РЅРѕ РѕС‚РєР»СЋС‡РёР»РёСЃСЊ", null));
   }
 }

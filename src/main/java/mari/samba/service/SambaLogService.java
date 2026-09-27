@@ -15,15 +15,18 @@ public class SambaLogService {
 
   @Autowired private CommandExecutor commandExecutor;
 
-  /** Получение последних N строк из лога smbd */
-  public String getRecentLogs(String sessionId, int linesCount) throws Exception {
+  /** РџРѕР»СѓС‡РµРЅРёРµ РїРѕСЃР»РµРґРЅРёС… N СЃС‚СЂРѕРє РёР· Р»РѕРіР° smbd */
+  public String getRecentLogs(String sessionId, int linesCount) {
     int safeLines = ALLOWED_LINE_COUNTS.contains(linesCount) ? linesCount : 100;
     String command = LinuxCommands.tail(DEFAULT_LOG_PATH, safeLines);
 
     try {
       return commandExecutor.execute(sessionId, command);
     } catch (Exception e) {
-      return "Не удалось прочитать лог-файл " + DEFAULT_LOG_PATH + ": " + e.getMessage();
+      return "РќРµ СѓРґР°Р»РѕСЃСЊ РїСЂРѕС‡РёС‚Р°С‚СЊ Р»РѕРі-С„Р°Р№Р» "
+          + DEFAULT_LOG_PATH
+          + ": "
+          + e.getMessage();
     }
   }
 }

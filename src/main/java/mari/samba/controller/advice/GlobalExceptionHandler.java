@@ -19,7 +19,10 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(SshSessionExpiredException.class)
   public ResponseEntity<ApiResponse<Void>> handleSshSessionExpired(
       SshSessionExpiredException ex, HttpServletRequest request, HttpSession session) {
-    log.warn("SSH-сессия разорвана для URI [{}]: {}", request.getRequestURI(), ex.getMessage());
+    log.warn(
+        "SSH-СЃРµСЃСЃРёСЏ СЂР°Р·РѕСЂРІР°РЅР° РґР»СЏ URI [{}]: {}",
+        request.getRequestURI(),
+        ex.getMessage());
 
     try {
       session.invalidate();
@@ -27,13 +30,18 @@ public class GlobalExceptionHandler {
     }
 
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-        .body(ApiResponse.error("SSH-сессия истекла. Требуется повторный вход."));
+        .body(
+            ApiResponse.error(
+                "SSH-СЃРµСЃСЃРёСЏ РёСЃС‚РµРєР»Р°. РўСЂРµР±СѓРµС‚СЃСЏ РїРѕРІС‚РѕСЂРЅС‹Р№ РІС…РѕРґ."));
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(
       IllegalArgumentException ex, HttpServletRequest request) {
-    log.warn("Ошибка валидации для URI [{}]: {}", request.getRequestURI(), ex.getMessage());
+    log.warn(
+        "РћС€РёР±РєР° РІР°Р»РёРґР°С†РёРё РґР»СЏ URI [{}]: {}",
+        request.getRequestURI(),
+        ex.getMessage());
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(ex.getMessage()));
   }
@@ -41,11 +49,16 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Void>> handleGeneralException(
       Exception ex, HttpServletRequest request) {
-    log.error("Непредвиденная ошибка при обработке [{}]: ", request.getRequestURI(), ex);
+    log.error(
+        "РќРµРїСЂРµРґРІРёРґРµРЅРЅР°СЏ РѕС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ [{}]: ",
+        request.getRequestURI(),
+        ex);
 
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .body(
             ApiResponse.error(
-                ex.getMessage() != null ? ex.getMessage() : "Внутренняя ошибка сервера"));
+                ex.getMessage() != null
+                    ? ex.getMessage()
+                    : "Р’РЅСѓС‚СЂРµРЅРЅСЏСЏ РѕС€РёР±РєР° СЃРµСЂРІРµСЂР°"));
   }
 }

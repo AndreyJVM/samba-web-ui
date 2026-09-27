@@ -5,28 +5,32 @@ import jakarta.validation.constraints.Pattern;
 
 public class SambaGlobalConfigDto {
 
-  @NotBlank(message = "Рабочая группа не может быть пустой")
-  @Pattern(regexp = "^[a-zA-Z0-9_.-]+$", message = "Недопустимые символы в имени рабочей группы")
+  @NotBlank(message = "Р Р°Р±РѕС‡Р°СЏ РіСЂСѓРїРїР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚РѕР№")
+  @Pattern(
+      regexp = "^[a-zA-Z0-9_.-]+$",
+      message = "РќРµРґРѕРїСѓСЃС‚РёРјС‹Рµ СЃРёРјРІРѕР»С‹ РІ РёРјРµРЅРё СЂР°Р±РѕС‡РµР№ РіСЂСѓРїРїС‹")
   private String workgroup = "WORKGROUP";
 
   private String serverString = "Samba Server";
   private String netbiosName;
 
-  // Режим аутентификации: user, ads
+  // Р РµР¶РёРј Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё: user, ads
   private String security = "user";
 
-  // Поведение для неизвестных пользователей: Bad User (для гостевого доступа), Never
+  // РџРѕРІРµРґРµРЅРёРµ РґР»СЏ РЅРµРёР·РІРµСЃС‚РЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№: Bad User (РґР»СЏ
+  // РіРѕСЃС‚РµРІРѕРіРѕ РґРѕСЃС‚СѓРїР°), Never
   private String mapToGuest = "Bad User";
 
-  // Сетевые привязки
+  // РЎРµС‚РµРІС‹Рµ РїСЂРёРІСЏР·РєРё
   private String interfaces;
   private boolean bindInterfacesOnly = false;
 
-  // Оптимизация (отключение принтеров для чистого файлового сервера)
+  // РћРїС‚РёРјРёР·Р°С†РёСЏ (РѕС‚РєР»СЋС‡РµРЅРёРµ РїСЂРёРЅС‚РµСЂРѕРІ РґР»СЏ С‡РёСЃС‚РѕРіРѕ
+  // С„Р°Р№Р»РѕРІРѕРіРѕ СЃРµСЂРІРµСЂР°)
   private boolean loadPrinters = false;
   private boolean disableNetbios = false;
 
-  // Версии протокола SMB (по умолчанию min=SMB2, max=SMB3)
+  // Р’РµСЂСЃРёРё РїСЂРѕС‚РѕРєРѕР»Р° SMB (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ min=SMB2, max=SMB3)
   private String serverMinProtocol = "SMB2";
   private String serverMaxProtocol = "SMB3";
 
