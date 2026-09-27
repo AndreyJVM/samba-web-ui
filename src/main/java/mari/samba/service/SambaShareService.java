@@ -15,6 +15,8 @@ public class SambaShareService {
 
   @Autowired private CommandExecutor commandExecutor;
 
+  @Autowired private FileSystemService fileSystemService;
+
   public List<SambaShare> getAllShares(String sessionId) {
     String content = configService.getSmbConfContent(sessionId);
     return configService.parseShares(content);
@@ -85,6 +87,8 @@ public class SambaShareService {
     if (!path.startsWith("/")) {
       throw new IllegalArgumentException("Operation failed due to an error." + path);
     }
+
+    fileSystemService.requireAllowedPath(path);
 
     commandExecutor.execute(sessionId, LinuxCommands.mkdir(path));
 

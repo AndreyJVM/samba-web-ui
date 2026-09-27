@@ -16,24 +16,21 @@ public class FileSystemService {
   @Autowired private CommandExecutor commandExecutor;
 
   // List of paths that are strictly forbidden to access via the web file explorer
-  private static final String[] FORBIDDEN_ROOTS = {
-    "/root",
-    "/etc",
-    "/boot",
-    "/sbin",
-    "/bin",
-    "/dev",
-    "/proc",
-    "/sys",
-    "/usr",
-    "/var/lib",
-    "/var/log"
-  };
+  // List of root directories allowed for Samba shares
+  private static final String[] ALLOWED_ROOTS = {"/mnt", "/media", "/srv", "/data", "/home"};
 
   /** Lists subdirectories within a requested path, returning normalized structure. */
   public DirectoryBrowseResultDto listDirectories(String sessionId, String requestedPath) {
     String safePath = normalizePath(requestedPath);
     requireAllowedPath(safePath);
+
+    if (safePath.equals("/")) {
+      List<DirectoryItemDto> items = new ArrayList<>();
+      for (String root : ALLOWED_ROOTS) {
+        items.add(new DirectoryItemDto(root.substring(1), root));
+      }
+      return new DirectoryBrowseResultDto("/", "/", items);
+    }
 
     String parentPath;
     int lastSlash = safePath.lastIndexOf('/');
@@ -93,14 +90,24 @@ public class FileSystemService {
   }
 
   /** Enforces a directory jail to prevent Arbitrary File Read/Write across system files. */
-  private void requireAllowedPath(String path) {
-    for (String forbidden : FORBIDDEN_ROOTS) {
-      if (path.equals(forbidden) || path.startsWith(forbidden + "/")) {
-        throw new SecurityException(
-            "Security Policy: Access to system directory '"
-                + forbidden
-                + "' is strictly forbidden.");
+  public void requireAllowedPath(String path) {
+    if (path == null) return;
+    if (path.equals("/")) {
+      return;
+    }
+    boolean allowed = false;
+    for (String root : ALLOWED_ROOTS) {
+      if (path.equals(root) || path.startsWith(root + "/")) {
+        allowed = true;
+        break;
       }
+    }
+    if (!allowed) {
+      throw new SecurityException(
+          "Security Policy: Access to directory '"
+              + path
+              + "' is denied. Restricted to: "
+              + String.join(", ", ALLOWED_ROOTS));
     }
   }
 
