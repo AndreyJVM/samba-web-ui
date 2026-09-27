@@ -62,7 +62,7 @@ class MonitoringApiControllerTest {
         .perform(post("/api/monitoring/control").param("action", "restart"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Команда 'restart' успешно выполнена"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(monitoringService).controlService(anyString(), eq("restart"));
   }
@@ -73,7 +73,7 @@ class MonitoringApiControllerTest {
         .perform(delete("/api/monitoring/sessions/1234"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Сессия (PID: 1234) успешно завершена"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(monitoringService).killSession(anyString(), eq("1234"));
   }

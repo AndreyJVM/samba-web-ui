@@ -37,7 +37,7 @@ class SambaGroupServiceTest {
     List<SambaGroup> groups = sambaGroupService.getAllGroups(SESSION_ID);
 
     assertNotNull(groups);
-    assertEquals(2, groups.size(), "Должны вернуться только группы с префиксом smb_");
+    assertEquals(2, groups.size(), "Test string");
 
     SambaGroup managers = groups.get(0);
     assertEquals("managers", managers.getName());
@@ -45,7 +45,7 @@ class SambaGroupServiceTest {
 
     SambaGroup emptyGroup = groups.get(1);
     assertEquals("emptygroup", emptyGroup.getName());
-    assertTrue(emptyGroup.getMembers().isEmpty(), "В группе не должно быть пользователей");
+    assertTrue(emptyGroup.getMembers().isEmpty(), "Test string");
   }
 
   @Test

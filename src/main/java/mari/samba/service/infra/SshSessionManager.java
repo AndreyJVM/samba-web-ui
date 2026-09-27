@@ -24,10 +24,9 @@ public class SshSessionManager implements CommandExecutor {
     try {
       JSch jsch = new JSch();
 
-      // 1. Готовим аутентификацию по ключу, если нужно
       if (request.isKeyAuth()) {
         if (request.getPrivateKey() == null || request.getPrivateKey().isBlank()) {
-          throw new IllegalArgumentException("Приватный SSH-ключ не был передан");
+          throw new IllegalArgumentException("Operation failed due to an error.");
         }
 
         byte[] prvkey = request.getPrivateKey().trim().getBytes(StandardCharsets.UTF_8);
@@ -36,14 +35,12 @@ public class SshSessionManager implements CommandExecutor {
                 ? request.getPassphrase().getBytes(StandardCharsets.UTF_8)
                 : null;
 
-        // Добавляем ключ в JSch в память (без сохранения файла на диск)
         jsch.addIdentity("custom-key-" + sessionId, prvkey, null, passphraseBytes);
       }
 
       int port = request.getResolvedPort();
       Session session = jsch.getSession(request.getUsername(), request.getHost(), port);
 
-      // 2. Иначе используем пароль
       if (!request.isKeyAuth()
           && request.getPassword() != null
           && !request.getPassword().isBlank()) {
@@ -52,16 +49,14 @@ public class SshSessionManager implements CommandExecutor {
 
       session.setConfig("StrictHostKeyChecking", "no");
 
-      // Keep-Alive пинг каждые 30 секунд
       session.setServerAliveInterval(30_000);
       session.setServerAliveCountMax(3);
 
-      // Таймаут подключения 7 секунд
       session.connect(7000);
 
       sessions.put(sessionId, session);
     } catch (JSchException e) {
-      throw new SambaCommandException("Ошибка установки SSH соединения: " + e.getMessage(), e);
+      throw new SambaCommandException("Operation failed due to an error." + e.getMessage(), e);
     }
   }
 
@@ -90,11 +85,11 @@ public class SshSessionManager implements CommandExecutor {
   public String execute(String sessionId, String command, String inputData) {
     Session session = sessions.get(sessionId);
     if (session == null || !session.isConnected()) {
-      // Подчищаем старый ключ сессии, раз она отвалилась
+
       if (sessionId != null) {
         sessions.remove(sessionId);
       }
-      throw new SshSessionExpiredException("SSH-сессия истекла или была разорвана удаленно");
+      throw new SshSessionExpiredException("Operation failed due to an error.");
     }
 
     try {
@@ -140,14 +135,17 @@ public class SshSessionManager implements CommandExecutor {
 
       if (exitStatus != 0) {
         throw new SambaCommandException(
-            "Процесс завершен с кодом " + exitStatus + ": " + (error.isBlank() ? output : error));
+            "Operation failed due to an error."
+                + exitStatus
+                + ": "
+                + (error.isBlank() ? output : error));
       }
 
       return output;
     } catch (SambaCommandException e) {
       throw e;
     } catch (Exception e) {
-      throw new SambaCommandException("Ошибка выполнения команды через SSH: " + e.getMessage(), e);
+      throw new SambaCommandException("Operation failed due to an error." + e.getMessage(), e);
     }
   }
 }

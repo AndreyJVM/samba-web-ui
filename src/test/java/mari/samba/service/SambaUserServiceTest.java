@@ -25,7 +25,7 @@ class SambaUserServiceTest {
 
   @Test
   void getAllUsers_ShouldParsePdbeditOutputCorrectly() throws Exception {
-    // Имитируем вывод команды `sudo pdbedit -L`
+
     String mockOutput =
         "admin:1000:Server Administrator\n" + "bob:1001:\n" + "alice:1002:Alice Wonderland\n";
 
@@ -41,7 +41,7 @@ class SambaUserServiceTest {
     assertEquals("Server Administrator", users.get(0).getFullName());
 
     assertEquals("bob", users.get(1).getUsername());
-    assertEquals("-", users.get(1).getFullName()); // Пустое поле заменяется на "-"
+    assertEquals("-", users.get(1).getFullName());
 
     assertEquals("alice", users.get(2).getUsername());
   }
@@ -54,7 +54,6 @@ class SambaUserServiceTest {
 
     sambaUserService.createUser(SESSION_ID, username, password, fullName);
 
-    // Проверяем 4 этапа создания
     verify(commandExecutor)
         .execute(SESSION_ID, LinuxCommands.addSystemUserWithHome(username, fullName));
     verify(commandExecutor)
@@ -72,12 +71,9 @@ class SambaUserServiceTest {
   void deleteUser_ShouldHandleExceptionsGracefullyForSambaAndKillSystemUser() throws Exception {
     String username = "olduser";
 
-    // Если удаление из Samba падает (пользователь есть в Линуксе, но нет в smbpasswd)
     when(commandExecutor.execute(SESSION_ID, LinuxCommands.deleteSambaUser(username)))
         .thenThrow(new RuntimeException("Failed to delete from Samba"));
 
-    // Метод не должен выбросить исключение наружу, он должен проигнорировать первичное и удалить
-    // системного юзера
     assertDoesNotThrow(() -> sambaUserService.deleteUser(SESSION_ID, username));
 
     verify(commandExecutor).execute(SESSION_ID, LinuxCommands.deleteSambaUser(username));

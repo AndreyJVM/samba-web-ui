@@ -25,7 +25,7 @@ public class SambaShareService {
     return shares.stream()
         .filter(s -> s.getName().equalsIgnoreCase(name))
         .findFirst()
-        .orElseThrow(() -> new RuntimeException("РЁР°СЂР° РЅРµ РЅР°Р№РґРµРЅР°: " + name));
+        .orElseThrow(() -> new RuntimeException("Operation failed due to an error." + name));
   }
 
   public void createShare(String sessionId, SambaShareCreateDto dto) {
@@ -35,7 +35,7 @@ public class SambaShareService {
 
     if (exists) {
       throw new RuntimeException(
-          "РЁР°СЂР° СЃ РёРјРµРЅРµРј '" + dto.getName() + "' СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚");
+          "Operation failed due to an error." + dto.getName() + "Operation successful");
     }
 
     ensureDirectoryExists(sessionId, dto);
@@ -67,8 +67,7 @@ public class SambaShareService {
   private void ensureDirectoryExists(String sessionId, SambaShareCreateDto dto) {
     String path = dto.getPath().trim();
     if (!path.startsWith("/")) {
-      throw new IllegalArgumentException(
-          "РџСѓС‚СЊ Рє С€Р°СЂРµ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ Р°Р±СЃРѕР»СЋС‚РЅС‹Рј: " + path);
+      throw new IllegalArgumentException("Operation failed due to an error." + path);
     }
 
     commandExecutor.execute(sessionId, LinuxCommands.mkdir(path));

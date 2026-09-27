@@ -38,15 +38,13 @@ public class MonitoringApiController {
   public ApiResponse<Void> controlService(HttpSession session, @RequestParam String action) {
     String sessionId = session.getId();
     monitoringService.controlService(sessionId, action);
-    return ApiResponse.ok(
-        "РљРѕРјР°РЅРґР° '" + action + "' СѓСЃРїРµС€РЅРѕ РІС‹РїРѕР»РЅРµРЅР°", null);
+    return ApiResponse.ok("Operation successful" + action + "Operation successful", null);
   }
 
   @DeleteMapping("/sessions/{pid}")
   public ApiResponse<Void> killSession(HttpSession session, @PathVariable String pid) {
     String sessionId = session.getId();
     monitoringService.killSession(sessionId, pid);
-    return ApiResponse.ok(
-        "РЎРµСЃСЃРёСЏ (PID: " + pid + ") СѓСЃРїРµС€РЅРѕ Р·Р°РІРµСЂС€РµРЅР°", null);
+    return ApiResponse.ok("Operation successful" + pid + "Operation successful", null);
   }
 }

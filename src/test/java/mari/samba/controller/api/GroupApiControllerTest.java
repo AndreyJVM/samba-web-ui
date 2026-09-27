@@ -52,7 +52,7 @@ class GroupApiControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Группа успешно создана"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(groupService).createGroup(anyString(), any(SambaGroupCreateDto.class));
   }
@@ -63,7 +63,7 @@ class GroupApiControllerTest {
         .perform(delete("/api/groups/developers"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Группа успешно удалена"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(groupService).deleteGroup(anyString(), eq("developers"));
   }
@@ -77,7 +77,7 @@ class GroupApiControllerTest {
                 .content("{\"username\":\"alice\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Пользователь добавлен в группу"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(groupService).addUserToGroup(anyString(), eq("alice"), eq("developers"));
   }
@@ -88,7 +88,7 @@ class GroupApiControllerTest {
         .perform(delete("/api/groups/developers/users/alice"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Пользователь удален из группы"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(groupService).removeUserFromGroup(anyString(), eq("alice"), eq("developers"));
   }

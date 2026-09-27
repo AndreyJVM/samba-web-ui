@@ -35,7 +35,7 @@ public class ShareApiController {
       HttpSession session, @Valid @RequestBody SambaShareCreateDto dto) {
     String sessionId = session.getId();
     shareService.createShare(sessionId, dto);
-    return ApiResponse.ok("РћР±С‰Р°СЏ РїР°РїРєР° '" + dto.getName() + "' СЃРѕР·РґР°РЅР°", null);
+    return ApiResponse.ok("Operation successful" + dto.getName() + "Operation successful", null);
   }
 
   @PutMapping("/{sharename}")
@@ -44,16 +44,15 @@ public class ShareApiController {
       @PathVariable String sharename,
       @Valid @RequestBody SambaShareCreateDto dto) {
     String sessionId = session.getId();
-    dto.setName(sharename); // РџСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ РёСЃРїРѕР»СЊР·СѓРµРј РёРјСЏ РёР· РїСѓС‚Рё
+    dto.setName(sharename);
     shareService.updateShare(sessionId, sharename, dto);
-    return ApiResponse.ok(
-        "РќР°СЃС‚СЂРѕР№РєРё РїР°РїРєРё '" + sharename + "' РѕР±РЅРѕРІР»РµРЅС‹", null);
+    return ApiResponse.ok("Operation successful" + sharename + "Operation successful", null);
   }
 
   @DeleteMapping("/{sharename}")
   public ApiResponse<Void> deleteShare(HttpSession session, @PathVariable String sharename) {
     String sessionId = session.getId();
     shareService.deleteShare(sessionId, sharename);
-    return ApiResponse.ok("РЁР°СЂР° '" + sharename + "' СѓРґР°Р»РµРЅР°", null);
+    return ApiResponse.ok("Operation successful" + sharename + "Operation successful", null);
   }
 }

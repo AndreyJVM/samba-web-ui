@@ -39,16 +39,14 @@ class SambaShareServiceTest {
     dto.setName("testShare");
     dto.setPath("/srv/samba/test");
     dto.setComment("Test comment");
-    dto.setForceUser("samba-admin"); // В DTO поле называется forceUser, а не owner
+    dto.setForceUser("samba-admin");
     dto.setValidUsers("user1, user2");
     dto.setReadOnly(false);
-    dto.setBrowseable(true); // В DTO используется буква 'e': browseable
+    dto.setBrowseable(true);
 
-    // При чтении текущего конфига возвращаем пустоту
     when(configService.getSmbConfContent(SESSION_ID)).thenReturn("");
     when(configService.parseShares("")).thenReturn(Collections.emptyList());
 
-    // Мокаем сборку конфиг секции
     when(configService.buildShareSection(dto))
         .thenReturn("[testShare]\n  path = /srv/samba/test\n");
 
@@ -56,14 +54,12 @@ class SambaShareServiceTest {
     shareService.createShare(SESSION_ID, dto);
 
     // Assert
-    // Проверяем, что были вызваны команды настройки директории через commandExecutor.execute() (а
-    // не executeSafe)
+
     verify(commandExecutor).execute(SESSION_ID, LinuxCommands.mkdir("/srv/samba/test"));
     verify(commandExecutor).execute(SESSION_ID, LinuxCommands.chmod("0775", "/srv/samba/test"));
     verify(commandExecutor)
         .execute(SESSION_ID, LinuxCommands.chownRecursive("samba-admin", "/srv/samba/test"));
 
-    // Проверяем, что была вызвана команда обновления конфига updateSmbConf (а не addShare)
     verify(configService).updateSmbConf(SESSION_ID, "\n[testShare]\n  path = /srv/samba/test\n");
   }
 
@@ -83,9 +79,8 @@ class SambaShareServiceTest {
     // Act & Assert
     assertThatThrownBy(() -> shareService.createShare(SESSION_ID, dto))
         .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("Шара с именем 'existingShare' уже существует");
+        .hasMessageContaining("Operation failed due to an error.");
 
-    // Если шара уже есть, мы не должны вызывать никаких линукс команд
     verify(commandExecutor, never()).execute(anyString(), anyString());
   }
 }

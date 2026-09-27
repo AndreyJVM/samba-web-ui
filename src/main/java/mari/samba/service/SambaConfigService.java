@@ -77,7 +77,7 @@ public class SambaConfigService {
 
   public void restoreBackup(String sessionId, String filename) {
     if (!filename.matches("^smb\\.conf\\.backup_\\d{8}_\\d{6}$")) {
-      throw new IllegalArgumentException("РќРµРєРѕСЂСЂРµРєС‚РЅРѕРµ РёРјСЏ С„Р°Р№Р»Р° Р±СЌРєР°РїР°");
+      throw new IllegalArgumentException("Operation failed due to an error.");
     }
 
     String backupFile = BACKUP_DIR + "/" + filename;

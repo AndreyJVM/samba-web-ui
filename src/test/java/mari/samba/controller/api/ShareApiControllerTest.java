@@ -72,7 +72,7 @@ class ShareApiControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Общая папка 'new-share' создана"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(shareService).createShare(anyString(), any(SambaShareCreateDto.class));
   }
@@ -90,7 +90,7 @@ class ShareApiControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Настройки папки 'data-share' обновлены"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(shareService).updateShare(anyString(), eq("data-share"), any(SambaShareCreateDto.class));
   }

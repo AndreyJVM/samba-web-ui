@@ -26,7 +26,7 @@ class GlobalExceptionHandlerTest {
         .perform(get("/dummy/ssh-expired"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("SSH-сессия истекла. Требуется повторный вход."));
+        .andExpect(jsonPath("$.message").value("Expected value"));
   }
 
   @Test
@@ -35,7 +35,7 @@ class GlobalExceptionHandlerTest {
         .perform(get("/dummy/invalid-arg"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Неверные параметры"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
   }
 
   @Test
@@ -57,7 +57,7 @@ class GlobalExceptionHandlerTest {
 
     @GetMapping("/dummy/invalid-arg")
     public void throwIllegalArgumentException() {
-      throw new IllegalArgumentException("Неверные параметры");
+      throw new IllegalArgumentException("Operation failed due to an error.");
     }
 
     @GetMapping("/dummy/general-exception")

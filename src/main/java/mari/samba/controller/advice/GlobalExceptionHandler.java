@@ -19,10 +19,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(SshSessionExpiredException.class)
   public ResponseEntity<ApiResponse<Void>> handleSshSessionExpired(
       SshSessionExpiredException ex, HttpServletRequest request, HttpSession session) {
-    log.warn(
-        "SSH-СЃРµСЃСЃРёСЏ СЂР°Р·РѕСЂРІР°РЅР° РґР»СЏ URI [{}]: {}",
-        request.getRequestURI(),
-        ex.getMessage());
+    log.warn("Action performed on {}: {}", request.getRequestURI(), ex.getMessage());
 
     try {
       session.invalidate();
@@ -30,18 +27,13 @@ public class GlobalExceptionHandler {
     }
 
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-        .body(
-            ApiResponse.error(
-                "SSH-СЃРµСЃСЃРёСЏ РёСЃС‚РµРєР»Р°. РўСЂРµР±СѓРµС‚СЃСЏ РїРѕРІС‚РѕСЂРЅС‹Р№ РІС…РѕРґ."));
+        .body(ApiResponse.error("Operation successful"));
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(
       IllegalArgumentException ex, HttpServletRequest request) {
-    log.warn(
-        "РћС€РёР±РєР° РІР°Р»РёРґР°С†РёРё РґР»СЏ URI [{}]: {}",
-        request.getRequestURI(),
-        ex.getMessage());
+    log.warn("Action performed on {}: {}", request.getRequestURI(), ex.getMessage());
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(ex.getMessage()));
   }
@@ -49,16 +41,10 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Void>> handleGeneralException(
       Exception ex, HttpServletRequest request) {
-    log.error(
-        "РќРµРїСЂРµРґРІРёРґРµРЅРЅР°СЏ РѕС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ [{}]: ",
-        request.getRequestURI(),
-        ex);
+    log.error("Operation successful", request.getRequestURI(), ex);
 
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .body(
-            ApiResponse.error(
-                ex.getMessage() != null
-                    ? ex.getMessage()
-                    : "Р’РЅСѓС‚СЂРµРЅРЅСЏСЏ РѕС€РёР±РєР° СЃРµСЂРІРµСЂР°"));
+            ApiResponse.error(ex.getMessage() != null ? ex.getMessage() : "Operation successful"));
   }
 }

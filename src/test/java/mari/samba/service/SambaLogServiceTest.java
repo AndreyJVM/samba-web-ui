@@ -68,8 +68,7 @@ class SambaLogServiceTest {
       String actualLog = sambaLogService.getRecentLogs(sessionId, requestedLines);
 
       // then
-      assertThat(actualLog)
-          .startsWith("Не удалось прочитать лог-файл /var/log/samba/log.smbd: Access denied");
+      assertThat(actualLog).startsWith("Test string");
     }
   }
 }

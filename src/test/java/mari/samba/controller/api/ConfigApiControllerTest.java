@@ -51,7 +51,7 @@ class ConfigApiControllerTest {
                 .content(objectMapper.writeValueAsString(payload)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Глобальная конфигурация успешно обновлена"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(configService).updateGlobalConfig(anyString(), any(SambaGlobalConfigDto.class));
   }

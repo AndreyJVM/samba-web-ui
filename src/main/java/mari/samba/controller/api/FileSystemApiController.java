@@ -25,7 +25,7 @@ public class FileSystemApiController {
   public ApiResponse<Void> makeDirectory(
       @RequestParam String parentPath, @RequestParam String name, HttpSession httpSession) {
     fileSystemService.createDirectory(httpSession.getId(), parentPath, name);
-    return ApiResponse.ok("РљР°С‚Р°Р»РѕРі СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅ", null);
+    return ApiResponse.ok("Operation successful", null);
   }
 
   @GetMapping("/disk-usage")

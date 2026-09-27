@@ -53,7 +53,7 @@ class SmbConfParserTest {
             """;
 
   @Test
-  @DisplayName("Должен корректно парсить секцию [global]")
+  @DisplayName("Test string")
   void shouldParseGlobalConfig() {
     SambaGlobalConfigDto global = parser.parseGlobalConfig(sampleConfig);
 
@@ -70,7 +70,7 @@ class SmbConfParserTest {
   }
 
   @Test
-  @DisplayName("Должен извлекать только пользовательские шары, игнорируя служебные секции")
+  @DisplayName("Test string")
   void shouldParseOnlyUserShares() {
     List<SambaShare> shares = parser.parseShares(sampleConfig);
 
@@ -96,7 +96,7 @@ class SmbConfParserTest {
   }
 
   @Test
-  @DisplayName("Должен корректно генерировать блок шары из DTO")
+  @DisplayName("Test string")
   void shouldBuildShareSection() {
     SambaShareCreateDto dto = new SambaShareCreateDto();
     dto.setName("finance");
@@ -118,7 +118,7 @@ class SmbConfParserTest {
   }
 
   @Test
-  @DisplayName("Должен удалять указанную секцию из конфигурации")
+  @DisplayName("Test string")
   void shouldRemoveSection() {
     String result = parser.removeSection(sampleConfig, "public");
 
@@ -129,15 +129,15 @@ class SmbConfParserTest {
   }
 
   @Test
-  @DisplayName("Должен выбрасывать исключение при попытке удалить несуществующую секцию")
+  @DisplayName("Test string")
   void shouldThrowExceptionWhenRemovingNonExistentSection() {
     assertThatThrownBy(() -> parser.removeSection(sampleConfig, "non_existent"))
         .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("не найдена");
+        .hasMessageContaining("Operation failed due to an error.");
   }
 
   @Test
-  @DisplayName("Должен корректно обновлять секцию [global], не затрагивая шары")
+  @DisplayName("Test string")
   void shouldUpdateGlobalSection() {
     SambaGlobalConfigDto newGlobal = new SambaGlobalConfigDto();
     newGlobal.setWorkgroup("NEWCORP");

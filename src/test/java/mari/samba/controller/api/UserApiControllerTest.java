@@ -52,7 +52,7 @@ class UserApiControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Пользователь 'johndoe' успешно создан"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(sambaUserService)
         .createUser(anyString(), eq("johndoe"), eq("Secret@123"), eq("John Doe"));
@@ -64,7 +64,7 @@ class UserApiControllerTest {
         .perform(delete("/api/users/johndoe"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Пользователь 'johndoe' успешно удален"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(sambaUserService).deleteUser(anyString(), eq("johndoe"));
   }

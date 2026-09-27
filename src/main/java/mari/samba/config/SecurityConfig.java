@@ -18,9 +18,8 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-    // В Spring 6 для SPA используется особый Handler
     CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
-    // Это важно для разрешения X-XSRF-TOKEN из заголовка SPA без _csrf параметра
+
     requestHandler.setCsrfRequestAttributeName(null);
 
     http.authorizeHttpRequests(

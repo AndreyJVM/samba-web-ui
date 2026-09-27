@@ -50,15 +50,12 @@ public class AuthApiController {
 
     if (bruteForceService.isBlocked(clientIp)) {
       return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-          .body(
-              ApiResponse.error(
-                  "Слишком много неудачных попыток входа (макс 5). Подождите 3 минуты."));
+          .body(ApiResponse.error("Operation successful"));
     }
 
     if (!request.isKeyAuth()
         && (request.getPassword() == null || request.getPassword().isBlank())) {
-      return ResponseEntity.badRequest()
-          .body(ApiResponse.error("Пароль обязателен для аутентификации без ключа"));
+      return ResponseEntity.badRequest().body(ApiResponse.error("Operation successful"));
     }
 
     try {
@@ -85,23 +82,20 @@ public class AuthApiController {
 
       bruteForceService.resetFailedLogin(clientIp);
 
-      return ResponseEntity.ok(ApiResponse.ok("Успешно подключено к серверу", null));
+      return ResponseEntity.ok(ApiResponse.ok("Operation successful", null));
 
     } catch (SambaCommandException e) {
       bruteForceService.registerFailedLogin(clientIp);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
           .body(
-              ApiResponse.error(
-                  "Ошибка подключения: "
-                      + e.getMessage()
-                      + ". Убедитесь, что сервер включен, а учетные данные верны."));
+              ApiResponse.error("Operation successful" + e.getMessage() + "Operation successful"));
     } catch (IllegalArgumentException e) {
       bruteForceService.registerFailedLogin(clientIp);
       return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
     } catch (Exception e) {
       bruteForceService.registerFailedLogin(clientIp);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(ApiResponse.error("Внутренняя ошибка сервера: " + e.getMessage()));
+          .body(ApiResponse.error("Operation successful" + e.getMessage()));
     }
   }
 
@@ -109,10 +103,6 @@ public class AuthApiController {
   public ResponseEntity<ApiResponse<Map<String, String>>> getCurrentUser(
       HttpServletRequest request, HttpSession httpSession) {
 
-    // ВАЖНО: В Spring Security 6.x CSRF-токен по умолчанию отложенный (deferred).
-    // Популярная проблема SPA: кука XSRF-TOKEN не отсылается в браузер, пока токен не будет
-    // запрошен явно.
-    // Запрашиваем его здесь (при загрузке интерфейса), чтобы Spring гарантированно прописал куку.
     CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
     if (csrfToken != null) {
       csrfToken.getToken();
@@ -143,6 +133,6 @@ public class AuthApiController {
       sessionManager.disconnect(sessionId);
       session.invalidate();
     }
-    return ResponseEntity.ok(ApiResponse.ok("Успешно отключено", null));
+    return ResponseEntity.ok(ApiResponse.ok("Operation successful", null));
   }
 }

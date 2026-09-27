@@ -28,14 +28,14 @@ public class GroupApiController {
       HttpSession session, @Valid @RequestBody SambaGroupCreateDto dto) {
     String sessionId = session.getId();
     groupService.createGroup(sessionId, dto);
-    return ApiResponse.ok("Р“СЂСѓРїРїР° СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅР°", null);
+    return ApiResponse.ok("Operation successful", null);
   }
 
   @DeleteMapping("/{groupName}")
   public ApiResponse<Void> deleteGroup(HttpSession session, @PathVariable String groupName) {
     String sessionId = session.getId();
     groupService.deleteGroup(sessionId, groupName);
-    return ApiResponse.ok("Р“СЂСѓРїРїР° СѓСЃРїРµС€РЅРѕ СѓРґР°Р»РµРЅР°", null);
+    return ApiResponse.ok("Operation successful", null);
   }
 
   @PostMapping("/{groupName}/users")
@@ -44,11 +44,11 @@ public class GroupApiController {
     String sessionId = session.getId();
     String username = body.get("username");
     if (username == null || username.isBlank()) {
-      return ApiResponse.error("РРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ");
+      return ApiResponse.error("Operation successful");
     }
 
     groupService.addUserToGroup(sessionId, username, groupName);
-    return ApiResponse.ok("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РґРѕР±Р°РІР»РµРЅ РІ РіСЂСѓРїРїСѓ", null);
+    return ApiResponse.ok("Operation successful", null);
   }
 
   @DeleteMapping("/{groupName}/users/{username}")
@@ -56,6 +56,6 @@ public class GroupApiController {
       HttpSession session, @PathVariable String groupName, @PathVariable String username) {
     String sessionId = session.getId();
     groupService.removeUserFromGroup(sessionId, username, groupName);
-    return ApiResponse.ok("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СѓРґР°Р»РµРЅ РёР· РіСЂСѓРїРїС‹", null);
+    return ApiResponse.ok("Operation successful", null);
   }
 }

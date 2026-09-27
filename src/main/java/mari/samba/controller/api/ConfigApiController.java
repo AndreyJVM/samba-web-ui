@@ -34,8 +34,7 @@ public class ConfigApiController {
       HttpSession session, @RequestBody SambaGlobalConfigDto globalConfig) {
     String sessionId = session.getId();
     configService.updateGlobalConfig(sessionId, globalConfig);
-    return ApiResponse.ok(
-        "Р“Р»РѕР±Р°Р»СЊРЅР°СЏ РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ СѓСЃРїРµС€РЅРѕ РѕР±РЅРѕРІР»РµРЅР°", null);
+    return ApiResponse.ok("Operation successful", null);
   }
 
   @GetMapping("/backups")
@@ -49,7 +48,6 @@ public class ConfigApiController {
   public ApiResponse<Void> restoreBackup(HttpSession session, @PathVariable String filename) {
     String sessionId = session.getId();
     configService.restoreBackup(sessionId, filename);
-    return ApiResponse.ok(
-        "РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅР° РёР· " + filename, null);
+    return ApiResponse.ok("Operation successful" + filename, null);
   }
 }

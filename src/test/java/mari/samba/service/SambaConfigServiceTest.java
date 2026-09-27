@@ -176,7 +176,7 @@ class SambaConfigServiceTest {
       // when / then
       assertThatThrownBy(() -> sambaConfigService.restoreBackup("session-1", invalidName))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessage("РќРµРєРѕСЂСЂРµРєС‚РЅРѕРµ РёРјСЏ С„Р°Р№Р»Р° Р±СЌРєР°РїР°");
+          .hasMessage("Operation failed due to an error.");
     }
   }
 

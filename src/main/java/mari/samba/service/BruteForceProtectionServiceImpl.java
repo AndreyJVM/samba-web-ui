@@ -10,7 +10,6 @@ public class BruteForceProtectionServiceImpl implements BruteForceProtectionServ
 
   private static final int MAX_ATTEMPTS = 5;
 
-  // Кэш, который автоматически удаляет записи спустя 3 минуты после последней записи
   private final Cache<String, Integer> attemptsCache =
       Caffeine.newBuilder().expireAfterWrite(3, TimeUnit.MINUTES).build();
 

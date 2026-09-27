@@ -31,17 +31,12 @@ public class SambaMonitoringService {
       String[] lines = output.split("\\r?\\n");
 
       boolean parsingSessions = false;
-      int pidIdx = 0,
-          userIdx = 1,
-          machineIdx =
-              3; // Р’ СЃРѕРІСЂРµРјРµРЅРЅС‹С… Samba РјРµР¶РґСѓ User Рё Machine РёРґРµС‚ Group
+      int pidIdx = 0, userIdx = 1, machineIdx = 3;
 
       for (String line : lines) {
         line = line.trim();
         if (line.startsWith("Samba version")) continue;
 
-        // Р§РёС‚Р°РµРј Р·Р°РіРѕР»РѕРІРѕРє, С‡С‚РѕР±С‹ РїРѕРЅСЏС‚СЊ РіРґРµ СЂР°СЃРїРѕР»РѕР¶РµРЅС‹
-        // РєРѕР»РѕРЅРєРё (РІРµСЂСЃРёРё Samba РЅРµРјРЅРѕРіРѕ РѕС‚Р»РёС‡Р°СЋС‚СЃСЏ)
         if (line.contains("PID") && line.contains("Username")) {
           parsingSessions = true;
           String[] headers = line.split("\\s+");
@@ -93,19 +88,16 @@ public class SambaMonitoringService {
 
         if (parsingFiles) {
           String[] parts = line.split("\\s+");
-          // Р¤РѕСЂРјР°С‚: Pid, Uid, DenyMode, Access, R/W, Oplock, SharePath, Name, Time
-          // Name РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ 7-РіРѕ РёРЅРґРµРєСЃР°.
+
           if (parts.length >= 8) {
             Map<String, String> file = new HashMap<>();
             file.put("pid", parts[0]);
             file.put("rw", parts[4]); // RDONLY, WRONLY, RDWR
 
             StringBuilder fileName = new StringBuilder();
-            // РЎРєР»РµРёРІР°РµРј РёРјСЏ С„Р°Р№Р»Р°, С‚Р°Рє РєР°Рє РѕРЅРѕ РјРѕР¶РµС‚
-            // СЃРѕРґРµСЂР¶Р°С‚СЊ РїСЂРѕР±РµР»С‹ (parts СЃ 7 РёРЅРґРµРєСЃР°)
+
             for (int i = 7; i < parts.length; i++) {
-              // РРјРµРЅР° С„Р°Р№Р»РѕРІ Р·Р°РєР°РЅС‡РёРІР°СЋС‚СЃСЏ, РєРѕРіРґР° РЅР°С‡РёРЅР°РµС‚СЃСЏ
-              // Time (Р”РµРЅСЊ РЅРµРґРµР»Рё)
+
               if (parts[i].matches("Mon|Tue|Wed|Thu|Fri|Sat|Sun")) {
                 break;
               }
@@ -123,23 +115,18 @@ public class SambaMonitoringService {
 
   public void controlService(String sessionId, String action) {
     if (!action.matches("restart|start|stop")) {
-      throw new IllegalArgumentException(
-          "РќРµРґРѕРїСѓСЃС‚РёРјРѕРµ РґРµР№СЃС‚РІРёРµ РґР»СЏ СЃР»СѓР¶Р±С‹: " + action);
+      throw new IllegalArgumentException("Operation failed due to an error." + action);
     }
     commandExecutor.execute(sessionId, LinuxCommands.systemctl(action, "smbd"));
   }
 
   public void killSession(String sessionId, String pid) {
     if (!pid.matches("^\\d+$")) {
-      throw new IllegalArgumentException("РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ PID РїСЂРѕС†РµСЃСЃР°: " + pid);
+      throw new IllegalArgumentException("Operation failed due to an error." + pid);
     }
     commandExecutor.execute(sessionId, LinuxCommands.kill(pid));
   }
 
-  /**
-   * РџРѕР»СѓС‡Р°РµС‚ СЃС‚Р°С‚РёСЃС‚РёРєСѓ СЃРІРѕР±РѕРґРЅРѕРіРѕ РјРµСЃС‚Р° РЅР° РґРёСЃРєР°С…
-   * (/srv/samba РёР»Рё РєРѕСЂРЅСЏ)
-   */
   public List<String> getDiskUsage(String sessionId) {
     List<String> stats = new ArrayList<>();
     try {

@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class SmbConfParser {
 
-  /** РџР°СЂСЃРёРЅРі СЃРµРєС†РёРё [global] РІ DTO */
   public SambaGlobalConfigDto parseGlobalConfig(String content) {
     SambaGlobalConfigDto dto = new SambaGlobalConfigDto();
     if (content == null || content.isBlank()) {
@@ -80,7 +79,6 @@ public class SmbConfParser {
     return dto;
   }
 
-  /** Р“РµРЅРµСЂР°С†РёСЏ РЅРѕРІРѕР№ СЃРµРєС†РёРё [global] */
   public String buildGlobalSection(SambaGlobalConfigDto dto) {
     StringBuilder sb = new StringBuilder();
     sb.append("[global]\n");
@@ -120,16 +118,12 @@ public class SmbConfParser {
     return sb.toString();
   }
 
-  /**
-   * Р—Р°РјРµРЅР° СЃС‚Р°СЂРѕР№ СЃРµРєС†РёРё [global] РІ РєРѕРЅС„РёРіРµ РЅР° РЅРѕРІСѓСЋ СЃ
-   * СЃРѕС…СЂР°РЅРµРЅРёРµРј РѕСЃС‚Р°Р»СЊРЅС‹С… СЃРµРєС†РёР№
-   */
   public String updateGlobalSection(String content, SambaGlobalConfigDto dto) {
     String updatedWithoutGlobal;
     try {
       updatedWithoutGlobal = removeSection(content, "global");
     } catch (Exception e) {
-      // Р•СЃР»Рё [global] РЅРµ Р±С‹Р»Рѕ РІРѕРІСЃРµ
+
       updatedWithoutGlobal = content;
     }
 
@@ -242,9 +236,7 @@ public class SmbConfParser {
 
     if (!sectionFound) {
       throw new RuntimeException(
-          "РЎРµРєС†РёСЏ '"
-              + sectionNameToRemove
-              + "' РЅРµ РЅР°Р№РґРµРЅР° РІ С„Р°Р№Р»Рµ РєРѕРЅС„РёРіСѓСЂР°С†РёРё");
+          "Operation failed due to an error." + sectionNameToRemove + "Operation successful");
     }
 
     return result.toString();

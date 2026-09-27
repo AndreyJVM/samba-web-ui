@@ -29,16 +29,14 @@ public class UserApiController {
       HttpSession session, @Valid @RequestBody SambaUserCreateDto dto) {
     String sessionId = session.getId();
     userService.createUser(sessionId, dto.username(), dto.password(), dto.fullName());
-    return ApiResponse.ok(
-        "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ '" + dto.username() + "' СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅ", null);
+    return ApiResponse.ok("Operation successful" + dto.username() + "Operation successful", null);
   }
 
   @DeleteMapping("/{username}")
   public ApiResponse<Void> deleteUser(HttpSession session, @PathVariable String username) {
     String sessionId = session.getId();
     userService.deleteUser(sessionId, username);
-    return ApiResponse.ok(
-        "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ '" + username + "' СѓСЃРїРµС€РЅРѕ СѓРґР°Р»РµРЅ", null);
+    return ApiResponse.ok("Operation successful" + username + "Operation successful", null);
   }
 
   @PutMapping("/{username}/password")
@@ -48,11 +46,10 @@ public class UserApiController {
     String newPassword = body.get("newPassword");
 
     if (newPassword == null || newPassword.isBlank()) {
-      return ApiResponse.error("РќРѕРІС‹Р№ РїР°СЂРѕР»СЊ РѕР±СЏР·Р°С‚РµР»РµРЅ");
+      return ApiResponse.error("Operation successful");
     }
 
     userService.changePassword(sessionId, username, newPassword);
-    return ApiResponse.ok(
-        "РџР°СЂРѕР»СЊ РґР»СЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ '" + username + "' РѕР±РЅРѕРІР»РµРЅ", null);
+    return ApiResponse.ok("Operation successful" + username + "Operation successful", null);
   }
 }

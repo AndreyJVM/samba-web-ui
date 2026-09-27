@@ -14,8 +14,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
   @Override
   public void addViewControllers(ViewControllerRegistry registry) {
-    // РўРёС…РѕРЅСЊРєРѕ РїСЂРѕРєРёРґС‹РІР°РµРј РєРѕСЂРѕС‚РєРёРµ Р°РґСЂРµСЃР° РЅР° РЅР°С€
-    // РёРЅРґРµРєСЃРЅС‹Р№ С„Р°Р№Р» (Р±РµР· СЂРµРґРёСЂРµРєС‚РѕРІ РІ Р±СЂР°СѓР·РµСЂРµ)
+
     registry.addViewController("/").setViewName("forward:/ui/index.html");
     registry.addViewController("/ui").setViewName("forward:/ui/index.html");
     registry.addViewController("/ui/").setViewName("forward:/ui/index.html");
@@ -34,17 +33,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
                   throws IOException {
                 Resource requestedResource = location.createRelative(resourcePath);
 
-                // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ С„Р°Р№Р» РґРµР№СЃС‚РІРёС‚РµР»СЊРЅРѕ
-                // СЃСѓС‰РµСЃС‚РІСѓРµС‚ Рё Р’РћР—РњРћР–РќРћ СЏРІР»СЏРµС‚СЃСЏ С„Р°Р№Р»РѕРј
-                // (РµСЃС‚СЊ С‚РѕС‡РєР°-СЂР°СЃС€РёСЂРµРЅРёРµ, С‚.Рє. "createRelative" РјРѕР¶РµС‚
-                // РІРµСЂРЅСѓС‚СЊ СЃР°РјСѓ РїР°РїРєСѓ)
                 if (requestedResource.exists()
                     && requestedResource.isReadable()
                     && resourcePath.contains(".")) {
                   return requestedResource;
                 }
 
-                // Р’СЃРµ Р·Р°РїСЂРѕСЃС‹ Р±РµР· С‚РѕС‡РєРё (СЂРѕСѓС‚С‹, РїР°РїРєРё) РѕС‚РґР°СЋС‚
                 // React SPA index.html
                 return new ClassPathResource("/static/ui/index.html");
               }

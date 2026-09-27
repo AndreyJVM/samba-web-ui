@@ -42,7 +42,7 @@ class FileSystemApiControllerTest {
         .perform(post("/api/fs/mkdir").param("parentPath", "/srv/samba").param("name", "newfolder"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Каталог успешно создан"));
+        .andExpect(jsonPath("$.message").value("Expected value"));
 
     verify(fileSystemService).createDirectory(anyString(), eq("/srv/samba"), eq("newfolder"));
   }
