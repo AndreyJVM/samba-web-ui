@@ -30,7 +30,6 @@ public class ShareApiController {
     return ApiResponse.ok(share);
   }
 
-  @PostMapping
   @GetMapping("/{sharename}/size")
   public ApiResponse<String> getShareSize(@PathVariable String sharename, HttpSession session) {
     String sessionId = session.getId();
