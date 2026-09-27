@@ -2,7 +2,7 @@
 
 <p>
   <img src="https://img.shields.io/badge/Java-21-orange.svg" alt="Java 17">
-  <img src="https://img.shields.io/badge/Spring%20Boot-4.1-brightgreen.svg" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.4-brightgreen.svg" alt="Spring Boot">
   <img src="https://img.shields.io/badge/Docker-Ready-blue.svg" alt="Docker Ready">
   <img src="https://img.shields.io/badge/Docs-MkDocs%20Material-purple.svg" alt="Documentation">
 </p>
@@ -25,4 +25,4 @@ docker run -d \
   andreyvorobevaqa/samba-web-ui:latest
 ```
 
-Откройте браузер по адресу http://localhost:8080.
+Откройте браузер по адресу http://localhost:8080/ui.

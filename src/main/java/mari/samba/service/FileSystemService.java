@@ -15,13 +15,29 @@ public class FileSystemService {
 
   @Autowired private CommandExecutor commandExecutor;
 
-  /** Получение списка поддиректорий по указанному пути */
+  // List of paths that are strictly forbidden to access via the web file explorer
+  private static final String[] FORBIDDEN_ROOTS = {
+    "/root",
+    "/etc",
+    "/boot",
+    "/sbin",
+    "/bin",
+    "/dev",
+    "/proc",
+    "/sys",
+    "/usr",
+    "/var/lib",
+    "/var/log"
+  };
+
+  /** Запрашивает список вложенных папок в указанном пути */
   public DirectoryBrowseResultDto listDirectories(String sessionId, String requestedPath)
       throws Exception {
     String safePath = normalizePath(requestedPath);
+    requireAllowedPath(safePath);
 
-    // Определяем родительский каталог без привязки к ОС (java.nio.file.Paths зависит от ОС, что
-    // ломает тесты на Windows)
+    // Вычисляем родительскую директорию (java.nio.file.Paths тут не подходит, так
+    // как сервер может быть на Windows)
     String parentPath;
     int lastSlash = safePath.lastIndexOf('/');
     if (lastSlash <= 0) {
@@ -30,7 +46,7 @@ public class FileSystemService {
       parentPath = safePath.substring(0, lastSlash);
     }
 
-    // Читаем только папки с глубиной 1, исключая скрытые
+    // Ищем только папки на глубине 1, обрезаем скрытые
     String cmd = LinuxCommands.findDirectories(safePath);
     String output = commandExecutor.execute(sessionId, cmd);
     List<DirectoryItemDto> items = new ArrayList<>();
@@ -41,7 +57,7 @@ public class FileSystemService {
         String fullPath = line.trim();
         if (fullPath.isEmpty()) continue;
 
-        // В bash пути приходят через '/', поэтому используем '/' вместо File.separator
+        // В bash это маловероятно, но безопасным будет использовать '/' вместо File.separator
         String name = fullPath.substring(fullPath.lastIndexOf('/') + 1);
         items.add(new DirectoryItemDto(name, fullPath));
       }
@@ -50,10 +66,11 @@ public class FileSystemService {
     return new DirectoryBrowseResultDto(safePath, parentPath, items);
   }
 
-  /** Создание новой директории внутри выбранного пути */
+  /** Создает новую папку по указанному пути */
   public void createDirectory(String sessionId, String parentPath, String dirName)
       throws Exception {
     String safeParent = normalizePath(parentPath);
+    requireAllowedPath(safeParent);
     String cleanName = dirName.trim();
 
     if (!cleanName.matches("^[a-zA-Z0-9._-]+$")) {
@@ -62,32 +79,46 @@ public class FileSystemService {
 
     String fullPath =
         safeParent.endsWith("/") ? (safeParent + cleanName) : (safeParent + "/" + cleanName);
+
+    // We already check safeParent, but checking fullPath guarantees it
+    requireAllowedPath(fullPath);
+
     commandExecutor.execute(sessionId, LinuxCommands.mkdir(fullPath));
     commandExecutor.execute(sessionId, LinuxCommands.chmod("0775", fullPath));
   }
 
-  /**
-   * Нормализация путей строго для Linux (замена слешей и удаление дублей), независимо от того, на
-   * какой ОС запущен сам Spring Boot.
-   */
+  /** Приводит путь к формату Linux (это нужно для запуска на Windows), удаляет двойные слеши. */
   private String normalizePath(String path) {
     if (path == null || path.isBlank()) {
       return "/";
     }
 
-    // 1. Меняем виндовые слеши на линуксовые, если они вдруг есть
+    // 1. Заменяем возможные виндовые слеши, если кто-то послал
     String unixPath = path.trim().replace("\\", "/");
 
-    // 2. Убираем двойные слеши (например, /srv//samba -> /srv/samba)
+    // 2. Убираем лишние слеши (например, /srv//samba -> /srv/samba)
     unixPath = unixPath.replaceAll("/+", "/");
 
     // 3. Гарантируем, что путь начинается с корня (абсолютный путь)
     return unixPath.startsWith("/") ? unixPath : "/" + unixPath;
   }
 
-  /** Получение информации о свободном месте на диске по указанному пути */
+  /** Enforces a directory jail to prevent Arbitrary File Read/Write across system files. */
+  private void requireAllowedPath(String path) {
+    for (String forbidden : FORBIDDEN_ROOTS) {
+      if (path.equals(forbidden) || path.startsWith(forbidden + "/")) {
+        throw new SecurityException(
+            "Security Policy: Access to system directory '"
+                + forbidden
+                + "' is strictly forbidden.");
+      }
+    }
+  }
+
+  /** Запрашивает информацию о пространстве жестких дисков по пути */
   public DiskUsageDto getDiskUsage(String sessionId, String path) throws Exception {
     String safePath = normalizePath(path);
+    requireAllowedPath(safePath);
 
     String cmd = LinuxCommands.df(safePath);
     String output = commandExecutor.execute(sessionId, cmd);
@@ -96,13 +127,13 @@ public class FileSystemService {
       throw new RuntimeException("Пустой ответ от df для пути " + path);
     }
 
-    // Разбиваем вывод на строки
+    // Парсим вторую строчку
     String[] lines = output.trim().split("\\r?\\n");
     if (lines.length < 2) {
-      throw new RuntimeException("Неожиданный вывод df: " + output);
+      throw new RuntimeException("Не удалось распарсить df: " + output);
     }
 
-    // Берем последнюю строку (в первой строке идут заголовки Filesystem, 1024-blocks и т.д.)
+    // Берем последнюю строчку (в случаях длинных маунтов Filesystem, 1024-blocks и т.д.)
     String dataLine = lines[lines.length - 1];
     String[] parts = dataLine.trim().split("\\s+");
 
@@ -123,14 +154,14 @@ public class FileSystemService {
             usePercent,
             mountPoint);
       } catch (NumberFormatException e) {
-        throw new RuntimeException("Ошибка парсинга чисел из вывода df: " + dataLine);
+        throw new RuntimeException("Ошибка парсинга чисел в выводе df: " + dataLine);
       }
     }
 
-    throw new RuntimeException("Некорректный формат строки данных: " + dataLine);
+    throw new RuntimeException("Неожиданный формат ответа парсинга: " + dataLine);
   }
 
-  /** Преобразование байтов в читаемый вид (KB, MB, GB, TB) */
+  /** Преобразует байты в удобочитаемые KB, MB, GB, TB */
   private String formatSize(long bytes) {
     if (bytes < 1024) return bytes + " B";
     int exp = (int) (Math.log(bytes) / Math.log(1024));

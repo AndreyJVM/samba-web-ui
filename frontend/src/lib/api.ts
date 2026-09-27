@@ -11,11 +11,21 @@ export class ApiError extends Error {
   }
 }
 
+function getCsrfToken(): string | null {
+  const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
+  return match ? match[2] : null;
+}
+
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const headers = {
+  const csrf = getCsrfToken();
+  const headers: any = {
     "Content-Type": "application/json",
     ...options.headers,
   };
+
+  if (csrf && options.method && options.method !== 'GET') {
+    headers["X-XSRF-TOKEN"] = csrf;
+  }
 
   try {
     const res = await fetch(url, { ...options, headers });
@@ -25,7 +35,7 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
       if (window.location.pathname !== "/ui/login") {
         window.location.href = "/ui/login";
       }
-      throw new ApiError("Требуется авторизация", 401);
+      throw new ApiError("Сессия истекла", 401);
     }
 
     // Try to parse JSON response
@@ -33,8 +43,8 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     try {
       json = await res.json();
     } catch (e) {
-      if (!res.ok) throw new ApiError("Ошибка сервера", res.status);
-      throw new ApiError("Некорректный формат ответа");
+      if (!res.ok) throw new ApiError("Ошибка ответа", res.status);
+      throw new ApiError("Неожиданный формат ответа");
     }
 
     if (!res.ok || (json.hasOwnProperty("success") && !json.success)) {

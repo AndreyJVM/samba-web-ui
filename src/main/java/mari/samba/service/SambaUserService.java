@@ -2,6 +2,7 @@ package mari.samba.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import mari.samba.model.SambaUser;
 import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
@@ -16,7 +17,49 @@ import org.springframework.stereotype.Service;
 @Service
 public class SambaUserService {
 
+  // Blacklist of critical system users to prevent accidental or malicious destruction via API
+  private static final Set<String> SYSTEM_USERS_BLACKLIST =
+      Set.of(
+          "root",
+          "daemon",
+          "bin",
+          "sys",
+          "sync",
+          "games",
+          "man",
+          "lp",
+          "mail",
+          "news",
+          "uucp",
+          "proxy",
+          "www-data",
+          "backup",
+          "list",
+          "irc",
+          "gnats",
+          "nobody",
+          "systemd-network",
+          "systemd-resolve",
+          "syslog",
+          "messagebus",
+          "_apt",
+          "lxd",
+          "uuidd",
+          "dnsmasq",
+          "landscape",
+          "pollinate",
+          "sshd",
+          "postgres",
+          "mysql");
+
   @Autowired private CommandExecutor commandExecutor;
+
+  private void requireNonSystemUser(String username) {
+    if (SYSTEM_USERS_BLACKLIST.contains(username.trim().toLowerCase())) {
+      throw new SecurityException(
+          "Security Policy: Cannot modify core system users via Samba API.");
+    }
+  }
 
   /**
    * Retrieves a list of all currently registered Samba users from the remote server. Parses the
@@ -59,6 +102,7 @@ public class SambaUserService {
    */
   public void createUser(String sessionId, String username, String password, String fullName)
       throws Exception {
+    requireNonSystemUser(username);
     String cleanUsername = username.trim();
     String cleanPassword = password.trim();
     String comment = (fullName != null && !fullName.isBlank()) ? fullName.trim() : cleanUsername;
@@ -83,6 +127,7 @@ public class SambaUserService {
    * @throws Exception if the OS user deletion command fails
    */
   public void deleteUser(String sessionId, String username) throws Exception {
+    requireNonSystemUser(username);
     try {
       commandExecutor.execute(sessionId, LinuxCommands.deleteSambaUser(username));
     } catch (Exception ignored) {
@@ -101,6 +146,7 @@ public class SambaUserService {
    */
   public void changePassword(String sessionId, String username, String newPassword)
       throws Exception {
+    requireNonSystemUser(username);
     commandExecutor.execute(
         sessionId, LinuxCommands.chpasswd(), username + ":" + newPassword + "\n");
     commandExecutor.execute(

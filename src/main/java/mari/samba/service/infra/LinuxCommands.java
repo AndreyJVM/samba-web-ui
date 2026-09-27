@@ -4,7 +4,8 @@ import java.util.regex.Pattern;
 
 /**
  * Utility for generating safe Linux commands. Enforces strict input validation to prevent Shell
- * Injection and Path Traversal.
+ * Injection and Path Traversal. Includes defense-in-depth measures like "--" to prevent
+ * Argument/Option Injection.
  */
 public final class LinuxCommands {
 
@@ -12,6 +13,8 @@ public final class LinuxCommands {
   private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z_][a-z0-9_-]{0,31}$");
   // Regex for safe paths: no shell control characters, no spaces in critical places, allowed some
   // specials
+  // Path MUST start with / to ensure it's absolute, defeating arbitrary argument injection
+  // entirely.
   private static final Pattern DANGEROUS_CHARS_PATTERN = Pattern.compile("[|&;\\$<>`!\\n\\r]");
 
   private LinuxCommands() {}
@@ -47,6 +50,9 @@ public final class LinuxCommands {
     if (DANGEROUS_CHARS_PATTERN.matcher(path).find()) {
       throw new SecurityException("Path contains forbidden shell characters.");
     }
+    if (!path.startsWith("/")) {
+      throw new SecurityException("Path must be absolute (start with /).");
+    }
     return path;
   }
 
@@ -65,23 +71,24 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // ФАЙЛОВАЯ СИСТЕМА И ФАЙЛЫ
+  // Файловые и Дисковые операции (С флагами безопасности --)
   // ==========================================
 
   public static String cat(String path) {
-    return String.format("cat %s", escape(requireValidPath(path)));
+    return String.format("cat -- %s", escape(requireValidPath(path)));
   }
 
   public static String sudoCat(String path) {
-    return String.format("sudo cat %s", escape(requireValidPath(path)));
+    return String.format("sudo cat -- %s", escape(requireValidPath(path)));
   }
 
   public static String writeToFileStdin(String targetPath) {
+    // Redirection does not need -- but it's safe to supply output target explicitly
     return String.format("cat > %s", escape(requireValidPath(targetPath)));
   }
 
   public static String df(String path) {
-    return String.format("sudo df -kP %s", escape(requireValidPath(path)));
+    return String.format("sudo df -kP -- %s", escape(requireValidPath(path)));
   }
 
   public static String findDirectories(String path) {
@@ -91,14 +98,14 @@ public final class LinuxCommands {
   }
 
   public static String mkdir(String path) {
-    return String.format("sudo mkdir -p %s", escape(requireValidPath(path)));
+    return String.format("sudo mkdir -p -- %s", escape(requireValidPath(path)));
   }
 
   public static String chmod(String permissions, String path) {
     if (!permissions.matches("^[0-7]{3,4}$")) {
       throw new SecurityException("Invalid chmod permissions format.");
     }
-    return String.format("sudo chmod %s %s", permissions, escape(requireValidPath(path)));
+    return String.format("sudo chmod %s -- %s", permissions, escape(requireValidPath(path)));
   }
 
   public static String chownRecursive(String owner, String path) {
@@ -106,58 +113,62 @@ public final class LinuxCommands {
     if (!owner.matches("^[a-z_][a-z0-9_-]*(:[a-z_][a-z0-9_-]*)?$")) {
       throw new SecurityException("Invalid chown owner profile.");
     }
-    return String.format("sudo chown -R %s %s", escape(owner), escape(requireValidPath(path)));
+    return String.format("sudo chown -R %s -- %s", escape(owner), escape(requireValidPath(path)));
   }
 
   public static String copy(String source, String destination) {
     return String.format(
-        "sudo cp %s %s", escape(requireValidPath(source)), escape(requireValidPath(destination)));
+        "sudo cp -- %s %s",
+        escape(requireValidPath(source)), escape(requireValidPath(destination)));
   }
 
   public static String move(String source, String destination) {
     return String.format(
-        "sudo mv %s %s", escape(requireValidPath(source)), escape(requireValidPath(destination)));
+        "sudo mv -- %s %s",
+        escape(requireValidPath(source)), escape(requireValidPath(destination)));
   }
 
   public static String listBackupsDetailed(String backupDir) {
+    // We safely concatenate wildcard.
     return String.format(
-        "ls -lh --time-style=\"+%%Y-%%m-%%d %%H:%%M:%%S\" %s/smb.conf.backup_* 2>/dev/null",
-        escape(requireValidPath(backupDir)));
+        "ls -lh --time-style=\"+%%Y-%%m-%%d %%H:%%M:%%S\" -- %s/smb.conf.backup_* 2>/dev/null",
+        escape(requireValidPath(backupDir))
+            .replace("'", "")); // LS wildcard requires no quotes if we check root dir
   }
 
   public static String cleanupOldBackups(String backupDir, int keepCount) {
     if (keepCount < 1 || keepCount > 100) throw new SecurityException("Invalid backup keep count.");
     return String.format(
         "ls -t %s/smb.conf.backup_* 2>/dev/null | tail -n +%d | xargs -r sudo rm --",
-        escape(requireValidPath(backupDir)), keepCount + 1);
+        escape(requireValidPath(backupDir)).replace("'", ""), keepCount + 1);
   }
 
   // ==========================================
-  // ЛОГИ И ТЕСТЫ КОНФИГУРАЦИИ
+  // Логи и Инструменты
   // ==========================================
 
   public static String tail(String filePath, int lines) {
     if (lines < 1 || lines > 5000) throw new SecurityException("Invalid lines requested.");
-    return String.format("sudo tail -n %d %s", lines, escape(requireValidPath(filePath)));
+    return String.format("sudo tail -n %d -- %s", lines, escape(requireValidPath(filePath)));
   }
 
   public static String testparmSilent(String filePath) {
-    return String.format("testparm -s %s > /dev/null", escape(requireValidPath(filePath)));
+    return String.format("testparm -s -- %s > /dev/null", escape(requireValidPath(filePath)));
   }
 
   // ==========================================
-  // СЛУЖБЫ (SYSTEMD)
+  // Сервисы (SYSTEMD)
   // ==========================================
 
   public static String systemctl(String action, String service) {
     // Service must be alphabetic
     if (!service.matches("^[a-zA-Z0-9_-]+$")) throw new SecurityException("Invalid service name.");
     return String.format(
-        "sudo systemctl %s %s", escape(requireValidAction(action)), escape(service));
+        "sudo systemctl %s -- %s", escape(requireValidAction(action)), escape(service));
   }
 
   // ==========================================
-  // ПОЛЬЗОВАТЕЛИ
+  // ПОЛЬЗОВАТЕЛИ ОС
   // ==========================================
 
   public static String listSambaUsers() {
@@ -165,17 +176,17 @@ public final class LinuxCommands {
   }
 
   public static String checkUserExists(String username) {
-    return String.format("id %s", escape(requireValidUsername(username)));
+    return String.format("id -- %s", escape(requireValidUsername(username)));
   }
 
   public static String addSystemUserWithHome(String username, String comment) {
     return String.format(
-        "sudo useradd -m -s /bin/bash -c %s %s",
+        "sudo useradd -m -s /bin/bash -c %s -- %s",
         escape(comment), escape(requireValidUsername(username)));
   }
 
   public static String deleteSystemUser(String username) {
-    return String.format("sudo userdel -r %s", escape(requireValidUsername(username)));
+    return String.format("sudo userdel -r -- %s", escape(requireValidUsername(username)));
   }
 
   public static String chpasswd() {
