@@ -7,11 +7,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import mari.samba.dto.auth.ConnectionRequestDto;
 import mari.samba.dto.common.ApiResponse;
+import mari.samba.exception.SambaCommandException;
+import mari.samba.service.BruteForceProtectionService;
 import mari.samba.service.infra.SshSessionManager;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,51 +24,18 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class AuthApiController {
 
-  @Autowired private SshSessionManager sessionManager;
+  private final SshSessionManager sessionManager;
+  private final BruteForceProtectionService bruteForceService;
 
-  // In-memory simplistic Rate Limiter for Brute-Force defense limit (IP -> Block Timestamp)
-  private final ConcurrentHashMap<String, FailedAttemptNode> failedAttempts =
-      new ConcurrentHashMap<>();
-  private static final int MAX_FAILED_ATTEMPTS = 5;
-  private static final long LOCK_TIME_MS = 3 * 60 * 1000; // 3 minutes lockout
-
-  private static class FailedAttemptNode {
-    int attempts;
-    long lastAttemptTime;
-
-    FailedAttemptNode(int attempts, long lastAttemptTime) {
-      this.attempts = attempts;
-      this.lastAttemptTime = lastAttemptTime;
-    }
-  }
-
-  private boolean isRateLimited(String ipAddress) {
-    FailedAttemptNode node = failedAttempts.get(ipAddress);
-    if (node == null) return false;
-
-    if (System.currentTimeMillis() - node.lastAttemptTime > LOCK_TIME_MS) {
-      failedAttempts.remove(ipAddress);
-      return false;
-    }
-    return node.attempts >= MAX_FAILED_ATTEMPTS;
-  }
-
-  private void recordFailedAttempt(String ipAddress) {
-    failedAttempts.compute(
-        ipAddress,
-        (ip, node) -> {
-          if (node == null) {
-            return new FailedAttemptNode(1, System.currentTimeMillis());
-          }
-          node.attempts++;
-          node.lastAttemptTime = System.currentTimeMillis();
-          return node;
-        });
+  public AuthApiController(
+      SshSessionManager sessionManager, BruteForceProtectionService bruteForceService) {
+    this.sessionManager = sessionManager;
+    this.bruteForceService = bruteForceService;
   }
 
   private String getClientIp(HttpServletRequest request) {
     String xfHeader = request.getHeader("X-Forwarded-For");
-    if (xfHeader == null) {
+    if (xfHeader == null || xfHeader.isEmpty()) {
       return request.getRemoteAddr();
     }
     return xfHeader.split(",")[0];
@@ -80,59 +47,65 @@ public class AuthApiController {
 
     String clientIp = getClientIp(httpRequest);
 
-    if (isRateLimited(clientIp)) {
+    if (bruteForceService.isBlocked(clientIp)) {
       return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
           .body(
               ApiResponse.error(
-                  "Security Policy: Too many failed login attempts. Try again in 3 minutes."));
+                  "Слишком много неудачных попыток входа (макс 5). Подождите 3 минуты."));
     }
 
     if (!request.isKeyAuth()
         && (request.getPassword() == null || request.getPassword().isBlank())) {
       return ResponseEntity.badRequest()
-          .body(
-              ApiResponse.error(
-                  "РџР°СЂРѕР»СЊ РѕР±СЏР·Р°С‚РµР»РµРЅ РґР»СЏ СЃС‚Р°РЅРґР°СЂС‚РЅРѕР№ Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё"));
+          .body(ApiResponse.error("Пароль обязателен для аутентификации без ключа"));
     }
 
     try {
-      HttpSession httpSession = httpRequest.getSession(true);
-      String sessionId = httpSession.getId();
-
-      // 1. РЎРѕР·РґР°РµРј SSH-СЃРµСЃСЃРёСЋ
+      HttpSession session = httpRequest.getSession(true);
+      String sessionId = session.getId();
       sessionManager.createSession(sessionId, request);
 
-      // 2. РћС„РѕСЂРјР»СЏРµРј Spring Security Authenticate
+      // Инициализируем Spring Security Authenticate
       List<SimpleGrantedAuthority> authorities =
           Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
       UsernamePasswordAuthenticationToken authentication =
           new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
 
-      // 3. Р—Р°РїРёСЃС‹РІР°РµРј РІ РєРѕРЅС‚РµРєСЃС‚
+      // Сохраняем в контекст
       SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      // 4. РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј РєСѓРєРё-СЃРµСЃСЃРёРё (РґР»СЏ РёРЅС‚РµРіСЂР°С†РёРё СЃ Spring
-      // Security API РµСЃР»Рё РЅСѓР¶РЅРѕ)
-      httpSession.setAttribute(
+      // Обязательно сохраняем контекст в сессию
+      session.setAttribute(
           HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
           SecurityContextHolder.getContext());
 
-      // 5. РџРѕР»РµР·РЅС‹Рµ РґР°РЅРЅС‹Рµ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ
-      httpSession.setAttribute(
+      // Визуальные метки для логов / фронтенда
+      session.setAttribute(
           "sambaHost",
           request.getHost()
               + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : ""));
-      httpSession.setAttribute("sambaUser", request.getUsername());
+      session.setAttribute("sambaUser", request.getUsername());
 
-      // РћС‡РёСЃС‚РєР° РїСЂРё СѓСЃРїРµС€РЅРѕРј РІС…РѕРґРµ
-      failedAttempts.remove(clientIp);
+      // Сброс счетчика неудачных попыток после успешного входа
+      bruteForceService.resetFailedLogin(clientIp);
 
-      return ResponseEntity.ok(
-          ApiResponse.ok("РЈСЃРїРµС€РЅРѕ РїРѕРґРєР»СЋС‡РёР»РёСЃСЊ Рє СЃРµСЂРІРµСЂСѓ!", null));
-    } catch (Exception e) {
-      recordFailedAttempt(clientIp);
+      return ResponseEntity.ok(ApiResponse.ok("Успешно подключено к серверу", null));
+
+    } catch (SambaCommandException e) {
+      bruteForceService.registerFailedLogin(clientIp);
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body(ApiResponse.error("РћС€РёР±РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ: " + e.getMessage()));
+          .body(
+              ApiResponse.error(
+                  "Ошибка подключения: "
+                      + e.getMessage()
+                      + ". Убедитесь, что сервер включен, а учетные данные верны."));
+    } catch (IllegalArgumentException e) {
+      bruteForceService.registerFailedLogin(clientIp);
+      return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+    } catch (Exception e) {
+      bruteForceService.registerFailedLogin(clientIp);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(ApiResponse.error("Внутренняя ошибка сервера: " + e.getMessage()));
     }
   }
 
@@ -157,12 +130,12 @@ public class AuthApiController {
   }
 
   @PostMapping("/logout")
-  public ResponseEntity<ApiResponse<Void>> disconnect(HttpSession httpSession) {
-    if (httpSession != null) {
-      String sessionId = httpSession.getId();
+  public ResponseEntity<ApiResponse<Void>> logout(HttpSession session) {
+    if (session != null) {
+      String sessionId = session.getId();
       sessionManager.disconnect(sessionId);
-      httpSession.invalidate();
+      session.invalidate();
     }
-    return ResponseEntity.ok(ApiResponse.ok("РЈСЃРїРµС€РЅРѕ РѕС‚РєР»СЋС‡РёР»РёСЃСЊ", null));
+    return ResponseEntity.ok(ApiResponse.ok("Успешно отключено", null));
   }
 }
