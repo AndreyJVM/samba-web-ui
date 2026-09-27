@@ -5,33 +5,30 @@ import jakarta.validation.constraints.Pattern;
 
 public class SambaGlobalConfigDto {
 
-  @NotBlank(message = "Р Р°Р±РѕС‡Р°СЏ РіСЂСѓРїРїР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚РѕР№")
-  @Pattern(
-      regexp = "^[a-zA-Z0-9_.-]+$",
-      message = "РќРµРґРѕРїСѓСЃС‚РёРјС‹Рµ СЃРёРјРІРѕР»С‹ РІ РёРјРµРЅРё СЂР°Р±РѕС‡РµР№ РіСЂСѓРїРїС‹")
+  @NotBlank(message = "Workgroup name cannot be blank")
+  @Pattern(regexp = "^[a-zA-Z0-9_.-]+$", message = "Workgroup name contains invalid characters")
   private String workgroup = "WORKGROUP";
 
   private String serverString = "Samba Server";
   private String netbiosName;
 
-  // Р РµР¶РёРј Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё: user, ads
+  /** Security mode: user, ads */
   private String security = "user";
 
-  // РџРѕРІРµРґРµРЅРёРµ РґР»СЏ РЅРµРёР·РІРµСЃС‚РЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№: Bad User (РґР»СЏ
-  // РіРѕСЃС‚РµРІРѕРіРѕ РґРѕСЃС‚СѓРїР°), Never
+  /** Map unknown users to guest account: Bad User, Never */
   private String mapToGuest = "Bad User";
 
-  // РЎРµС‚РµРІС‹Рµ РїСЂРёРІСЏР·РєРё
+  /** Network interfaces to bind */
   private String interfaces;
+
   private boolean bindInterfacesOnly = false;
 
-  // РћРїС‚РёРјРёР·Р°С†РёСЏ (РѕС‚РєР»СЋС‡РµРЅРёРµ РїСЂРёРЅС‚РµСЂРѕРІ РґР»СЏ С‡РёСЃС‚РѕРіРѕ
-  // С„Р°Р№Р»РѕРІРѕРіРѕ СЃРµСЂРІРµСЂР°)
   private boolean loadPrinters = false;
   private boolean disableNetbios = false;
 
-  // Р’РµСЂСЃРёРё РїСЂРѕС‚РѕРєРѕР»Р° SMB (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ min=SMB2, max=SMB3)
+  /** Min/Max SMB protocols */
   private String serverMinProtocol = "SMB2";
+
   private String serverMaxProtocol = "SMB3";
 
   public SambaGlobalConfigDto() {}

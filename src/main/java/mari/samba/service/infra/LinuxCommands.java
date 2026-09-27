@@ -9,13 +9,8 @@ import java.util.regex.Pattern;
  */
 public final class LinuxCommands {
 
-  // Strict regex for linux usernames (lowercase, numbers, underscores, dashes, up to 32 chars)
   private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z_][a-z0-9_-]{0,31}$");
-  // Regex for safe paths: no shell control characters, no spaces in critical places, allowed some
-  // specials
-  // Path MUST start with / to ensure it's absolute, defeating arbitrary argument injection
-  // entirely.
-  private static final Pattern DANGEROUS_CHARS_PATTERN = Pattern.compile("[|&;\\$<>`!\\n\\r]");
+  private static final Pattern DANGEROUS_CHARS_PATTERN = Pattern.compile("[|&;\\$<>!\\n\\r]");
 
   private LinuxCommands() {}
 
@@ -71,8 +66,7 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // Р¤Р°Р№Р»РѕРІС‹Рµ Рё Р”РёСЃРєРѕРІС‹Рµ РѕРїРµСЂР°С†РёРё (РЎ С„Р»Р°РіР°РјРё
-  // Р±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё --)
+  // File and Directory Operations (Safe)
   // ==========================================
 
   public static String cat(String path) {
@@ -84,7 +78,6 @@ public final class LinuxCommands {
   }
 
   public static String writeToFileStdin(String targetPath) {
-    // Redirection does not need -- but it's safe to supply output target explicitly
     return String.format("cat > %s", escape(requireValidPath(targetPath)));
   }
 
@@ -110,7 +103,6 @@ public final class LinuxCommands {
   }
 
   public static String chownRecursive(String owner, String path) {
-    // Owner can be 'user' or 'user:group'
     if (!owner.matches("^[a-z_][a-z0-9_-]*(:[a-z_][a-z0-9_-]*)?$")) {
       throw new SecurityException("Invalid chown owner profile.");
     }
@@ -130,11 +122,9 @@ public final class LinuxCommands {
   }
 
   public static String listBackupsDetailed(String backupDir) {
-    // We safely concatenate wildcard.
     return String.format(
         "ls -lh --time-style=\"+%%Y-%%m-%%d %%H:%%M:%%S\" -- %s/smb.conf.backup_* 2>/dev/null",
-        escape(requireValidPath(backupDir))
-            .replace("'", "")); // LS wildcard requires no quotes if we check root dir
+        escape(requireValidPath(backupDir)).replace("'", ""));
   }
 
   public static String cleanupOldBackups(String backupDir, int keepCount) {
@@ -145,7 +135,7 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // Р›РѕРіРё Рё РРЅСЃС‚СЂСѓРјРµРЅС‚С‹
+  // Logs and Config Verification
   // ==========================================
 
   public static String tail(String filePath, int lines) {
@@ -158,18 +148,17 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // РЎРµСЂРІРёСЃС‹ (SYSTEMD)
+  // Systemd Services
   // ==========================================
 
   public static String systemctl(String action, String service) {
-    // Service must be alphabetic
     if (!service.matches("^[a-zA-Z0-9_-]+$")) throw new SecurityException("Invalid service name.");
     return String.format(
         "sudo systemctl %s -- %s", escape(requireValidAction(action)), escape(service));
   }
 
   // ==========================================
-  // РџРћР›Р¬Р—РћР’РђРўР•Р›Р РћРЎ
+  // Samba Users (pdbedit / smbpasswd)
   // ==========================================
 
   public static String listSambaUsers() {
@@ -211,7 +200,7 @@ public final class LinuxCommands {
   }
 
   // ==========================================
-  // РњРћРќРРўРћР РРќР“ (SMBSTATUS)
+  // Samba Monitoring (SMBSTATUS)
   // ==========================================
 
   public static String smbstatus(String flag) {
