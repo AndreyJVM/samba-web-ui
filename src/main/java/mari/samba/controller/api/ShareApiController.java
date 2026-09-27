@@ -31,6 +31,14 @@ public class ShareApiController {
   }
 
   @PostMapping
+  @GetMapping("/{sharename}/size")
+  public ApiResponse<String> getShareSize(@PathVariable String sharename, HttpSession session) {
+    String sessionId = session.getId();
+    String size = shareService.getShareSize(sessionId, sharename);
+    return ApiResponse.ok("Operation successful", size);
+  }
+
+  @PostMapping
   public ApiResponse<Void> createShare(
       HttpSession session, @Valid @RequestBody SambaShareCreateDto dto) {
     String sessionId = session.getId();

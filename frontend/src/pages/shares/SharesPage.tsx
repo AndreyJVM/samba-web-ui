@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FolderKanban, Plus, Trash2, Settings2, ShieldCheck, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { FolderKanban, HardDrive, Plus, Trash2, Settings2, ShieldCheck, Users, ChevronDown, ChevronUp } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/ui/toast";
 import { useConfirm } from "../../components/ui/confirm";
@@ -35,6 +35,22 @@ export default function SharesPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   
   const [loading, setLoading] = useState(true);
+
+  const [sizes, setSizes] = useState<Record<string, string>>({});
+  const [loadingSizes, setLoadingSizes] = useState<Record<string, boolean>>({});
+
+  const fetchSize = async (sharename: string) => {
+    setLoadingSizes(prev => ({ ...prev, [sharename]: true }));
+    try {
+      const res = await api.get<string>(`/api/shares/${sharename}/size`);
+      setSizes(prev => ({ ...prev, [sharename]: res as string }));
+    } catch (err: any) {
+      toastError("Size Error", err.message);
+    } finally {
+      setLoadingSizes(prev => ({ ...prev, [sharename]: false }));
+    }
+  };
+
 
   const [isEditing, setIsEditing] = useState(false);
   const [currentShare, setCurrentShare] = useState<Partial<Share> | null>(null);
@@ -201,11 +217,28 @@ export default function SharesPage() {
                     </div>
                     {share.comment && <div className="text-[12px] text-status-disabled mt-1.5 truncate max-w-[220px]" title={share.comment}>{share.comment}</div>}
                   </td>
+                  
                   <td className="py-4 px-5">
-                    <span className="text-[13px] font-mono text-status-disabled bg-surface-hover px-2 py-1 rounded-md border border-border/50" title={share.path}>
-                      {share.path || '/'}
-                    </span>
+                    <div className="flex flex-col gap-2 relative group-size">
+                      <span className="text-[13px] font-mono text-status-disabled bg-surface-hover px-2 py-1 rounded-md border border-border/50 inline-block w-fit" title={share.path}>
+                        {share.path || '/'}
+                      </span>
+                      <div className="flex items-center gap-2 mt-1 min-h-[20px]">
+                        {!sizes[share.name] ? (
+                            <button onClick={() => fetchSize(share.name)} disabled={loadingSizes[share.name]} className="text-[11px] text-status-disabled hover:text-brand flex items-center gap-1.5 transition-colors">
+                              <HardDrive className={`w-3.5 h-3.5 ${loadingSizes[share.name] ? 'animate-pulse' : ''}`} />
+                              {loadingSizes[share.name] ? t('shares.calculating') : t('shares.calcSize')}
+                            </button>
+                        ) : (
+                            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground bg-brand/10 text-brand px-2 py-0.5 rounded border border-brand/20">
+                              <HardDrive className="w-3.5 h-3.5" />
+                              {sizes[share.name]}
+                            </span>
+                        )}
+                      </div>
+                    </div>
                   </td>
+
                   <td className="py-4 px-5">
                     <div className="flex flex-wrap gap-2">
                       {share.readOnly && <span className="bg-status-warning/10 text-status-warning border border-status-warning/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">RO</span>}

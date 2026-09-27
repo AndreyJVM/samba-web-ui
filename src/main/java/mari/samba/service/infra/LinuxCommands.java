@@ -81,6 +81,10 @@ public final class LinuxCommands {
     return String.format("cat > %s", escape(requireValidPath(targetPath)));
   }
 
+  public static String du(String path) {
+    return String.format("sudo du -sh -- %s 2>/dev/null", escape(requireValidPath(path)));
+  }
+
   public static String df(String path) {
     return String.format("sudo df -kP -- %s", escape(requireValidPath(path)));
   }

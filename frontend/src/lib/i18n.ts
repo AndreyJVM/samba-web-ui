@@ -76,7 +76,9 @@ export const translations = {
       hostsAllow: "Hosts Allow",
       hostsDeny: "Hosts Deny",
       configure: "Configure",
-      private: "PRIVATE"
+      private: "PRIVATE",
+      calcSize: "Calculate Size",
+      calculating: "Calculating..."
     },
     users: {
       title: "System Users",

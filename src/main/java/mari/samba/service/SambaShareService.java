@@ -58,6 +58,22 @@ public class SambaShareService {
     configService.updateSmbConf(sessionId, updatedContent);
   }
 
+  public String getShareSize(String sessionId, String name) {
+    SambaShare share = getShareByName(sessionId, name);
+    String path = share.getPath();
+    if (path == null || path.isBlank()) {
+      return "N/A";
+    }
+    String output = commandExecutor.execute(sessionId, LinuxCommands.du(path));
+    if (output != null && !output.isBlank()) {
+      String[] parts = output.trim().split("\s+");
+      if (parts.length > 0) {
+        return parts[0];
+      }
+    }
+    return "0";
+  }
+
   public void deleteShare(String sessionId, String name) {
     String content = configService.getSmbConfContent(sessionId);
     String updatedContent = configService.removeShareSection(content, name);
