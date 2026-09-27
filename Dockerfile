@@ -1,33 +1,72 @@
-# STAGE 1: Builder
-# Используем сборку на базе Debian/Ubuntu (jammy), так как frontend-maven-plugin
-# скачивает бинарники Node.js (glibc), которые не работают в чистом Alpine (musl).
-FROM eclipse-temurin:21-jdk-jammy AS builder
-
+# ==========================================
+# Stage 1: Build the Application
+# ==========================================
+FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /app
 
-# Устанавливаем maven
-RUN apt-get update && apt-get install -y maven
+# Install Node.js & npm (required by frontend-maven-plugin fallback, though usually it downloads its own)
+RUN apt-get update && apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
 
-COPY pom.xml .
-RUN mvn dependency:go-offline
+# Copy Maven wrapper & project config
+COPY mvnw ./
+COPY .mvn .mvn
+COPY pom.xml ./
 
-COPY frontend ./frontend
+# Give execution rights to Maven wrapper
+RUN chmod +x mvnw
+
+# Download dependencies (cache layer)
+RUN ./mvnw dependency:go-offline -B -DskipTests
+
+# Copy source code and build the JAR
 COPY src ./src
-RUN mvn clean package -DskipTests
+COPY frontend ./frontend
+RUN ./mvnw clean package -DskipTests
 
-# STAGE 2: Runtime
+# ==========================================
+# Stage 2: Production Container (Alpine Linux)
+# ==========================================
 FROM eclipse-temurin:21-jre-alpine
-
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
 WORKDIR /app
 
-COPY --from=builder /app/target/*.jar app.jar
+# Install OS dependencies: SSH Server, Samba, Sudo, Bash
+RUN apk add --update --no-cache \
+    openssh \
+    samba \
+    samba-common-tools \
+    samba-client \
+    sudo \
+    bash \
+    shadow \
+    coreutils
 
-RUN chown -R appuser:appgroup /app
+# Setup SSH Host Keys
+RUN ssh-keygen -A
 
-USER appuser
+# Create default administrative user for the Web UI (Admin mapped to OS)
+RUN adduser -D -h /home/admin -s /bin/bash admin && \
+    echo "admin:admin" | chpasswd && \
+    echo "admin ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
+# Prepare Samba config and backup directories
+RUN mkdir -p /etc/samba/backups && \
+    mkdir -p /mnt/samba/public && \
+    chown -R admin:admin /mnt/samba
+
+# Copy Docker entrypoint and apply permissions
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Copy Spring Boot App from Builder
+COPY --from=build /app/target/samba-web-ui-*.jar /app/samba-web-ui.jar
+
+# Expose Web Interface, SMB, and SSH (for web UI backend bridge)
 EXPOSE 8080
+EXPOSE 445
+EXPOSE 139
+EXPOSE 22
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Launch the orchestrator script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

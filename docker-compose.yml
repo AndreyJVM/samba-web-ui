@@ -1,32 +1,23 @@
+version: '3.8'
+
 services:
-  samba-sandbox:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.samba
-    image: samba-test-server:latest
-    container_name: samba-sandbox
-    ports:
-      # Пробрасываем SSH на нестандартный порт для доступа с хоста
-      - "2222:22"
-      # Пробрасываем порты Samba для тестирования подключения с хоста
-      - "139:139"
-      - "445:445"
-    volumes:
-      - samba_data:/srv/samba
-    restart: unless-stopped
-
-  web-server:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.web
-    image: samba-web-ui:latest
+  samba-nas:
+    build: .
     container_name: samba-web-ui
-    ports:
-      - "8080:8080"
-    depends_on:
-      - samba-sandbox
     restart: unless-stopped
-
-volumes:
-  samba_data:
-    driver: local
+    ports:
+      # Web UI
+      - "8080:8080"
+      # Samba / SMB Ports
+      - "445:445"
+      - "139:139"
+      # (Optional) External SSH. Internally used on :22
+      # - "2222:22"
+    volumes:
+      # Mount your specific host directories here to expose via Samba
+      - ./data:/mnt/samba
+      # Keep smb.conf persisted globally
+      - ./config:/etc/samba
+    environment:
+      - TZ=UTC
+    privileged: true # Sometimes required for deep kernel chown/permissions matching
