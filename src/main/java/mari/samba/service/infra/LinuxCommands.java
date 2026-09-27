@@ -211,4 +211,32 @@ public final class LinuxCommands {
   public static String kill(String pid) {
     return "sudo kill -9 " + requireValidPid(pid);
   }
+
+  // ==========================================
+  // Active Directory Integration
+  // ==========================================
+
+  public static String netAdsJoin(String username, String password) {
+    return String.format("sudo net ads join -U %s", escape(username + "%" + password));
+  }
+
+  public static String netAdsLeave(String username, String password) {
+    return String.format("sudo net ads leave -U %s", escape(username + "%" + password));
+  }
+
+  public static String netAdsTestJoin() {
+    return "sudo net ads testjoin";
+  }
+
+  public static String wbinfoUsers() {
+    return "wbinfo -u";
+  }
+
+  public static String wbinfoGroups() {
+    return "wbinfo -g";
+  }
+
+  public static String writeKrb5Conf() {
+    return "sudo tee /etc/krb5.conf > /dev/null";
+  }
 }
