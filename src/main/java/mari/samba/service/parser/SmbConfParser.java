@@ -71,6 +71,23 @@ public class SmbConfParser {
           case "server max protocol":
             dto.setServerMaxProtocol(val.toUpperCase());
             break;
+
+          case "realm":
+            dto.setRealm(val);
+            break;
+          case "winbind use default domain":
+            dto.setWinbindUseDefaultDomain("yes".equalsIgnoreCase(val));
+            break;
+          case "template shell":
+            dto.setTemplateShell(val);
+            break;
+          case "idmap config * : backend":
+            dto.setIdmapDefaultBackend(val);
+            break;
+          case "idmap config * : range":
+            dto.setIdmapDefaultRange(val);
+            break;
+
           default:
             break;
         }
@@ -113,6 +130,41 @@ public class SmbConfParser {
     }
     if (dto.getServerMaxProtocol() != null && !dto.getServerMaxProtocol().isBlank()) {
       sb.append("   server max protocol = ").append(dto.getServerMaxProtocol().trim()).append("\n");
+    }
+
+    if (dto.getRealm() != null && !dto.getRealm().isBlank()) {
+      sb.append("   realm = ").append(dto.getRealm().trim()).append("\n");
+    }
+    sb.append("   winbind use default domain = ")
+        .append(dto.isWinbindUseDefaultDomain() ? "yes" : "no")
+        .append("\n");
+
+    if (dto.getTemplateShell() != null && !dto.getTemplateShell().isBlank()) {
+      sb.append("   template shell = ").append(dto.getTemplateShell().trim()).append("\n");
+    }
+
+    if (dto.getIdmapDefaultBackend() != null && !dto.getIdmapDefaultBackend().isBlank()) {
+      sb.append("   idmap config * : backend = ")
+          .append(dto.getIdmapDefaultBackend().trim())
+          .append("\n");
+      sb.append("   idmap config * : range = ")
+          .append(dto.getIdmapDefaultRange().trim())
+          .append("\n");
+    }
+
+    if ("ads".equalsIgnoreCase(dto.getSecurity()) && dto.getWorkgroup() != null) {
+      if (dto.getIdmapDomainBackend() != null && !dto.getIdmapDomainBackend().isBlank()) {
+        sb.append("   idmap config ")
+            .append(dto.getWorkgroup().trim())
+            .append(" : backend = ")
+            .append(dto.getIdmapDomainBackend().trim())
+            .append("\n");
+        sb.append("   idmap config ")
+            .append(dto.getWorkgroup().trim())
+            .append(" : range = ")
+            .append(dto.getIdmapDomainRange().trim())
+            .append("\n");
+      }
     }
 
     return sb.toString();

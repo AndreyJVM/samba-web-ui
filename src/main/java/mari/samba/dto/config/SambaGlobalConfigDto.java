@@ -31,6 +31,71 @@ public class SambaGlobalConfigDto {
 
   private String serverMaxProtocol = "SMB3";
 
+  // Active Directory & Winbind Properties
+  private String realm;
+  private boolean winbindUseDefaultDomain = true;
+  private String idmapDefaultBackend = "tdb";
+  private String idmapDefaultRange = "3000-7999";
+  private String idmapDomainBackend = "rid";
+  private String idmapDomainRange = "10000-999999";
+  private String templateShell = "/bin/bash";
+
+  public String getRealm() {
+    return realm;
+  }
+
+  public void setRealm(String realm) {
+    this.realm = realm;
+  }
+
+  public boolean isWinbindUseDefaultDomain() {
+    return winbindUseDefaultDomain;
+  }
+
+  public void setWinbindUseDefaultDomain(boolean winbindUseDefaultDomain) {
+    this.winbindUseDefaultDomain = winbindUseDefaultDomain;
+  }
+
+  public String getIdmapDefaultBackend() {
+    return idmapDefaultBackend;
+  }
+
+  public void setIdmapDefaultBackend(String idmapDefaultBackend) {
+    this.idmapDefaultBackend = idmapDefaultBackend;
+  }
+
+  public String getIdmapDefaultRange() {
+    return idmapDefaultRange;
+  }
+
+  public void setIdmapDefaultRange(String idmapDefaultRange) {
+    this.idmapDefaultRange = idmapDefaultRange;
+  }
+
+  public String getIdmapDomainBackend() {
+    return idmapDomainBackend;
+  }
+
+  public void setIdmapDomainBackend(String idmapDomainBackend) {
+    this.idmapDomainBackend = idmapDomainBackend;
+  }
+
+  public String getIdmapDomainRange() {
+    return idmapDomainRange;
+  }
+
+  public void setIdmapDomainRange(String idmapDomainRange) {
+    this.idmapDomainRange = idmapDomainRange;
+  }
+
+  public String getTemplateShell() {
+    return templateShell;
+  }
+
+  public void setTemplateShell(String templateShell) {
+    this.templateShell = templateShell;
+  }
+
   public SambaGlobalConfigDto() {}
 
   public SambaGlobalConfigDto(
