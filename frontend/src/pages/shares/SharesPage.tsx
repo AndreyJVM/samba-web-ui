@@ -54,6 +54,7 @@ export default function SharesPage() {
 
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [currentShare, setCurrentShare] = useState<Partial<Share> | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   

@@ -14,7 +14,9 @@ export const translations = {
       confirm: "Confirm",
       actions: "Actions",
       members: "Members",
-      root: "root"
+      root: "root",
+      browse: "Browse...",
+      select: "Select"
     },
     sidebar: {
       dashboard: "Overview",
@@ -175,7 +177,9 @@ export const translations = {
       confirm: "Подтвердить",
       actions: "Действия",
       members: "Участники",
-      root: "root"
+      root: "root",
+      browse: "Обзор...",
+      select: "Выбрать"
     },
     sidebar: {
       dashboard: "Обзор",
@@ -348,12 +352,26 @@ export const useTranslation = () => {
 
   const t = (key: string): string => {
     const keys = key.split(".");
-    let res: any = translations[lang];
+    let result: any = translations[lang];
     for (const k of keys) {
-      if (res === undefined) break;
-      res = res[k];
+      if (result && typeof result === "object" && k in result) {
+        result = result[k];
+      } else {
+        result = undefined;
+        break;
+      }
     }
-    return res !== undefined ? res : key;
+    if (result === undefined) {
+      result = translations["en"];
+      for (const k of keys) {
+        if (result && typeof result === "object" && k in result) {
+          result = result[k];
+        } else {
+          return key;
+        }
+      }
+    }
+    return typeof result === "string" ? result : key;
   };
 
   return { t, lang, setLanguage };

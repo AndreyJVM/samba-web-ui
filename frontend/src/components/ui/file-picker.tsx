@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Folder, ArrowUp, FolderPlus, ChevronRight, FileText, X } from "lucide-react";
+import { Folder, ArrowUp, FolderPlus, ChevronRight, FileText } from "lucide-react";
 import { api } from "../../lib/api";
 import { useTranslation } from "../../lib/i18n";
 import { useToast } from "./toast";
