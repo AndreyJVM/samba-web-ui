@@ -48,18 +48,14 @@ class FileSystemServiceTest {
   }
 
   @Test
-  void testListDirectories_WithEmptyPath_ShouldNormalizeToRoot() throws Exception {
-    String mockOutput = "/etc\n/var";
-
-    // normalizePath("") -> "/"
-    when(commandExecutor.execute(eq(SESSION_ID), eq(LinuxCommands.findDirectories("/"))))
-        .thenReturn(mockOutput);
-
+  void testListDirectories_WithEmptyPath_ShouldNormalizeToRoot() {
+    // normalizePath("") -> "/" which returns ALLOWED_ROOTS without running find
     DirectoryBrowseResultDto result = fileSystemService.listDirectories(SESSION_ID, "");
 
     assertEquals("/", result.currentPath());
     assertEquals("/", result.parentPath()); // Parent of root is handled gracefully as "/"
-    assertEquals(2, result.directories().size());
+    assertEquals(5, result.directories().size());
+    verifyNoInteractions(commandExecutor);
   }
 
   // ==========================================

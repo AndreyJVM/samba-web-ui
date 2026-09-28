@@ -49,9 +49,16 @@ public class FileSystemService {
       for (String line : lines) {
         String fullPath = line.trim();
         if (fullPath.isEmpty()) continue;
+        if (fullPath.endsWith("/")) {
+          fullPath = fullPath.substring(0, fullPath.length() - 1);
+        }
+        if (fullPath.equals(safePath) || fullPath.isEmpty()) continue;
 
-        String name = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-        items.add(new DirectoryItemDto(name, fullPath));
+        int slash = fullPath.lastIndexOf('/');
+        String name = slash >= 0 ? fullPath.substring(slash + 1) : fullPath;
+        if (!name.isEmpty()) {
+          items.add(new DirectoryItemDto(name, fullPath));
+        }
       }
     }
 
@@ -85,6 +92,9 @@ public class FileSystemService {
 
     String unixPath = path.trim().replace("\\", "/");
     unixPath = unixPath.replaceAll("/+", "/");
+    if (unixPath.length() > 1 && unixPath.endsWith("/")) {
+      unixPath = unixPath.substring(0, unixPath.length() - 1);
+    }
 
     return unixPath.startsWith("/") ? unixPath : "/" + unixPath;
   }

@@ -41,9 +41,11 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
 
   useEffect(() => {
     if (isOpen) {
-      fetchFiles(currentPath);
+      const target = (initialPath && initialPath.trim()) ? initialPath.trim() : "/";
+      setCurrentPath(target);
+      fetchFiles(target);
     }
-  }, [isOpen, currentPath]);
+  }, [isOpen, initialPath]);
 
   const navigateTo = (path: string) => setCurrentPath(path);
 
@@ -184,7 +186,7 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
                )
              })}
              
-             {(!browseData?.directories || browseData.directories.length === 0) && !browseData?.parentPath && !loading && (
+             {(!browseData?.directories || browseData.directories.length === 0) && !loading && (
                <div className="text-center text-[13px] text-status-disabled font-mono py-16">
                  {t("dashboard.dirEmpty")}
                </div>

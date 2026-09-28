@@ -275,7 +275,7 @@ export default function DashboardPage() {
                    <span className="text-[13px] font-mono font-medium text-foreground truncate" title={dir.name}>{dir.name}</span>
                  </button>
                ))}
-               {(!browseData?.directories || browseData.directories.length === 0) && !browseData?.parentPath && (
+               {(!browseData?.directories || browseData.directories.length === 0) && !filesLoading && (
                  <div className="col-span-full bg-surface text-center text-[13px] text-status-disabled font-mono py-16">
                    {t("dashboard.dirEmpty")}
                  </div>
