@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import { useToast } from "../../components/ui/toast";
 import { useConfirm } from "../../components/ui/confirm";
 import { Modal } from "../../components/ui/modal";
+import { FilePickerModal } from "../../components/ui/file-picker";
 import { Toggle } from "../../components/ui/toggle";
 import { useTranslation } from "../../lib/i18n";
 
@@ -284,12 +285,24 @@ export default function SharesPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-[12px] font-medium text-foreground">{t("shares.diskPath")}</label>
-                <input 
-                  required 
-                  value={currentShare.path || ""} 
-                  onChange={(e) => setCurrentShare({ ...currentShare, path: e.target.value })} 
-                  className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-[13px] rounded-lg shadow-sm-subtle font-mono"
-                  placeholder="/mnt/disk1/data"
+                <div className="flex gap-2">
+                  <input 
+                    required 
+                    value={currentShare.path || ""} 
+                    onChange={(e) => setCurrentShare({ ...currentShare, path: e.target.value })} 
+                    className="flex-1 bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-[13px] rounded-lg shadow-sm-subtle font-mono"
+                    placeholder="/mnt/disk1/data"
+                  />
+                  <button type="button" onClick={() => setIsPickerOpen(true)} className="px-4 py-2 bg-surface-hover border border-border rounded-lg text-[13px] font-medium hover:bg-surface-active transition-colors">
+                     {t("common.browse") || "Browse..."}
+                  </button>
+                </div>
+                <FilePickerModal 
+                  isOpen={isPickerOpen} 
+                  onClose={() => setIsPickerOpen(false)} 
+                  onSelect={(path) => { setCurrentShare({ ...currentShare, path }); setIsPickerOpen(false); }} 
+                  initialPath={currentShare.path || "/"} 
+                  pickerType="folder" 
                 />
               </div>
             </div>
