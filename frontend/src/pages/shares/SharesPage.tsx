@@ -298,13 +298,6 @@ export default function SharesPage() {
                      {t("common.browse") || "Browse..."}
                   </button>
                 </div>
-                <FilePickerModal 
-                  isOpen={isPickerOpen} 
-                  onClose={() => setIsPickerOpen(false)} 
-                  onSelect={(path) => { setCurrentShare({ ...currentShare, path }); setIsPickerOpen(false); }} 
-                  initialPath={currentShare.path || "/"} 
-                  pickerType="folder" 
-                />
               </div>
             </div>
 
@@ -437,6 +430,19 @@ export default function SharesPage() {
           </form>
         </Modal>
       )}
+
+      <FilePickerModal 
+        isOpen={isPickerOpen} 
+        onClose={() => setIsPickerOpen(false)} 
+        onSelect={(path) => { 
+          if (currentShare) {
+            setCurrentShare({ ...currentShare, path }); 
+          }
+          setIsPickerOpen(false); 
+        }} 
+        initialPath={currentShare?.path || "/"} 
+        pickerType="folder" 
+      />
     </div>
   );
 }

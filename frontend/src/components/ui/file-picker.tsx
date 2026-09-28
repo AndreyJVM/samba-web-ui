@@ -49,6 +49,7 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
 
   const handleCreateDirectory = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!newDirName) return;
     try {
       await api.post(`/api/fs/mkdir?parentPath=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(newDirName)}`);
@@ -62,19 +63,31 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t("dashboard.storageExplorer")} maxWidth="3xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={t("dashboard.storageExplorer")} maxWidth="3xl" zIndex={60}>
       <div className="bg-surface rounded-lg border border-border shadow-sm flex flex-col overflow-hidden max-h-[70vh]">
         
         {/* Header / Toolbar */}
         <div className="px-4 py-3 border-b border-border flex flex-col gap-3 bg-surface-hover/50">
           <div className="flex flex-wrap items-center gap-1.5 text-[12px] font-mono shrink-0">
-            <button onClick={() => navigateTo("/")} className="text-foreground hover:text-brand px-1.5 py-0.5 rounded transition-colors hover:bg-border shrink-0">{t("common.root")}</button>
+            <button 
+              type="button" 
+              onClick={() => navigateTo("/")} 
+              className="text-foreground hover:text-brand px-1.5 py-0.5 rounded transition-colors hover:bg-border shrink-0"
+            >
+              {t("common.root")}
+            </button>
             {browseData?.currentPath.split("/").filter(Boolean).map((part, index, array) => {
               const p = "/" + array.slice(0, index + 1).join("/");
               return (
                 <div key={p} className="flex items-center gap-1 shrink-0 overflow-hidden">
                   <ChevronRight className="w-3.5 h-3.5 text-status-disabled shrink-0" />
-                  <button onClick={() => navigateTo(p)} className="text-foreground hover:text-brand px-1.5 py-0.5 rounded transition-colors hover:bg-border truncate">{part}</button>
+                  <button 
+                    type="button" 
+                    onClick={() => navigateTo(p)} 
+                    className="text-foreground hover:text-brand px-1.5 py-0.5 rounded transition-colors hover:bg-border truncate"
+                  >
+                    {part}
+                  </button>
                 </div>
               );
             })}
@@ -84,27 +97,47 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
              <div className="flex gap-2">
               {!isCreatingDir ? (
                 <button 
+                  type="button"
                   onClick={() => setIsCreatingDir(true)} 
                   className="text-[12px] font-medium text-foreground bg-surface border border-border shadow-sm-subtle px-3 py-1.5 rounded-md hover:bg-surface-hover transition-colors flex items-center gap-1.5"
                 >
                   <FolderPlus className="w-3.5 h-3.5" /> {t("dashboard.mkdir")}
                 </button>
               ) : (
-                <form onSubmit={handleCreateDirectory} className="flex gap-2 isolate">
+                <div className="flex gap-2 isolate">
                   <input 
                     autoFocus required pattern="[a-zA-Z0-9_.-]+"
                     className="text-xs font-mono border border-border bg-background px-3 py-1.5 rounded-md focus:outline-none focus:border-brand w-40 text-foreground"
                     placeholder={t("dashboard.dirname")}
                     value={newDirName}
                     onChange={e => setNewDirName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleCreateDirectory(e);
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsCreatingDir(false);
+                      }
+                    }}
                   />
-                  <button type="submit" className="text-xs font-medium text-brand-text bg-brand px-3 py-1.5 rounded-md hover:bg-brand-hover transition-colors">
+                  <button 
+                    type="button" 
+                    onClick={handleCreateDirectory} 
+                    className="text-xs font-medium text-brand-text bg-brand px-3 py-1.5 rounded-md hover:bg-brand-hover transition-colors"
+                  >
                     Save
                   </button>
-                  <button type="button" onClick={() => setIsCreatingDir(false)} className="text-xs font-medium text-foreground bg-surface border border-border px-3 py-1.5 rounded-md hover:bg-surface-hover transition-colors">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsCreatingDir(false)} 
+                    className="text-xs font-medium text-foreground bg-surface border border-border px-3 py-1.5 rounded-md hover:bg-surface-hover transition-colors"
+                  >
                     {t("common.cancel")}
                   </button>
-                </form>
+                </div>
               )}
              </div>
           </div>
@@ -121,6 +154,7 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
            <div className="flex flex-col divide-y divide-border/50">
              {browseData?.parentPath && (
                <button 
+                 type="button"
                  onClick={() => navigateTo(browseData.parentPath!)}
                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover text-left transition-colors group"
                >
@@ -136,6 +170,7 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
                return (
                  <div key={item.fullPath} className="flex items-center justify-between hover:bg-surface-hover transition-colors group px-2">
                    <button 
+                     type="button"
                      onClick={() => isFolder ? navigateTo(item.fullPath) : (canSelect ? onSelect(item.fullPath) : null)}
                      className={`flex-1 flex items-center gap-3 py-2.5 px-2 text-left ${isFolder ? 'cursor-pointer' : (canSelect ? 'cursor-pointer' : 'cursor-default')}`}
                    >
@@ -164,6 +199,7 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
            </div>
            <div className="flex gap-2">
               <button 
+                type="button"
                 onClick={onClose} 
                 className="text-[12px] font-medium text-foreground bg-survey hover:bg-surface-hover px-4 py-2 border border-border rounded-md transition-colors shadow-sm"
               >
@@ -171,6 +207,7 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
               </button>
               {pickerType !== 'file' && (
                 <button 
+                  type="button"
                   onClick={() => onSelect(currentPath)} 
                   className="text-[12px] font-medium text-brand-text bg-brand hover:bg-brand-hover px-4 py-2 rounded-md transition-colors shadow-sm"
                 >

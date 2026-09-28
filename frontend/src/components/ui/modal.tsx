@@ -8,9 +8,10 @@ interface ModalProps {
   description?: string;
   children: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
+  zIndex?: number;
 }
 
-export function Modal({ isOpen, onClose, title, description, children, maxWidth = 'md' }: ModalProps) {
+export function Modal({ isOpen, onClose, title, description, children, maxWidth = 'md', zIndex = 50 }: ModalProps) {
   if (!isOpen) return null;
 
   const maxWidthClass = {
@@ -23,7 +24,10 @@ export function Modal({ isOpen, onClose, title, description, children, maxWidth 
   }[maxWidth];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+    <div 
+      className="fixed inset-0 flex items-center justify-center p-4 sm:p-6"
+      style={{ zIndex }}
+    >
       <div 
         className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity" 
         onClick={onClose} 
@@ -37,6 +41,7 @@ export function Modal({ isOpen, onClose, title, description, children, maxWidth 
             {description && <p className="text-[13px] text-status-disabled mt-0.5">{description}</p>}
           </div>
           <button 
+            type="button"
             onClick={onClose}
             className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors"
           >
