@@ -1,12 +1,13 @@
 package mari.samba.service;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import mari.samba.model.SambaUser;
 import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class SambaUserService {
+
+  private static final Logger log = LoggerFactory.getLogger(SambaUserService.class);
 
   // Blacklist of critical system users to prevent accidental or malicious destruction via API
   private static final Set<String> SYSTEM_USERS_BLACKLIST =
@@ -52,7 +55,11 @@ public class SambaUserService {
           "postgres",
           "mysql");
 
-  @Autowired private CommandExecutor commandExecutor;
+  private final CommandExecutor commandExecutor;
+
+  public SambaUserService(CommandExecutor commandExecutor) {
+    this.commandExecutor = commandExecutor;
+  }
 
   private void requireNonSystemUser(String username) {
     if (SYSTEM_USERS_BLACKLIST.contains(username.trim().toLowerCase())) {
@@ -67,26 +74,30 @@ public class SambaUserService {
    *
    * @param sessionId the active SSH session identifier of the calling client
    * @return a list of {@link SambaUser} objects representing the remote accounts
-   * @if the SSH execution fails or the output cannot be parsed
    */
   public List<SambaUser> getAllUsers(String sessionId) {
     String output = commandExecutor.execute(sessionId, LinuxCommands.listSambaUsers());
 
-    List<SambaUser> users = new ArrayList<>();
-    String[] lines = output.split("\\r?\\n");
-
-    for (String line : lines) {
-      line = line.trim();
-      if (line.isEmpty()) continue;
-
-      String[] parts = line.split(":");
-      if (parts.length >= 2) {
-        String username = parts[0].trim();
-        String fullName = (parts.length > 2 && !parts[2].trim().isEmpty()) ? parts[2].trim() : "-";
-        users.add(new SambaUser(username, fullName, true, null, null));
-      }
+    if (output == null || output.isBlank()) {
+      return List.of();
     }
-    return users;
+
+    return Arrays.stream(output.split("\\r?\\n"))
+        .map(String::trim)
+        .filter(line -> !line.isEmpty())
+        .map(
+            line -> {
+              String[] parts = line.split(":");
+              if (parts.length >= 2) {
+                String username = parts[0].trim();
+                String fullName =
+                    (parts.length > 2 && !parts[2].trim().isEmpty()) ? parts[2].trim() : "-";
+                return new SambaUser(username, fullName, true, null, null);
+              }
+              return null;
+            })
+        .filter(u -> u != null)
+        .toList();
   }
 
   /**
@@ -98,7 +109,6 @@ public class SambaUserService {
    * @param username the unix-compliant username to be registered
    * @param password the plaintext password to assign for both OS and Samba login
    * @param fullName an optional full descriptive name (mapped to GECOS field)
-   * @if any step of the user creation sequence fails on the remote server
    */
   public void createUser(String sessionId, String username, String password, String fullName) {
     requireNonSystemUser(username);
@@ -106,6 +116,7 @@ public class SambaUserService {
     String cleanPassword = password.trim();
     String comment = (fullName != null && !fullName.isBlank()) ? fullName.trim() : cleanUsername;
 
+    log.info("Creating system and Samba user '{}'", cleanUsername);
     commandExecutor.execute(sessionId, LinuxCommands.addSystemUserWithHome(cleanUsername, comment));
     commandExecutor.execute(
         sessionId, LinuxCommands.chpasswd(), cleanUsername + ":" + cleanPassword + "\n");
@@ -114,6 +125,7 @@ public class SambaUserService {
         LinuxCommands.addSambaUser(cleanUsername),
         cleanPassword + "\n" + cleanPassword + "\n");
     commandExecutor.execute(sessionId, LinuxCommands.enableSambaUser(cleanUsername));
+    log.info("Successfully created and enabled Samba user '{}'", cleanUsername);
   }
 
   /**
@@ -123,15 +135,20 @@ public class SambaUserService {
    *
    * @param sessionId the active SSH session identifier
    * @param username the exact username to completely remove from the remote machine
-   * @if the OS user deletion command fails
    */
   public void deleteUser(String sessionId, String username) {
     requireNonSystemUser(username);
+    log.info("Deleting Samba and system user '{}'", username);
     try {
       commandExecutor.execute(sessionId, LinuxCommands.deleteSambaUser(username));
-    } catch (Exception ignored) {
+    } catch (Exception e) {
+      log.debug(
+          "User '{}' was not present in Samba passdb or deletion failed: {}",
+          username,
+          e.getMessage());
     }
     commandExecutor.execute(sessionId, LinuxCommands.deleteSystemUser(username));
+    log.info("Successfully deleted user '{}'", username);
   }
 
   /**
@@ -141,16 +158,17 @@ public class SambaUserService {
    * @param sessionId the active SSH session identifier
    * @param username the target username whose password is to be rotated
    * @param newPassword the new plaintext password to enforce
-   * @if either the OS or Samba password change command fails
    */
   public void changePassword(String sessionId, String username, String newPassword) {
     requireNonSystemUser(username);
+    log.info("Rotating password for user '{}'", username);
     commandExecutor.execute(
         sessionId, LinuxCommands.chpasswd(), username + ":" + newPassword + "\n");
     commandExecutor.execute(
         sessionId,
         LinuxCommands.changeSambaPassword(username),
         newPassword + "\n" + newPassword + "\n");
+    log.info("Successfully rotated password for user '{}'", username);
   }
 
   /**

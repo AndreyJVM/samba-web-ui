@@ -1,21 +1,32 @@
 package mari.samba.service;
 
 import java.util.List;
+import java.util.Optional;
 import mari.samba.dto.share.SambaShareCreateDto;
 import mari.samba.model.SambaShare;
 import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SambaShareService {
 
-  @Autowired private SambaConfigService configService;
+  private static final Logger log = LoggerFactory.getLogger(SambaShareService.class);
 
-  @Autowired private CommandExecutor commandExecutor;
+  private final SambaConfigService configService;
+  private final CommandExecutor commandExecutor;
+  private final FileSystemService fileSystemService;
 
-  @Autowired private FileSystemService fileSystemService;
+  public SambaShareService(
+      SambaConfigService configService,
+      CommandExecutor commandExecutor,
+      FileSystemService fileSystemService) {
+    this.configService = configService;
+    this.commandExecutor = commandExecutor;
+    this.fileSystemService = fileSystemService;
+  }
 
   public List<SambaShare> getAllShares(String sessionId) {
     String content = configService.getSmbConfContent(sessionId);
@@ -23,11 +34,13 @@ public class SambaShareService {
   }
 
   public SambaShare getShareByName(String sessionId, String name) {
+    return findShareByName(sessionId, name)
+        .orElseThrow(() -> new IllegalArgumentException("Share not found: " + name));
+  }
+
+  public Optional<SambaShare> findShareByName(String sessionId, String name) {
     List<SambaShare> shares = getAllShares(sessionId);
-    return shares.stream()
-        .filter(s -> s.getName().equalsIgnoreCase(name))
-        .findFirst()
-        .orElseThrow(() -> new RuntimeException("Operation failed due to an error." + name));
+    return shares.stream().filter(s -> s.getName().equalsIgnoreCase(name)).findFirst();
   }
 
   public void createShare(String sessionId, SambaShareCreateDto dto) {
@@ -36,8 +49,7 @@ public class SambaShareService {
         existingShares.stream().anyMatch(s -> s.getName().equalsIgnoreCase(dto.getName()));
 
     if (exists) {
-      throw new RuntimeException(
-          "Operation failed due to an error." + dto.getName() + "Operation successful");
+      throw new IllegalArgumentException("Share already exists: " + dto.getName());
     }
 
     ensureDirectoryExists(sessionId, dto);
@@ -47,17 +59,22 @@ public class SambaShareService {
     String newContent = currentContent + "\n" + shareSection;
 
     configService.updateSmbConf(sessionId, newContent);
+    log.info("Created Samba share: {}", dto.getName());
   }
 
   public void updateShare(String sessionId, String name, SambaShareCreateDto dto) {
-    ensureDirectoryExists(sessionId, dto);
+    SambaShareCreateDto effectiveDto =
+        dto.getName() == null || !dto.getName().equalsIgnoreCase(name) ? dto.withName(name) : dto;
+
+    ensureDirectoryExists(sessionId, effectiveDto);
 
     String content = configService.getSmbConfContent(sessionId);
     String updatedContent = configService.removeShareSection(content, name);
-    String newSection = configService.buildShareSection(dto);
+    String newSection = configService.buildShareSection(effectiveDto);
     updatedContent = updatedContent + "\n" + newSection;
 
     configService.updateSmbConf(sessionId, updatedContent);
+    log.info("Updated Samba share: {}", name);
   }
 
   public String getShareSize(String sessionId, String name) {
@@ -68,7 +85,7 @@ public class SambaShareService {
     }
     String output = commandExecutor.execute(sessionId, LinuxCommands.du(path));
     if (output != null && !output.isBlank()) {
-      String[] parts = output.trim().split("\s+");
+      String[] parts = output.trim().split("\\s+");
       if (parts.length > 0) {
         return parts[0];
       }
@@ -80,12 +97,13 @@ public class SambaShareService {
     String content = configService.getSmbConfContent(sessionId);
     String updatedContent = configService.removeShareSection(content, name);
     configService.updateSmbConf(sessionId, updatedContent);
+    log.info("Deleted Samba share: {}", name);
   }
 
   private void ensureDirectoryExists(String sessionId, SambaShareCreateDto dto) {
     String path = dto.getPath().trim();
     if (!path.startsWith("/")) {
-      throw new IllegalArgumentException("Operation failed due to an error." + path);
+      throw new IllegalArgumentException("Path must be absolute: " + path);
     }
 
     fileSystemService.requireAllowedPath(path);

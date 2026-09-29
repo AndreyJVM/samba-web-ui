@@ -8,54 +8,57 @@ import mari.samba.dto.common.ApiResponse;
 import mari.samba.dto.group.SambaGroupCreateDto;
 import mari.samba.model.SambaGroup;
 import mari.samba.service.SambaGroupService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/groups")
 public class GroupApiController {
 
-  @Autowired private SambaGroupService groupService;
+  private final SambaGroupService sambaGroupService;
+
+  public GroupApiController(SambaGroupService sambaGroupService) {
+    this.sambaGroupService = sambaGroupService;
+  }
 
   @GetMapping
   public ApiResponse<List<SambaGroup>> getAllGroups(HttpSession session) {
     String sessionId = session.getId();
-    return ApiResponse.ok(groupService.getAllGroups(sessionId));
+    List<SambaGroup> groups = sambaGroupService.getAllGroups(sessionId);
+    return ApiResponse.ok(groups);
   }
 
   @PostMapping
   public ApiResponse<Void> createGroup(
       HttpSession session, @Valid @RequestBody SambaGroupCreateDto dto) {
     String sessionId = session.getId();
-    groupService.createGroup(sessionId, dto);
-    return ApiResponse.ok("Operation successful", null);
+    sambaGroupService.createGroup(sessionId, dto);
+    return ApiResponse.ok("Group '" + dto.groupName() + "' created successfully", null);
   }
 
   @DeleteMapping("/{groupName}")
   public ApiResponse<Void> deleteGroup(HttpSession session, @PathVariable String groupName) {
     String sessionId = session.getId();
-    groupService.deleteGroup(sessionId, groupName);
-    return ApiResponse.ok("Operation successful", null);
+    sambaGroupService.deleteGroup(sessionId, groupName);
+    return ApiResponse.ok("Group '" + groupName + "' deleted successfully", null);
   }
 
   @PostMapping("/{groupName}/users")
   public ApiResponse<Void> addUserToGroup(
       HttpSession session, @PathVariable String groupName, @RequestBody Map<String, String> body) {
     String sessionId = session.getId();
-    String username = body.get("username");
+    String username = body != null ? body.get("username") : null;
     if (username == null || username.isBlank()) {
-      return ApiResponse.error("Operation successful");
+      throw new IllegalArgumentException("Username must not be blank.");
     }
-
-    groupService.addUserToGroup(sessionId, username, groupName);
-    return ApiResponse.ok("Operation successful", null);
+    sambaGroupService.addUserToGroup(sessionId, username, groupName);
+    return ApiResponse.ok("User '" + username + "' added to group '" + groupName + "'", null);
   }
 
   @DeleteMapping("/{groupName}/users/{username}")
   public ApiResponse<Void> removeUserFromGroup(
       HttpSession session, @PathVariable String groupName, @PathVariable String username) {
     String sessionId = session.getId();
-    groupService.removeUserFromGroup(sessionId, username, groupName);
-    return ApiResponse.ok("Operation successful", null);
+    sambaGroupService.removeUserFromGroup(sessionId, username, groupName);
+    return ApiResponse.ok("User '" + username + "' removed from group '" + groupName + "'", null);
   }
 }

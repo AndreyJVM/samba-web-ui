@@ -11,11 +11,11 @@ import org.springframework.stereotype.Component;
 public class SmbConfParser {
 
   public SambaGlobalConfigDto parseGlobalConfig(String content) {
-    SambaGlobalConfigDto dto = new SambaGlobalConfigDto();
     if (content == null || content.isBlank()) {
-      return dto;
+      return new SambaGlobalConfigDto();
     }
 
+    SambaGlobalConfigDto.Builder builder = SambaGlobalConfigDto.builder();
     String[] lines = content.split("\\r?\\n");
     boolean insideGlobal = false;
 
@@ -38,131 +38,101 @@ public class SmbConfParser {
         String val = parts[1].trim();
 
         switch (key) {
-          case "workgroup":
-            dto.setWorkgroup(val);
-            break;
-          case "server string":
-            dto.setServerString(val);
-            break;
-          case "netbios name":
-            dto.setNetbiosName(val);
-            break;
-          case "security":
-            dto.setSecurity(val.toLowerCase());
-            break;
-          case "map to guest":
-            dto.setMapToGuest(val);
-            break;
-          case "interfaces":
-            dto.setInterfaces(val);
-            break;
-          case "bind interfaces only":
-            dto.setBindInterfacesOnly("yes".equalsIgnoreCase(val));
-            break;
-          case "load printers":
-            dto.setLoadPrinters("yes".equalsIgnoreCase(val));
-            break;
-          case "disable netbios":
-            dto.setDisableNetbios("yes".equalsIgnoreCase(val));
-            break;
-          case "server min protocol":
-            dto.setServerMinProtocol(val.toUpperCase());
-            break;
-          case "server max protocol":
-            dto.setServerMaxProtocol(val.toUpperCase());
-            break;
-
-          case "realm":
-            dto.setRealm(val);
-            break;
-          case "winbind use default domain":
-            dto.setWinbindUseDefaultDomain("yes".equalsIgnoreCase(val));
-            break;
-          case "template shell":
-            dto.setTemplateShell(val);
-            break;
-          case "idmap config * : backend":
-            dto.setIdmapDefaultBackend(val);
-            break;
-          case "idmap config * : range":
-            dto.setIdmapDefaultRange(val);
-            break;
-
-          default:
-            break;
+          case "workgroup" -> builder.workgroup(val);
+          case "server string" -> builder.serverString(val);
+          case "netbios name" -> builder.netbiosName(val);
+          case "security" -> builder.security(val.toLowerCase());
+          case "map to guest" -> builder.mapToGuest(val);
+          case "interfaces" -> builder.interfaces(val);
+          case "bind interfaces only" -> builder.bindInterfacesOnly("yes".equalsIgnoreCase(val));
+          case "load printers" -> builder.loadPrinters("yes".equalsIgnoreCase(val));
+          case "disable netbios" -> builder.disableNetbios("yes".equalsIgnoreCase(val));
+          case "server min protocol" -> builder.serverMinProtocol(val.toUpperCase());
+          case "server max protocol" -> builder.serverMaxProtocol(val.toUpperCase());
+          case "realm" -> builder.realm(val);
+          case "winbind use default domain" ->
+              builder.winbindUseDefaultDomain("yes".equalsIgnoreCase(val));
+          case "template shell" -> builder.templateShell(val);
+          case "idmap config * : backend" -> builder.idmapDefaultBackend(val);
+          case "idmap config * : range" -> builder.idmapDefaultRange(val);
+          default -> {
+            if (key.startsWith("idmap config") && key.endsWith(": backend")) {
+              builder.idmapDomainBackend(val);
+            } else if (key.startsWith("idmap config") && key.endsWith(": range")) {
+              builder.idmapDomainRange(val);
+            }
+          }
         }
       }
     }
-    return dto;
+    return builder.build();
   }
 
   public String buildGlobalSection(SambaGlobalConfigDto dto) {
     StringBuilder sb = new StringBuilder();
     sb.append("[global]\n");
-    sb.append("   workgroup = ").append(dto.getWorkgroup().trim()).append("\n");
+    sb.append("   workgroup = ").append(dto.workgroup().trim()).append("\n");
 
-    if (dto.getServerString() != null && !dto.getServerString().isBlank()) {
-      sb.append("   server string = ").append(dto.getServerString().trim()).append("\n");
+    if (dto.serverString() != null && !dto.serverString().isBlank()) {
+      sb.append("   server string = ").append(dto.serverString().trim()).append("\n");
     }
-    if (dto.getNetbiosName() != null && !dto.getNetbiosName().isBlank()) {
-      sb.append("   netbios name = ").append(dto.getNetbiosName().trim()).append("\n");
+    if (dto.netbiosName() != null && !dto.netbiosName().isBlank()) {
+      sb.append("   netbios name = ").append(dto.netbiosName().trim()).append("\n");
     }
 
     sb.append("   security = ")
-        .append(dto.getSecurity() != null ? dto.getSecurity() : "user")
+        .append(dto.security() != null ? dto.security() : "user")
         .append("\n");
     sb.append("   map to guest = ")
-        .append(dto.getMapToGuest() != null ? dto.getMapToGuest() : "Bad User")
+        .append(dto.mapToGuest() != null ? dto.mapToGuest() : "Bad User")
         .append("\n");
 
-    if (dto.getInterfaces() != null && !dto.getInterfaces().isBlank()) {
-      sb.append("   interfaces = ").append(dto.getInterfaces().trim()).append("\n");
+    if (dto.interfaces() != null && !dto.interfaces().isBlank()) {
+      sb.append("   interfaces = ").append(dto.interfaces().trim()).append("\n");
       sb.append("   bind interfaces only = ")
-          .append(dto.isBindInterfacesOnly() ? "yes" : "no")
+          .append(dto.bindInterfacesOnly() ? "yes" : "no")
           .append("\n");
     }
 
-    sb.append("   load printers = ").append(dto.isLoadPrinters() ? "yes" : "no").append("\n");
-    sb.append("   disable netbios = ").append(dto.isDisableNetbios() ? "yes" : "no").append("\n");
+    sb.append("   load printers = ").append(dto.loadPrinters() ? "yes" : "no").append("\n");
+    sb.append("   disable netbios = ").append(dto.disableNetbios() ? "yes" : "no").append("\n");
 
-    if (dto.getServerMinProtocol() != null && !dto.getServerMinProtocol().isBlank()) {
-      sb.append("   server min protocol = ").append(dto.getServerMinProtocol().trim()).append("\n");
+    if (dto.serverMinProtocol() != null && !dto.serverMinProtocol().isBlank()) {
+      sb.append("   server min protocol = ").append(dto.serverMinProtocol().trim()).append("\n");
     }
-    if (dto.getServerMaxProtocol() != null && !dto.getServerMaxProtocol().isBlank()) {
-      sb.append("   server max protocol = ").append(dto.getServerMaxProtocol().trim()).append("\n");
+    if (dto.serverMaxProtocol() != null && !dto.serverMaxProtocol().isBlank()) {
+      sb.append("   server max protocol = ").append(dto.serverMaxProtocol().trim()).append("\n");
     }
 
-    if (dto.getRealm() != null && !dto.getRealm().isBlank()) {
-      sb.append("   realm = ").append(dto.getRealm().trim()).append("\n");
+    if (dto.realm() != null && !dto.realm().isBlank()) {
+      sb.append("   realm = ").append(dto.realm().trim()).append("\n");
     }
     sb.append("   winbind use default domain = ")
-        .append(dto.isWinbindUseDefaultDomain() ? "yes" : "no")
+        .append(dto.winbindUseDefaultDomain() ? "yes" : "no")
         .append("\n");
 
-    if (dto.getTemplateShell() != null && !dto.getTemplateShell().isBlank()) {
-      sb.append("   template shell = ").append(dto.getTemplateShell().trim()).append("\n");
+    if (dto.templateShell() != null && !dto.templateShell().isBlank()) {
+      sb.append("   template shell = ").append(dto.templateShell().trim()).append("\n");
     }
 
-    if (dto.getIdmapDefaultBackend() != null && !dto.getIdmapDefaultBackend().isBlank()) {
+    if (dto.idmapDefaultBackend() != null && !dto.idmapDefaultBackend().isBlank()) {
       sb.append("   idmap config * : backend = ")
-          .append(dto.getIdmapDefaultBackend().trim())
+          .append(dto.idmapDefaultBackend().trim())
           .append("\n");
-      sb.append("   idmap config * : range = ")
-          .append(dto.getIdmapDefaultRange().trim())
-          .append("\n");
+      sb.append("   idmap config * : range = ").append(dto.idmapDefaultRange().trim()).append("\n");
     }
 
-    if ("ads".equalsIgnoreCase(dto.getSecurity()) && dto.getWorkgroup() != null) {
-      if (dto.getIdmapDomainBackend() != null && !dto.getIdmapDomainBackend().isBlank()) {
+    if ("ads".equalsIgnoreCase(dto.security()) && dto.workgroup() != null) {
+      if (dto.idmapDomainBackend() != null && !dto.idmapDomainBackend().isBlank()) {
         sb.append("   idmap config ")
-            .append(dto.getWorkgroup().trim())
+            .append(dto.workgroup().trim())
             .append(" : backend = ")
-            .append(dto.getIdmapDomainBackend().trim())
+            .append(dto.idmapDomainBackend().trim())
             .append("\n");
         sb.append("   idmap config ")
-            .append(dto.getWorkgroup().trim())
+            .append(dto.workgroup().trim())
             .append(" : range = ")
-            .append(dto.getIdmapDomainRange().trim())
+            .append(dto.idmapDomainRange().trim())
             .append("\n");
       }
     }
@@ -175,7 +145,6 @@ public class SmbConfParser {
     try {
       updatedWithoutGlobal = removeSection(content, "global");
     } catch (Exception e) {
-
       updatedWithoutGlobal = content;
     }
 
@@ -190,7 +159,7 @@ public class SmbConfParser {
     }
 
     String[] lines = content.split("\\r?\\n");
-    SambaShare currentShare = null;
+    SambaShare.Builder currentShare = null;
     boolean insideShare = false;
 
     for (String line : lines) {
@@ -206,15 +175,14 @@ public class SmbConfParser {
             && !sectionName.equalsIgnoreCase("homes")
             && !sectionName.equalsIgnoreCase("printers")) {
 
-          if (currentShare != null && currentShare.getName() != null) {
-            shares.add(currentShare);
+          if (currentShare != null) {
+            shares.add(currentShare.build());
           }
-          currentShare = new SambaShare();
-          currentShare.setName(sectionName);
+          currentShare = SambaShare.builder().name(sectionName);
           insideShare = true;
         } else {
-          if (currentShare != null && currentShare.getName() != null) {
-            shares.add(currentShare);
+          if (currentShare != null) {
+            shares.add(currentShare.build());
           }
           insideShare = false;
           currentShare = null;
@@ -231,8 +199,8 @@ public class SmbConfParser {
       }
     }
 
-    if (currentShare != null && currentShare.getName() != null) {
-      shares.add(currentShare);
+    if (currentShare != null) {
+      shares.add(currentShare.build());
     }
 
     return shares;
@@ -287,59 +255,30 @@ public class SmbConfParser {
     }
 
     if (!sectionFound) {
-      throw new RuntimeException(
-          "Operation failed due to an error." + sectionNameToRemove + "Operation successful");
+      throw new IllegalArgumentException(
+          "Section [" + sectionNameToRemove + "] not found in configuration");
     }
 
     return result.toString();
   }
 
-  private void mapProperty(SambaShare share, String key, String value) {
+  private void mapProperty(SambaShare.Builder share, String key, String value) {
     switch (key) {
-      case "path":
-        share.setPath(value);
-        break;
-      case "comment":
-        share.setComment(value);
-        break;
-      case "read only":
-        share.setReadOnly("yes".equalsIgnoreCase(value));
-        break;
-      case "guest ok":
-        share.setGuestOk("yes".equalsIgnoreCase(value));
-        break;
-      case "browseable":
-        share.setBrowseable("yes".equalsIgnoreCase(value));
-        break;
-      case "valid users":
-        share.setValidUsers(value);
-        break;
-      case "write list":
-        share.setWriteList(value);
-        break;
-      case "create mask":
-        share.setCreateMask(value);
-        break;
-      case "directory mask":
-        share.setDirectoryMask(value);
-        break;
-      case "force user":
-        share.setForceUser(value);
-        break;
-      case "force group":
-        share.setForceGroup(value);
-        break;
-      case "max connections":
-        share.setMaxConnections(value);
-        break;
-      case "hosts allow":
-        share.setHostsAllow(value);
-        break;
-      case "hosts deny":
-        share.setHostsDeny(value);
-        break;
-      default:
-        break;
+      case "path" -> share.path(value);
+      case "comment" -> share.comment(value);
+      case "read only" -> share.readOnly("yes".equalsIgnoreCase(value));
+      case "guest ok" -> share.guestOk("yes".equalsIgnoreCase(value));
+      case "browseable" -> share.browseable("yes".equalsIgnoreCase(value));
+      case "valid users" -> share.validUsers(value);
+      case "write list" -> share.writeList(value);
+      case "create mask" -> share.createMask(value);
+      case "directory mask" -> share.directoryMask(value);
+      case "force user" -> share.forceUser(value);
+      case "force group" -> share.forceGroup(value);
+      case "max connections" -> share.maxConnections(value);
+      case "hosts allow" -> share.hostsAllow(value);
+      case "hosts deny" -> share.hostsDeny(value);
+      default -> {}
     }
   }
 

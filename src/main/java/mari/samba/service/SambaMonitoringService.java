@@ -6,13 +6,20 @@ import java.util.List;
 import java.util.Map;
 import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SambaMonitoringService {
 
-  @Autowired private CommandExecutor commandExecutor;
+  private static final Logger log = LoggerFactory.getLogger(SambaMonitoringService.class);
+
+  private final CommandExecutor commandExecutor;
+
+  public SambaMonitoringService(CommandExecutor commandExecutor) {
+    this.commandExecutor = commandExecutor;
+  }
 
   public boolean isServiceRunning(String sessionId) {
     try {
@@ -20,6 +27,7 @@ public class SambaMonitoringService {
           commandExecutor.execute(sessionId, LinuxCommands.systemctl("is-active", "smbd"));
       return "active".equalsIgnoreCase(output.trim());
     } catch (Exception e) {
+      log.debug("Failed to check if smbd is active: {}", e.getMessage());
       return false;
     }
   }
@@ -28,10 +36,15 @@ public class SambaMonitoringService {
     List<Map<String, String>> connections = new ArrayList<>();
     try {
       String output = commandExecutor.execute(sessionId, LinuxCommands.smbstatus("-b"));
+      if (output == null || output.isBlank()) {
+        return connections;
+      }
       String[] lines = output.split("\\r?\\n");
 
       boolean parsingSessions = false;
-      int pidIdx = 0, userIdx = 1, machineIdx = 3;
+      int pidIdx = 0;
+      int userIdx = 1;
+      int machineIdx = 3;
 
       for (String line : lines) {
         line = line.trim();
@@ -65,7 +78,8 @@ public class SambaMonitoringService {
           }
         }
       }
-    } catch (Exception ignored) {
+    } catch (Exception e) {
+      log.debug("Failed to get active Samba connections: {}", e.getMessage());
     }
     return connections;
   }
@@ -74,6 +88,9 @@ public class SambaMonitoringService {
     List<Map<String, String>> openFiles = new ArrayList<>();
     try {
       String output = commandExecutor.execute(sessionId, LinuxCommands.smbstatus("-L"));
+      if (output == null || output.isBlank()) {
+        return openFiles;
+      }
       String[] lines = output.split("\\r?\\n");
 
       boolean parsingFiles = false;
@@ -92,12 +109,10 @@ public class SambaMonitoringService {
           if (parts.length >= 8) {
             Map<String, String> file = new HashMap<>();
             file.put("pid", parts[0]);
-            file.put("rw", parts[4]); // RDONLY, WRONLY, RDWR
+            file.put("rw", parts[4]);
 
             StringBuilder fileName = new StringBuilder();
-
             for (int i = 7; i < parts.length; i++) {
-
               if (parts[i].matches("Mon|Tue|Wed|Thu|Fri|Sat|Sun")) {
                 break;
               }
@@ -108,29 +123,35 @@ public class SambaMonitoringService {
           }
         }
       }
-    } catch (Exception ignored) {
+    } catch (Exception e) {
+      log.debug("Failed to get open files: {}", e.getMessage());
     }
     return openFiles;
   }
 
   public void controlService(String sessionId, String action) {
-    if (!action.matches("restart|start|stop")) {
-      throw new IllegalArgumentException("Operation failed due to an error." + action);
+    if (!action.matches("^(restart|start|stop)$")) {
+      throw new IllegalArgumentException("Invalid service control action: " + action);
     }
     commandExecutor.execute(sessionId, LinuxCommands.systemctl(action, "smbd"));
+    log.info("Executed smbd action: {}", action);
   }
 
   public void killSession(String sessionId, String pid) {
     if (!pid.matches("^\\d+$")) {
-      throw new IllegalArgumentException("Operation failed due to an error." + pid);
+      throw new IllegalArgumentException("Invalid session PID: " + pid);
     }
     commandExecutor.execute(sessionId, LinuxCommands.kill(pid));
+    log.info("Killed Samba session PID: {}", pid);
   }
 
   public List<String> getDiskUsage(String sessionId) {
     List<String> stats = new ArrayList<>();
     try {
       String output = commandExecutor.execute(sessionId, "df -h");
+      if (output == null || output.isBlank()) {
+        return stats;
+      }
       String[] lines = output.trim().split("\\r?\\n");
       for (int i = 1; i < lines.length; i++) {
         String[] parts = lines[i].trim().split("\\s+");
@@ -139,6 +160,7 @@ public class SambaMonitoringService {
         }
       }
     } catch (Exception e) {
+      log.debug("Failed to get disk usage: {}", e.getMessage());
     }
     return stats;
   }

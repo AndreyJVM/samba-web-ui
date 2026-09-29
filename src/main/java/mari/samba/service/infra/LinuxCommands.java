@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 public final class LinuxCommands {
 
   private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z_][a-z0-9_-]{0,31}$");
-  private static final Pattern DANGEROUS_CHARS_PATTERN = Pattern.compile("[|&;\\$<>!\\n\\r]");
+  private static final Pattern DANGEROUS_CHARS_PATTERN = Pattern.compile("[|&;\\$<>!\\n\\r`]");
 
   private LinuxCommands() {}
 
@@ -128,14 +128,14 @@ public final class LinuxCommands {
   public static String listBackupsDetailed(String backupDir) {
     return String.format(
         "ls -lh --time-style=\"+%%Y-%%m-%%d %%H:%%M:%%S\" -- %s/smb.conf.backup_* 2>/dev/null",
-        escape(requireValidPath(backupDir)).replace("'", ""));
+        escape(requireValidPath(backupDir)));
   }
 
   public static String cleanupOldBackups(String backupDir, int keepCount) {
     if (keepCount < 1 || keepCount > 100) throw new SecurityException("Invalid backup keep count.");
     return String.format(
         "ls -t %s/smb.conf.backup_* 2>/dev/null | tail -n +%d | xargs -r sudo rm --",
-        escape(requireValidPath(backupDir)).replace("'", ""), keepCount + 1);
+        escape(requireValidPath(backupDir)), keepCount + 1);
   }
 
   // ==========================================

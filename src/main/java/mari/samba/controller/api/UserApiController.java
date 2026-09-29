@@ -8,19 +8,22 @@ import mari.samba.dto.common.ApiResponse;
 import mari.samba.dto.user.SambaUserCreateDto;
 import mari.samba.model.SambaUser;
 import mari.samba.service.SambaUserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserApiController {
 
-  @Autowired private SambaUserService userService;
+  private final SambaUserService sambaUserService;
+
+  public UserApiController(SambaUserService sambaUserService) {
+    this.sambaUserService = sambaUserService;
+  }
 
   @GetMapping
   public ApiResponse<List<SambaUser>> getAllUsers(HttpSession session) {
     String sessionId = session.getId();
-    List<SambaUser> users = userService.getAllUsers(sessionId);
+    List<SambaUser> users = sambaUserService.getAllUsers(sessionId);
     return ApiResponse.ok(users);
   }
 
@@ -28,28 +31,28 @@ public class UserApiController {
   public ApiResponse<Void> createUser(
       HttpSession session, @Valid @RequestBody SambaUserCreateDto dto) {
     String sessionId = session.getId();
-    userService.createUser(sessionId, dto.username(), dto.password(), dto.fullName());
-    return ApiResponse.ok("Operation successful" + dto.username() + "Operation successful", null);
+    sambaUserService.createUser(sessionId, dto.username(), dto.password(), dto.fullName());
+    return ApiResponse.ok("User '" + dto.username() + "' created successfully", null);
   }
 
   @DeleteMapping("/{username}")
   public ApiResponse<Void> deleteUser(HttpSession session, @PathVariable String username) {
     String sessionId = session.getId();
-    userService.deleteUser(sessionId, username);
-    return ApiResponse.ok("Operation successful" + username + "Operation successful", null);
+    sambaUserService.deleteUser(sessionId, username);
+    return ApiResponse.ok("User '" + username + "' deleted successfully", null);
   }
 
-  @PutMapping("/{username}/password")
+  @RequestMapping(
+      value = "/{username}/password",
+      method = {RequestMethod.PUT, RequestMethod.POST})
   public ApiResponse<Void> changePassword(
       HttpSession session, @PathVariable String username, @RequestBody Map<String, String> body) {
     String sessionId = session.getId();
-    String newPassword = body.get("newPassword");
-
+    String newPassword = body != null ? body.get("newPassword") : null;
     if (newPassword == null || newPassword.isBlank()) {
-      return ApiResponse.error("Operation successful");
+      throw new IllegalArgumentException("New password must not be blank.");
     }
-
-    userService.changePassword(sessionId, username, newPassword);
-    return ApiResponse.ok("Operation successful" + username + "Operation successful", null);
+    sambaUserService.changePassword(sessionId, username, newPassword);
+    return ApiResponse.ok("Password for user '" + username + "' updated successfully", null);
   }
 }

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   samba-nas:
     build: .
@@ -8,16 +6,16 @@ services:
     ports:
       # Web UI
       - "8080:8080"
-      # Samba / SMB Ports
-      - "445:445"
-      - "139:139"
-      # (Optional) External SSH. Internally used on :22
-      # - "2222:22"
+      # Samba / SMB Ports (mapped to alternate host ports to avoid Windows native SMB/NetBIOS conflict)
+      - "1445:445"
+      # SSH Server (for direct verification if needed)
+      - "2222:22"
     volumes:
-      # Mount your specific host directories here to expose via Samba
+      # Mount storage directories for Samba shares
       - ./data:/mnt/samba
+      - ./srv:/srv
       # Keep smb.conf persisted globally
       - ./config:/etc/samba
     environment:
       - TZ=UTC
-    privileged: true # Sometimes required for deep kernel chown/permissions matching
+    privileged: true

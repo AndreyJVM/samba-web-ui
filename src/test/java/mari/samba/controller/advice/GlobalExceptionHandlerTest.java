@@ -26,7 +26,7 @@ class GlobalExceptionHandlerTest {
         .perform(get("/dummy/ssh-expired"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").value("Connection lost internally"));
   }
 
   @Test
@@ -35,7 +35,7 @@ class GlobalExceptionHandlerTest {
         .perform(get("/dummy/invalid-arg"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").value("Operation failed due to an error."));
   }
 
   @Test

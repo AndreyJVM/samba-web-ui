@@ -2,73 +2,76 @@ package mari.samba.service.infra;
 
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import mari.samba.config.SambaProperties;
 import mari.samba.dto.auth.ConnectionRequestDto;
 import mari.samba.exception.SambaCommandException;
 import mari.samba.exception.SshSessionExpiredException;
-import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 public class SshSessionManager implements CommandExecutor {
 
+  private static final Logger log = LoggerFactory.getLogger(SshSessionManager.class);
+
   private final Map<String, Session> sessions = new ConcurrentHashMap<>();
+  private final SambaProperties properties;
 
-  public void createSession(String sessionId, ConnectionRequestDto request) {
-    try {
-      JSch jsch = new JSch();
-
-      if (request.isKeyAuth()) {
-        if (request.getPrivateKey() == null || request.getPrivateKey().isBlank()) {
-          throw new IllegalArgumentException("Operation failed due to an error.");
-        }
-
-        byte[] prvkey = request.getPrivateKey().trim().getBytes(StandardCharsets.UTF_8);
-        byte[] passphraseBytes =
-            (request.getPassphrase() != null && !request.getPassphrase().isBlank())
-                ? request.getPassphrase().getBytes(StandardCharsets.UTF_8)
-                : null;
-
-        jsch.addIdentity("custom-key-" + sessionId, prvkey, null, passphraseBytes);
-      }
-
-      int port = request.getResolvedPort();
-      Session session = jsch.getSession(request.getUsername(), request.getHost(), port);
-
-      if (!request.isKeyAuth()
-          && request.getPassword() != null
-          && !request.getPassword().isBlank()) {
-        session.setPassword(request.getPassword());
-      }
-
-      session.setConfig("StrictHostKeyChecking", "no");
-
-      session.setServerAliveInterval(30_000);
-      session.setServerAliveCountMax(3);
-
-      session.connect(7000);
-
-      sessions.put(sessionId, session);
-    } catch (JSchException e) {
-      throw new SambaCommandException("Operation failed due to an error." + e.getMessage(), e);
-    }
+  public SshSessionManager(@Autowired(required = false) SambaProperties properties) {
+    this.properties = properties;
   }
 
-  public boolean isConnected(String sessionId) {
+  private Duration getConnectTimeout() {
+    return properties != null && properties.ssh() != null
+        ? properties.ssh().connectTimeout()
+        : Duration.ofMillis(7000);
+  }
+
+  private Duration getCommandTimeout() {
+    return properties != null && properties.ssh() != null
+        ? properties.ssh().commandTimeout()
+        : Duration.ofSeconds(30);
+  }
+
+  public void createSession(String sessionId, ConnectionRequestDto request) throws Exception {
+    JSch jsch = new JSch();
+    Session session = jsch.getSession(request.getUsername(), request.getHost(), request.getPort());
+    session.setPassword(request.getPassword());
+    session.setConfig("StrictHostKeyChecking", "no");
+    session.connect((int) getConnectTimeout().toMillis());
+    sessions.put(sessionId, session);
+    log.info(
+        "SSH session established for user '{}' on host '{}'",
+        request.getUsername(),
+        request.getHost());
+  }
+
+  public Session getSession(String sessionId) {
     Session session = sessions.get(sessionId);
-    return session != null && session.isConnected();
+    if (session == null || !session.isConnected()) {
+      if (sessionId != null) {
+        sessions.remove(sessionId);
+      }
+      throw new SshSessionExpiredException("SSH session not found or disconnected: " + sessionId);
+    }
+    return session;
   }
 
   public void disconnect(String sessionId) {
     Session session = sessions.remove(sessionId);
     if (session != null && session.isConnected()) {
       session.disconnect();
+      log.info("SSH session disconnected: {}", sessionId);
     }
   }
 
@@ -83,69 +86,99 @@ public class SshSessionManager implements CommandExecutor {
 
   @Override
   public String execute(String sessionId, String command, String inputData) {
-    Session session = sessions.get(sessionId);
-    if (session == null || !session.isConnected()) {
-
-      if (sessionId != null) {
-        sessions.remove(sessionId);
-      }
-      throw new SshSessionExpiredException("Operation failed due to an error.");
+    CommandResult result = executeCommand(sessionId, command, inputData);
+    if (!result.isSuccess()) {
+      throw new SambaCommandException(
+          "Command failed with code "
+              + result.exitCode()
+              + ": "
+              + (result.stderr().isBlank() ? result.stdout() : result.stderr()));
     }
+    return result.stdout();
+  }
+
+  @Override
+  public CommandResult executeCommand(String sessionId, String command) {
+    return executeCommand(sessionId, command, null);
+  }
+
+  @Override
+  public CommandResult executeCommand(String sessionId, String command, String inputData) {
+    Session session = getSession(sessionId);
+    ChannelExec channel = null;
 
     try {
-      ChannelExec channel = (ChannelExec) session.openChannel("exec");
+      channel = (ChannelExec) session.openChannel("exec");
       channel.setCommand(command);
 
-      ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-      ByteArrayOutputStream errStream = new ByteArrayOutputStream();
+      ByteArrayOutputStream stdoutStream = new ByteArrayOutputStream();
+      ByteArrayOutputStream stderrStream = new ByteArrayOutputStream();
 
-      channel.setOutputStream(outStream);
-      channel.setErrStream(errStream);
+      try (InputStream stdout = channel.getInputStream();
+          InputStream stderr = channel.getErrStream()) {
 
-      InputStream in = channel.getInputStream();
-      OutputStream out = channel.getOutputStream();
+        channel.connect((int) getConnectTimeout().toMillis());
 
-      channel.connect();
-
-      if (inputData != null) {
-        out.write(inputData.getBytes(StandardCharsets.UTF_8));
-        out.flush();
-        out.close();
-      }
-
-      byte[] tmp = new byte[1024];
-      while (true) {
-        while (in.available() > 0) {
-          int i = in.read(tmp, 0, 1024);
-          if (i < 0) break;
-          outStream.write(tmp, 0, i);
+        if (inputData != null) {
+          try (OutputStream out = channel.getOutputStream()) {
+            out.write(inputData.getBytes(StandardCharsets.UTF_8));
+            out.flush();
+          }
         }
-        if (channel.isClosed()) {
-          if (in.available() > 0) continue;
-          break;
+
+        long deadline = System.currentTimeMillis() + getCommandTimeout().toMillis();
+        byte[] buffer = new byte[1024];
+
+        while (!channel.isClosed()) {
+          while (stdout.available() > 0) {
+            int read = stdout.read(buffer, 0, buffer.length);
+            if (read < 0) break;
+            stdoutStream.write(buffer, 0, read);
+          }
+          while (stderr.available() > 0) {
+            int read = stderr.read(buffer, 0, buffer.length);
+            if (read < 0) break;
+            stderrStream.write(buffer, 0, read);
+          }
+          if (System.currentTimeMillis() > deadline) {
+            channel.disconnect();
+            throw new SambaCommandException(
+                "Command timed out after " + getCommandTimeout().toMillis() + " ms: " + command);
+          }
+          Thread.sleep(50);
         }
-        Thread.sleep(50);
+
+        while (stdout.available() > 0) {
+          int read = stdout.read(buffer, 0, buffer.length);
+          if (read < 0) break;
+          stdoutStream.write(buffer, 0, read);
+        }
+        while (stderr.available() > 0) {
+          int read = stderr.read(buffer, 0, buffer.length);
+          if (read < 0) break;
+          stderrStream.write(buffer, 0, read);
+        }
       }
 
       int exitStatus = channel.getExitStatus();
-      channel.disconnect();
-
-      String output = outStream.toString(StandardCharsets.UTF_8);
-      String error = errStream.toString(StandardCharsets.UTF_8);
+      String stdoutOutput = stdoutStream.toString(StandardCharsets.UTF_8);
+      String stderrOutput = stderrStream.toString(StandardCharsets.UTF_8);
 
       if (exitStatus != 0) {
-        throw new SambaCommandException(
-            "Operation failed due to an error."
-                + exitStatus
-                + ": "
-                + (error.isBlank() ? output : error));
+        log.warn("Command '{}' failed with code {}: {}", command, exitStatus, stderrOutput.trim());
       }
 
-      return output;
+      return new CommandResult(exitStatus, stdoutOutput, stderrOutput);
+
     } catch (SambaCommandException e) {
       throw e;
     } catch (Exception e) {
-      throw new SambaCommandException("Operation failed due to an error." + e.getMessage(), e);
+      log.error("Execution error for command '{}': {}", command, e.getMessage());
+      throw new SambaCommandException("Error executing command: " + command, e);
+    } finally {
+      if (channel != null && channel.isConnected()) {
+        channel.disconnect();
+      }
     }
   }
 }

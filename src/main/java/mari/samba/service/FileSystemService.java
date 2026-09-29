@@ -1,175 +1,167 @@
 package mari.samba.service;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
+import mari.samba.config.SambaProperties;
 import mari.samba.dto.fs.DirectoryBrowseResultDto;
 import mari.samba.dto.fs.DirectoryItemDto;
 import mari.samba.dto.fs.DiskUsageDto;
 import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class FileSystemService {
 
-  @Autowired private CommandExecutor commandExecutor;
+  private static final Logger log = LoggerFactory.getLogger(FileSystemService.class);
+  private static final Pattern SAFE_DIR_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
+  private static final List<String> DEFAULT_ALLOWED_ROOTS =
+      List.of("/mnt", "/media", "/srv", "/data", "/home");
 
-  // List of paths that are strictly forbidden to access via the web file explorer
-  // List of root directories allowed for Samba shares
-  private static final String[] ALLOWED_ROOTS = {"/mnt", "/media", "/srv", "/data", "/home"};
+  private final CommandExecutor commandExecutor;
+  private final List<String> allowedRoots;
+
+  public FileSystemService(
+      CommandExecutor commandExecutor, @Autowired(required = false) SambaProperties properties) {
+    this.commandExecutor = commandExecutor;
+    this.allowedRoots =
+        properties != null
+                && properties.security() != null
+                && properties.security().allowedRoots() != null
+            ? properties.security().allowedRoots()
+            : DEFAULT_ALLOWED_ROOTS;
+  }
 
   /** Lists subdirectories within a requested path, returning normalized structure. */
   public DirectoryBrowseResultDto listDirectories(String sessionId, String requestedPath) {
     String safePath = normalizePath(requestedPath);
     requireAllowedPath(safePath);
 
-    if (safePath.equals("/")) {
-      List<DirectoryItemDto> items = new ArrayList<>();
-      for (String root : ALLOWED_ROOTS) {
-        items.add(new DirectoryItemDto(root.substring(1), root));
-      }
-      return new DirectoryBrowseResultDto("/", "/", items);
+    if ("/".equals(safePath)) {
+      List<DirectoryItemDto> rootDirs =
+          allowedRoots.stream()
+              .map(root -> new DirectoryItemDto(root.replaceFirst("^/", ""), root))
+              .toList();
+      return new DirectoryBrowseResultDto("/", "/", rootDirs);
     }
 
-    String parentPath;
-    int lastSlash = safePath.lastIndexOf('/');
-    if (lastSlash <= 0) {
-      parentPath = "/";
-    } else {
-      parentPath = safePath.substring(0, lastSlash);
-    }
+    String parentPath = getParentPath(safePath);
+    String rawOutput = commandExecutor.execute(sessionId, LinuxCommands.findDirectories(safePath));
 
-    String cmd = LinuxCommands.findDirectories(safePath);
-    String output = commandExecutor.execute(sessionId, cmd);
-    List<DirectoryItemDto> items = new ArrayList<>();
+    List<DirectoryItemDto> subDirs =
+        Arrays.stream(rawOutput.split("\\r?\\n"))
+            .map(String::trim)
+            .filter(line -> !line.isEmpty() && !line.equals(safePath))
+            .filter(line -> !line.contains("/."))
+            .map(
+                fullPath -> {
+                  String dirName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+                  return new DirectoryItemDto(dirName, fullPath);
+                })
+            .toList();
 
-    if (output != null && !output.isBlank()) {
-      String[] lines = output.split("\\r?\\n");
-      for (String line : lines) {
-        String fullPath = line.trim();
-        if (fullPath.isEmpty()) continue;
-        if (fullPath.endsWith("/")) {
-          fullPath = fullPath.substring(0, fullPath.length() - 1);
-        }
-        if (fullPath.equals(safePath) || fullPath.isEmpty()) continue;
-
-        int slash = fullPath.lastIndexOf('/');
-        String name = slash >= 0 ? fullPath.substring(slash + 1) : fullPath;
-        if (!name.isEmpty()) {
-          items.add(new DirectoryItemDto(name, fullPath));
-        }
-      }
-    }
-
-    return new DirectoryBrowseResultDto(safePath, parentPath, items);
+    return new DirectoryBrowseResultDto(safePath, parentPath, subDirs);
   }
 
-  /** Creates a safe sub-directory in the requested parent path. */
-  public void createDirectory(String sessionId, String parentPath, String dirName) {
+  /** Creates a directory under the given parent directory with secure permissions. */
+  public void createDirectory(String sessionId, String parentPath, String name) {
+    if (name == null || !SAFE_DIR_NAME_PATTERN.matcher(name).matches()) {
+      throw new IllegalArgumentException(
+          "Invalid directory name. Only alphanumeric characters, dashes, underscores, and dots are"
+              + " allowed.");
+    }
+
     String safeParent = normalizePath(parentPath);
     requireAllowedPath(safeParent);
-    String cleanName = dirName.trim();
 
-    if (!cleanName.matches("^[a-zA-Z0-9._-]+$")) {
-      throw new IllegalArgumentException("Directory name contains invalid characters");
-    }
+    String newDirPath = safeParent.endsWith("/") ? safeParent + name : safeParent + "/" + name;
+    requireAllowedPath(newDirPath);
 
-    String fullPath =
-        safeParent.endsWith("/") ? (safeParent + cleanName) : (safeParent + "/" + cleanName);
-
-    requireAllowedPath(fullPath);
-
-    commandExecutor.execute(sessionId, LinuxCommands.mkdir(fullPath));
-    commandExecutor.execute(sessionId, LinuxCommands.chmod("0775", fullPath));
+    commandExecutor.execute(sessionId, LinuxCommands.mkdir(newDirPath));
+    commandExecutor.execute(sessionId, LinuxCommands.chmod("0775", newDirPath));
+    log.info("Created directory {} with permissions 0775", newDirPath);
   }
 
-  /** Normalizes path to linux-style canonical absolute path avoiding arbitrary traversal. */
+  /** Retrieves disk usage information for a specified path. */
+  public DiskUsageDto getDiskUsage(String sessionId, String requestedPath) {
+    String safePath = normalizePath(requestedPath);
+    requireAllowedPath(safePath);
+
+    String rawOutput = commandExecutor.execute(sessionId, LinuxCommands.df(safePath));
+    if (rawOutput == null || rawOutput.isBlank()) {
+      throw new RuntimeException("Empty output from df command for path: " + safePath);
+    }
+
+    String[] lines = rawOutput.trim().split("\\r?\\n");
+    if (lines.length < 2) {
+      throw new RuntimeException("Invalid df output format: " + rawOutput);
+    }
+
+    String[] parts = lines[1].trim().split("\\s+");
+    if (parts.length < 6) {
+      throw new RuntimeException("Unexpected df line structure: " + lines[1]);
+    }
+
+    try {
+      long totalKb = Long.parseLong(parts[1]);
+      long usedKb = Long.parseLong(parts[2]);
+      long availKb = Long.parseLong(parts[3]);
+      int usePercent = Integer.parseInt(parts[4].replace("%", ""));
+      String mountPoint = parts[5];
+
+      return new DiskUsageDto(
+          safePath,
+          formatBytes(totalKb * 1024),
+          formatBytes(usedKb * 1024),
+          formatBytes(availKb * 1024),
+          usePercent,
+          mountPoint);
+    } catch (NumberFormatException e) {
+      throw new RuntimeException("Failed to parse disk usage numbers from: " + lines[1], e);
+    }
+  }
+
   private String normalizePath(String path) {
     if (path == null || path.isBlank()) {
       return "/";
     }
-
-    String unixPath = path.trim().replace("\\", "/");
-    unixPath = unixPath.replaceAll("/+", "/");
-    if (unixPath.length() > 1 && unixPath.endsWith("/")) {
-      unixPath = unixPath.substring(0, unixPath.length() - 1);
+    String normalized = path.trim().replace('\\', '/');
+    while (normalized.endsWith("/") && normalized.length() > 1) {
+      normalized = normalized.substring(0, normalized.length() - 1);
     }
-
-    return unixPath.startsWith("/") ? unixPath : "/" + unixPath;
+    return normalized;
   }
 
-  /** Enforces a directory jail to prevent Arbitrary File Read/Write across system files. */
   public void requireAllowedPath(String path) {
-    if (path == null) return;
-    if (path.equals("/")) {
+    if (path == null || "/".equals(path)) {
       return;
     }
-    boolean allowed = false;
-    for (String root : ALLOWED_ROOTS) {
-      if (path.equals(root) || path.startsWith(root + "/")) {
-        allowed = true;
-        break;
-      }
-    }
+    boolean allowed =
+        allowedRoots.stream().anyMatch(root -> path.equals(root) || path.startsWith(root + "/"));
     if (!allowed) {
-      throw new SecurityException(
-          "Security Policy: Access to directory '"
-              + path
-              + "' is denied. Restricted to: "
-              + String.join(", ", ALLOWED_ROOTS));
+      throw new SecurityException("Access to path '" + path + "' is not permitted.");
     }
   }
 
-  /** Returns disk usage details for the requested path by calling 'df'. */
-  public DiskUsageDto getDiskUsage(String sessionId, String path) {
-    String safePath = normalizePath(path);
-    requireAllowedPath(safePath);
-
-    String cmd = LinuxCommands.df(safePath);
-    String output = commandExecutor.execute(sessionId, cmd);
-
-    if (output == null || output.isBlank()) {
-      throw new RuntimeException("Empty output from df for path " + path);
+  private String getParentPath(String path) {
+    if ("/".equals(path)) {
+      return "/";
     }
-
-    String[] lines = output.trim().split("\\r?\\n");
-    if (lines.length < 2) {
-      throw new RuntimeException("Could not parse output from df: " + output);
+    int lastSlash = path.lastIndexOf('/');
+    if (lastSlash <= 0) {
+      return "/";
     }
-
-    String dataLine = lines[lines.length - 1];
-    String[] parts = dataLine.trim().split("\\s+");
-
-    if (parts.length >= 6) {
-      try {
-        long totalKb = Long.parseLong(parts[1]);
-        long usedKb = Long.parseLong(parts[2]);
-        long availKb = Long.parseLong(parts[3]);
-        String capacityStr = parts[4].replace("%", "");
-        int usePercent = Integer.parseInt(capacityStr);
-        String mountPoint = parts[5];
-
-        return new DiskUsageDto(
-            safePath,
-            formatSize(totalKb * 1024L),
-            formatSize(usedKb * 1024L),
-            formatSize(availKb * 1024L),
-            usePercent,
-            mountPoint);
-      } catch (NumberFormatException e) {
-        throw new RuntimeException("Failed to parse numeric string in df output: " + dataLine);
-      }
-    }
-
-    throw new RuntimeException("Invalid format string block in df output: " + dataLine);
+    return path.substring(0, lastSlash);
   }
 
-  /** Formats byte size to human readable equivalent */
-  private String formatSize(long bytes) {
+  private String formatBytes(long bytes) {
     if (bytes < 1024) return bytes + " B";
     int exp = (int) (Math.log(bytes) / Math.log(1024));
-    String pre = "KMGTPE".charAt(exp - 1) + "B";
-    return String.format("%.1f %s", bytes / Math.pow(1024, exp), pre).replace(",", ".");
+    String pre = "KMGTPE".charAt(exp - 1) + "";
+    return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
   }
 }

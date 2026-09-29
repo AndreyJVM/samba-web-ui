@@ -1,40 +1,53 @@
 package mari.samba.controller.api;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import java.util.List;
 import mari.samba.dto.common.ApiResponse;
 import mari.samba.dto.config.SambaBackupDto;
 import mari.samba.dto.config.SambaGlobalConfigDto;
+import mari.samba.dto.config.SambaRawConfigDto;
 import mari.samba.service.SambaConfigService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/config")
 public class ConfigApiController {
 
-  @Autowired private SambaConfigService configService;
+  private final SambaConfigService configService;
 
-  @GetMapping("/raw")
-  public ApiResponse<String> getRawConfig(HttpSession session) {
-    String sessionId = session.getId();
-    String content = configService.getSmbConfContent(sessionId);
-    return ApiResponse.ok(content);
+  public ConfigApiController(SambaConfigService configService) {
+    this.configService = configService;
   }
 
   @GetMapping("/global")
   public ApiResponse<SambaGlobalConfigDto> getGlobalConfig(HttpSession session) {
     String sessionId = session.getId();
-    SambaGlobalConfigDto globalConfig = configService.getGlobalConfig(sessionId);
-    return ApiResponse.ok(globalConfig);
+    SambaGlobalConfigDto config = configService.getGlobalConfig(sessionId);
+    return ApiResponse.ok(config);
   }
 
   @PutMapping("/global")
   public ApiResponse<Void> updateGlobalConfig(
-      HttpSession session, @RequestBody SambaGlobalConfigDto globalConfig) {
+      HttpSession session, @Valid @RequestBody SambaGlobalConfigDto dto) {
     String sessionId = session.getId();
-    configService.updateGlobalConfig(sessionId, globalConfig);
-    return ApiResponse.ok("Operation successful", null);
+    configService.updateGlobalConfig(sessionId, dto);
+    return ApiResponse.ok("Global configuration updated successfully", null);
+  }
+
+  @GetMapping("/raw")
+  public ApiResponse<String> getRawConfig(HttpSession session) {
+    String sessionId = session.getId();
+    String content = configService.getSmbConfContent(sessionId);
+    return ApiResponse.ok("Configuration retrieved successfully", content);
+  }
+
+  @PutMapping("/raw")
+  public ApiResponse<Void> updateRawConfig(
+      HttpSession session, @Valid @RequestBody SambaRawConfigDto dto) {
+    String sessionId = session.getId();
+    configService.updateSmbConf(sessionId, dto.content());
+    return ApiResponse.ok("Configuration file updated and service restarted", null);
   }
 
   @GetMapping("/backups")
@@ -44,10 +57,24 @@ public class ConfigApiController {
     return ApiResponse.ok(backups);
   }
 
+  @PostMapping("/backups")
+  public ApiResponse<Void> createBackup(HttpSession session) {
+    String sessionId = session.getId();
+    configService.createBackup(sessionId);
+    return ApiResponse.ok("Backup created successfully", null);
+  }
+
   @PostMapping("/backups/{filename}/restore")
-  public ApiResponse<Void> restoreBackup(HttpSession session, @PathVariable String filename) {
+  public ApiResponse<Void> restoreBackupByPath(
+      HttpSession session, @PathVariable("filename") String filename) {
     String sessionId = session.getId();
     configService.restoreBackup(sessionId, filename);
-    return ApiResponse.ok("Operation successful" + filename, null);
+    return ApiResponse.ok("Configuration restored from " + filename, null);
+  }
+
+  @PostMapping("/backups/restore")
+  public ApiResponse<Void> restoreBackupByParam(
+      HttpSession session, @RequestParam("filename") String filename) {
+    return restoreBackupByPath(session, filename);
   }
 }

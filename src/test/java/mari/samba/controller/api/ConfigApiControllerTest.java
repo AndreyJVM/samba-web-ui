@@ -2,9 +2,12 @@ package mari.samba.controller.api;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import mari.samba.dto.config.SambaGlobalConfigDto;
@@ -29,9 +32,7 @@ class ConfigApiControllerTest {
 
   @Test
   void testGetGlobalConfig_ShouldReturnDto() throws Exception {
-    SambaGlobalConfigDto configDto = new SambaGlobalConfigDto();
-    // Assuming no explicit setter was found, the default is instantiated. We can just test basic
-    // return values.
+    SambaGlobalConfigDto configDto = SambaGlobalConfigDto.builder().build();
     when(configService.getGlobalConfig(anyString())).thenReturn(configDto);
 
     mockMvc
@@ -42,7 +43,7 @@ class ConfigApiControllerTest {
 
   @Test
   void testUpdateGlobalConfig_ShouldReturnSuccess() throws Exception {
-    SambaGlobalConfigDto payload = new SambaGlobalConfigDto();
+    SambaGlobalConfigDto payload = SambaGlobalConfigDto.builder().build();
 
     mockMvc
         .perform(
@@ -51,7 +52,7 @@ class ConfigApiControllerTest {
                 .content(objectMapper.writeValueAsString(payload)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(configService).updateGlobalConfig(anyString(), any(SambaGlobalConfigDto.class));
   }

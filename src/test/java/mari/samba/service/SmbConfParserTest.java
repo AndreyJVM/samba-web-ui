@@ -53,7 +53,7 @@ class SmbConfParserTest {
             """;
 
   @Test
-  @DisplayName("Test string")
+  @DisplayName("Should parse global configuration from smb.conf")
   void shouldParseGlobalConfig() {
     SambaGlobalConfigDto global = parser.parseGlobalConfig(sampleConfig);
 
@@ -70,7 +70,7 @@ class SmbConfParserTest {
   }
 
   @Test
-  @DisplayName("Test string")
+  @DisplayName("Should parse only user-defined shares")
   void shouldParseOnlyUserShares() {
     List<SambaShare> shares = parser.parseShares(sampleConfig);
 
@@ -96,16 +96,18 @@ class SmbConfParserTest {
   }
 
   @Test
-  @DisplayName("Test string")
+  @DisplayName("Should build valid share section")
   void shouldBuildShareSection() {
-    SambaShareCreateDto dto = new SambaShareCreateDto();
-    dto.setName("finance");
-    dto.setPath("/srv/samba/finance");
-    dto.setComment("Finance Docs");
-    dto.setReadOnly(true);
-    dto.setGuestOk(false);
-    dto.setBrowseable(true);
-    dto.setValidUsers("accountant");
+    SambaShareCreateDto dto =
+        SambaShareCreateDto.builder()
+            .name("finance")
+            .path("/srv/samba/finance")
+            .comment("Finance Docs")
+            .readOnly(true)
+            .guestOk(false)
+            .browseable(true)
+            .validUsers("accountant")
+            .build();
 
     String section = parser.buildShareSection(dto);
 
@@ -118,7 +120,7 @@ class SmbConfParserTest {
   }
 
   @Test
-  @DisplayName("Test string")
+  @DisplayName("Should remove specified share section")
   void shouldRemoveSection() {
     String result = parser.removeSection(sampleConfig, "public");
 
@@ -129,19 +131,18 @@ class SmbConfParserTest {
   }
 
   @Test
-  @DisplayName("Test string")
+  @DisplayName("Should throw exception when removing non-existent section")
   void shouldThrowExceptionWhenRemovingNonExistentSection() {
     assertThatThrownBy(() -> parser.removeSection(sampleConfig, "non_existent"))
         .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("Operation failed due to an error.");
+        .hasMessageContaining("not found");
   }
 
   @Test
-  @DisplayName("Test string")
+  @DisplayName("Should update global section while preserving shares")
   void shouldUpdateGlobalSection() {
-    SambaGlobalConfigDto newGlobal = new SambaGlobalConfigDto();
-    newGlobal.setWorkgroup("NEWCORP");
-    newGlobal.setServerString("New Server");
+    SambaGlobalConfigDto newGlobal =
+        SambaGlobalConfigDto.builder().workgroup("NEWCORP").serverString("New Server").build();
 
     String updatedConfig = parser.updateGlobalSection(sampleConfig, newGlobal);
 

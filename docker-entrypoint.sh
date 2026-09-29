@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+echo "[i] Ensuring directories exist and have proper permissions..."
+mkdir -p /mnt/samba/public /srv/samba /etc/samba/backups
+chown -R admin:admin /mnt/samba /srv/samba 2>/dev/null || true
+chmod 775 /mnt/samba /srv/samba 2>/dev/null || true
+
 echo "[i] Starting SSH daemon..."
 /usr/sbin/sshd
 
@@ -12,7 +17,7 @@ if [ ! -f /etc/samba/smb.conf ]; then
     server string = Samba Web UI Appliance
     server role = standalone server
     security = user
-    map to guest = never
+    map to guest = Bad User
     passdb backend = tdbsam
     load printers = no
     disable netbios = yes

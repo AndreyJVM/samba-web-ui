@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
+import mari.samba.config.SambaProperties;
 import mari.samba.dto.group.SambaGroupCreateDto;
 import mari.samba.model.SambaGroup;
 import mari.samba.service.infra.CommandExecutor;
@@ -18,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class SambaGroupServiceTest {
 
   @Mock private CommandExecutor commandExecutor;
+  @Mock private SambaProperties properties;
 
   @InjectMocks private SambaGroupService sambaGroupService;
 
@@ -37,20 +39,20 @@ class SambaGroupServiceTest {
     List<SambaGroup> groups = sambaGroupService.getAllGroups(SESSION_ID);
 
     assertNotNull(groups);
-    assertEquals(2, groups.size(), "Test string");
+    assertEquals(2, groups.size());
 
-    SambaGroup managers = groups.get(0);
-    assertEquals("managers", managers.getName());
-    assertTrue(managers.getMembers().containsAll(List.of("alice", "bob")));
+    SambaGroup group1 = groups.get(0);
+    assertEquals("managers", group1.name());
+    assertEquals(List.of("alice", "bob"), group1.members());
 
-    SambaGroup emptyGroup = groups.get(1);
-    assertEquals("emptygroup", emptyGroup.getName());
-    assertTrue(emptyGroup.getMembers().isEmpty(), "Test string");
+    SambaGroup group2 = groups.get(1);
+    assertEquals("emptygroup", group2.name());
+    assertTrue(group2.members().isEmpty());
   }
 
   @Test
-  void createGroup_ShouldAddPrefixAndEscape() throws Exception {
-    SambaGroupCreateDto dto = new SambaGroupCreateDto("developers", "description");
+  void createGroup_ShouldExecuteCorrectCommand() throws Exception {
+    SambaGroupCreateDto dto = new SambaGroupCreateDto("developers", "Developers group");
 
     sambaGroupService.createGroup(SESSION_ID, dto);
 
@@ -58,14 +60,14 @@ class SambaGroupServiceTest {
   }
 
   @Test
-  void deleteGroup_ShouldAddPrefixAndEscape() throws Exception {
+  void deleteGroup_ShouldExecuteCorrectCommand() throws Exception {
     sambaGroupService.deleteGroup(SESSION_ID, "developers");
 
     verify(commandExecutor).execute(eq(SESSION_ID), eq("sudo groupdel 'smb_developers'"));
   }
 
   @Test
-  void addUserToGroup_ShouldFormatCommandCorrectly() throws Exception {
+  void addUserToGroup_ShouldExecuteCorrectCommand() throws Exception {
     sambaGroupService.addUserToGroup(SESSION_ID, "john.doe", "developers");
 
     verify(commandExecutor)

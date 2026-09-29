@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
+import mari.samba.config.SambaProperties;
 import mari.samba.dto.config.SambaBackupDto;
 import mari.samba.dto.config.SambaGlobalConfigDto;
 import mari.samba.dto.share.SambaShareCreateDto;
@@ -28,6 +29,7 @@ class SambaConfigServiceTest {
 
   @Mock private CommandExecutor commandExecutor;
   @Mock private SmbConfParser smbConfParser;
+  @Mock private SambaProperties properties;
 
   @InjectMocks private SambaConfigService sambaConfigService;
 
@@ -52,8 +54,7 @@ class SambaConfigServiceTest {
     void parseShares_delegatesToParser() {
       // given
       String configData = "[share]\npath=/data";
-      SambaShare mockShare = new SambaShare();
-      mockShare.setName("share");
+      SambaShare mockShare = SambaShare.builder().name("share").path("/data").build();
       when(smbConfParser.parseShares(configData)).thenReturn(List.of(mockShare));
 
       // when

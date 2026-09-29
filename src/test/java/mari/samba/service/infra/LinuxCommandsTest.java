@@ -71,7 +71,7 @@ class LinuxCommandsTest {
   void testListBackupsDetailed_NowUsesEscape() {
     // Before, this was vulnerable to injection. Now it is strictly validated and escaped.
     String expected =
-        "ls -lh --time-style=\"+%Y-%m-%d %H:%M:%S\" -- /etc/samba/smb.conf.backup_* 2>/dev/null";
+        "ls -lh --time-style=\"+%Y-%m-%d %H:%M:%S\" -- '/etc/samba'/smb.conf.backup_* 2>/dev/null";
     assertEquals(expected, LinuxCommands.listBackupsDetailed("/etc/samba"));
 
     assertThrows(SecurityException.class, () -> LinuxCommands.listBackupsDetailed("/etc;samba"));

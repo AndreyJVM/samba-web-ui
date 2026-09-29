@@ -4,13 +4,20 @@ import mari.samba.dto.ad.AdJoinRequestDto;
 import mari.samba.dto.ad.AdStatusDto;
 import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AdIntegrationService {
 
-  @Autowired private CommandExecutor commandExecutor;
+  private static final Logger log = LoggerFactory.getLogger(AdIntegrationService.class);
+
+  private final CommandExecutor commandExecutor;
+
+  public AdIntegrationService(CommandExecutor commandExecutor) {
+    this.commandExecutor = commandExecutor;
+  }
 
   public AdStatusDto getStatus(String sessionId) {
     String testJoinOut = executeSafe(sessionId, LinuxCommands.netAdsTestJoin());
@@ -25,6 +32,8 @@ public class AdIntegrationService {
   }
 
   public AdStatusDto joinDomain(String sessionId, AdJoinRequestDto request) {
+    log.info(
+        "Joining Active Directory domain '{}' as user '{}'", request.domain(), request.username());
     // Basic kerberos conf generation
     String krbConf = generateKrb5Conf(request.domain());
     commandExecutor.execute(sessionId, LinuxCommands.writeKrb5Conf(), krbConf);
@@ -34,19 +43,21 @@ public class AdIntegrationService {
         commandExecutor.execute(
             sessionId, LinuxCommands.netAdsJoin(request.username(), request.password()));
     if (out.toLowerCase().contains("failed") || out.contains("error")) {
+      log.error("Domain join failed: {}", out);
       throw new RuntimeException("Domain join failed: " + out);
     }
 
     // Restart winbind
     commandExecutor.execute(sessionId, LinuxCommands.systemctl("restart", "winbind"));
+    log.info("Successfully joined Active Directory domain '{}'", request.domain());
 
     return getStatus(sessionId);
   }
 
   public AdStatusDto leaveDomain(String sessionId, AdJoinRequestDto request) {
-    String out =
-        commandExecutor.execute(
-            sessionId, LinuxCommands.netAdsLeave(request.username(), request.password()));
+    log.info("Leaving Active Directory domain as user '{}'", request.username());
+    commandExecutor.execute(
+        sessionId, LinuxCommands.netAdsLeave(request.username(), request.password()));
     return getStatus(sessionId);
   }
 

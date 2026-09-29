@@ -1,150 +1,234 @@
 package mari.samba.dto.share;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-public class SambaShareCreateDto {
+public record SambaShareCreateDto(
+    @NotBlank(message = "Validation failed")
+        @Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "Validation failed")
+        @JsonProperty("name")
+        String name,
+    @NotBlank(message = "Validation failed") @JsonProperty("path") String path,
+    @JsonProperty("comment") String comment,
+    @JsonProperty("readOnly") boolean readOnly,
+    @JsonProperty("guestOk") boolean guestOk,
+    @JsonProperty("browseable") boolean browseable,
+    @JsonProperty("validUsers") String validUsers,
+    @JsonProperty("writeList") String writeList,
+    @JsonProperty("createMask") String createMask,
+    @JsonProperty("directoryMask") String directoryMask,
+    @JsonProperty("forceUser") String forceUser,
+    @JsonProperty("forceGroup") String forceGroup,
+    @JsonProperty("maxConnections") String maxConnections,
+    @JsonProperty("hostsAllow") String hostsAllow,
+    @JsonProperty("hostsDeny") String hostsDeny) {
 
-  @NotBlank(message = "Validation failed")
-  @Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "Validation failed")
-  private String name;
-
-  @NotBlank(message = "Validation failed")
-  private String path;
-
-  private String comment;
-  private boolean readOnly = true;
-  private boolean guestOk = false;
-  private boolean browseable = true;
-  private String validUsers;
-  private String writeList;
-  private String createMask;
-  private String directoryMask;
-  private String forceUser;
-  private String forceGroup;
-  private String maxConnections;
-  private String hostsAllow;
-  private String hostsDeny;
-
-  public SambaShareCreateDto() {}
-
-  public String getName() {
-    return name;
+  public SambaShareCreateDto {
+    // Compact constructor
   }
 
-  public void setName(String name) {
-    this.name = name;
+  public SambaShareCreateDto(String name, String path) {
+    this(name, path, null, true, false, true, null, null, null, null, null, null, null, null, null);
+  }
+
+  public SambaShareCreateDto() {
+    this(null, null, null, true, false, true, null, null, null, null, null, null, null, null, null);
+  }
+
+  public SambaShareCreateDto withName(String newName) {
+    return new SambaShareCreateDto(
+        newName,
+        path,
+        comment,
+        readOnly,
+        guestOk,
+        browseable,
+        validUsers,
+        writeList,
+        createMask,
+        directoryMask,
+        forceUser,
+        forceGroup,
+        maxConnections,
+        hostsAllow,
+        hostsDeny);
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  // Backwards compatibility getters
+  public String getName() {
+    return name;
   }
 
   public String getPath() {
     return path;
   }
 
-  public void setPath(String path) {
-    this.path = path;
-  }
-
   public String getComment() {
     return comment;
-  }
-
-  public void setComment(String comment) {
-    this.comment = comment;
   }
 
   public boolean isReadOnly() {
     return readOnly;
   }
 
-  public void setReadOnly(boolean readOnly) {
-    this.readOnly = readOnly;
-  }
-
   public boolean isGuestOk() {
     return guestOk;
-  }
-
-  public void setGuestOk(boolean guestOk) {
-    this.guestOk = guestOk;
   }
 
   public boolean isBrowseable() {
     return browseable;
   }
 
-  public void setBrowseable(boolean browseable) {
-    this.browseable = browseable;
-  }
-
   public String getValidUsers() {
     return validUsers;
-  }
-
-  public void setValidUsers(String validUsers) {
-    this.validUsers = validUsers;
   }
 
   public String getWriteList() {
     return writeList;
   }
 
-  public void setWriteList(String writeList) {
-    this.writeList = writeList;
-  }
-
   public String getCreateMask() {
     return createMask;
-  }
-
-  public void setCreateMask(String createMask) {
-    this.createMask = createMask;
   }
 
   public String getDirectoryMask() {
     return directoryMask;
   }
 
-  public void setDirectoryMask(String directoryMask) {
-    this.directoryMask = directoryMask;
-  }
-
   public String getForceUser() {
     return forceUser;
-  }
-
-  public void setForceUser(String forceUser) {
-    this.forceUser = forceUser;
   }
 
   public String getForceGroup() {
     return forceGroup;
   }
 
-  public void setForceGroup(String forceGroup) {
-    this.forceGroup = forceGroup;
-  }
-
   public String getMaxConnections() {
     return maxConnections;
-  }
-
-  public void setMaxConnections(String maxConnections) {
-    this.maxConnections = maxConnections;
   }
 
   public String getHostsAllow() {
     return hostsAllow;
   }
 
-  public void setHostsAllow(String hostsAllow) {
-    this.hostsAllow = hostsAllow;
-  }
-
   public String getHostsDeny() {
     return hostsDeny;
   }
 
-  public void setHostsDeny(String hostsDeny) {
-    this.hostsDeny = hostsDeny;
+  public static class Builder {
+    private String name;
+    private String path;
+    private String comment;
+    private boolean readOnly = true;
+    private boolean guestOk = false;
+    private boolean browseable = true;
+    private String validUsers;
+    private String writeList;
+    private String createMask;
+    private String directoryMask;
+    private String forceUser;
+    private String forceGroup;
+    private String maxConnections;
+    private String hostsAllow;
+    private String hostsDeny;
+
+    public Builder name(String name) {
+      this.name = name;
+      return this;
+    }
+
+    public Builder path(String path) {
+      this.path = path;
+      return this;
+    }
+
+    public Builder comment(String comment) {
+      this.comment = comment;
+      return this;
+    }
+
+    public Builder readOnly(boolean readOnly) {
+      this.readOnly = readOnly;
+      return this;
+    }
+
+    public Builder guestOk(boolean guestOk) {
+      this.guestOk = guestOk;
+      return this;
+    }
+
+    public Builder browseable(boolean browseable) {
+      this.browseable = browseable;
+      return this;
+    }
+
+    public Builder validUsers(String validUsers) {
+      this.validUsers = validUsers;
+      return this;
+    }
+
+    public Builder writeList(String writeList) {
+      this.writeList = writeList;
+      return this;
+    }
+
+    public Builder createMask(String createMask) {
+      this.createMask = createMask;
+      return this;
+    }
+
+    public Builder directoryMask(String directoryMask) {
+      this.directoryMask = directoryMask;
+      return this;
+    }
+
+    public Builder forceUser(String forceUser) {
+      this.forceUser = forceUser;
+      return this;
+    }
+
+    public Builder forceGroup(String forceGroup) {
+      this.forceGroup = forceGroup;
+      return this;
+    }
+
+    public Builder maxConnections(String maxConnections) {
+      this.maxConnections = maxConnections;
+      return this;
+    }
+
+    public Builder hostsAllow(String hostsAllow) {
+      this.hostsAllow = hostsAllow;
+      return this;
+    }
+
+    public Builder hostsDeny(String hostsDeny) {
+      this.hostsDeny = hostsDeny;
+      return this;
+    }
+
+    public SambaShareCreateDto build() {
+      return new SambaShareCreateDto(
+          name,
+          path,
+          comment,
+          readOnly,
+          guestOk,
+          browseable,
+          validUsers,
+          writeList,
+          createMask,
+          directoryMask,
+          forceUser,
+          forceGroup,
+          maxConnections,
+          hostsAllow,
+          hostsDeny);
+    }
   }
 }

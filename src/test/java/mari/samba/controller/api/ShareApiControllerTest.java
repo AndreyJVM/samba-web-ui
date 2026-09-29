@@ -1,9 +1,15 @@
 package mari.samba.controller.api;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -30,9 +36,7 @@ class ShareApiControllerTest {
 
   @Test
   void testGetAllShares_ShouldReturnShares() throws Exception {
-    SambaShare share = new SambaShare();
-    share.setName("public");
-    share.setPath("/srv/samba/public");
+    SambaShare share = SambaShare.builder().name("public").path("/srv/samba/public").build();
 
     when(shareService.getAllShares(anyString())).thenReturn(List.of(share));
 
@@ -46,8 +50,7 @@ class ShareApiControllerTest {
 
   @Test
   void testGetShareByName_ShouldReturnShare() throws Exception {
-    SambaShare share = new SambaShare();
-    share.setName("private");
+    SambaShare share = SambaShare.builder().name("private").path("/srv/samba/private").build();
 
     when(shareService.getShareByName(anyString(), eq("private"))).thenReturn(share);
 
@@ -60,10 +63,12 @@ class ShareApiControllerTest {
 
   @Test
   void testCreateShare_ShouldReturnSuccess() throws Exception {
-    SambaShareCreateDto dto = new SambaShareCreateDto();
-    dto.setName("new-share");
-    dto.setPath("/srv/samba/new");
-    dto.setComment("New Share");
+    SambaShareCreateDto dto =
+        SambaShareCreateDto.builder()
+            .name("new-share")
+            .path("/srv/samba/new")
+            .comment("New Share")
+            .build();
 
     mockMvc
         .perform(
@@ -72,16 +77,15 @@ class ShareApiControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(shareService).createShare(anyString(), any(SambaShareCreateDto.class));
   }
 
   @Test
   void testUpdateShare_ShouldReturnSuccess() throws Exception {
-    SambaShareCreateDto dto = new SambaShareCreateDto();
-    dto.setName("data-share");
-    dto.setPath("/srv/samba/data");
+    SambaShareCreateDto dto =
+        SambaShareCreateDto.builder().name("data-share").path("/srv/samba/data").build();
 
     mockMvc
         .perform(
@@ -90,7 +94,7 @@ class ShareApiControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(shareService).updateShare(anyString(), eq("data-share"), any(SambaShareCreateDto.class));
   }

@@ -3,19 +3,17 @@ package mari.samba.controller.api;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import mari.samba.dto.auth.ConnectionRequestDto;
 import mari.samba.dto.common.ApiResponse;
 import mari.samba.exception.SambaCommandException;
+import mari.samba.service.AuthService;
+import mari.samba.service.AuthServiceImpl;
 import mari.samba.service.BruteForceProtectionService;
 import mari.samba.service.infra.SshSessionManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -25,13 +23,18 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class AuthApiController {
 
+  private final AuthService authService;
   private final SshSessionManager sessionManager;
   private final BruteForceProtectionService bruteForceService;
 
   public AuthApiController(
-      SshSessionManager sessionManager, BruteForceProtectionService bruteForceService) {
+      SshSessionManager sessionManager,
+      BruteForceProtectionService bruteForceService,
+      @Autowired(required = false) AuthService authService) {
     this.sessionManager = sessionManager;
     this.bruteForceService = bruteForceService;
+    this.authService =
+        authService != null ? authService : new AuthServiceImpl(sessionManager, bruteForceService);
   }
 
   private String getClientIp(HttpServletRequest request) {
@@ -39,7 +42,7 @@ public class AuthApiController {
     if (xfHeader == null || xfHeader.isEmpty()) {
       return request.getRemoteAddr();
     }
-    return xfHeader.split(",")[0];
+    return xfHeader.split(",")[0].trim();
   }
 
   @PostMapping("/login")
@@ -48,54 +51,35 @@ public class AuthApiController {
 
     String clientIp = getClientIp(httpRequest);
 
-    if (bruteForceService.isBlocked(clientIp)) {
-      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-          .body(ApiResponse.error("Operation successful"));
-    }
-
-    if (!request.isKeyAuth()
-        && (request.getPassword() == null || request.getPassword().isBlank())) {
-      return ResponseEntity.badRequest().body(ApiResponse.error("Operation successful"));
-    }
-
     try {
       HttpSession session = httpRequest.getSession(true);
       String sessionId = session.getId();
-      sessionManager.createSession(sessionId, request);
 
-      List<SimpleGrantedAuthority> authorities =
-          Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
-      UsernamePasswordAuthenticationToken authentication =
-          new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
-
-      SecurityContextHolder.getContext().setAuthentication(authentication);
+      authService.login(sessionId, request, clientIp);
 
       session.setAttribute(
           HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
           SecurityContextHolder.getContext());
 
-      session.setAttribute(
-          "sambaHost",
+      String hostDisplay =
           request.getHost()
-              + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : ""));
+              + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : "");
+      session.setAttribute("sambaHost", hostDisplay);
       session.setAttribute("sambaUser", request.getUsername());
 
-      bruteForceService.resetFailedLogin(clientIp);
+      return ResponseEntity.ok(ApiResponse.ok("Authentication successful", null));
 
-      return ResponseEntity.ok(ApiResponse.ok("Operation successful", null));
-
-    } catch (SambaCommandException e) {
-      bruteForceService.registerFailedLogin(clientIp);
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body(
-              ApiResponse.error("Operation successful" + e.getMessage() + "Operation successful"));
+    } catch (SecurityException e) {
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+          .body(ApiResponse.error(e.getMessage()));
     } catch (IllegalArgumentException e) {
-      bruteForceService.registerFailedLogin(clientIp);
       return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+    } catch (SambaCommandException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(ApiResponse.error("Authentication failed: " + e.getMessage()));
     } catch (Exception e) {
-      bruteForceService.registerFailedLogin(clientIp);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(ApiResponse.error("Operation successful" + e.getMessage()));
+          .body(ApiResponse.error("Login error: " + e.getMessage()));
     }
   }
 
@@ -119,20 +103,18 @@ public class AuthApiController {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    Map<String, String> data = new HashMap<>();
-    data.put("host", host);
-    data.put("user", user);
-
+    Map<String, String> data = authService.getCurrentUserInfo(host, user);
     return ResponseEntity.ok(ApiResponse.ok(data));
   }
 
   @PostMapping("/logout")
   public ResponseEntity<ApiResponse<Void>> logout(HttpSession session) {
     if (session != null) {
-      String sessionId = session.getId();
-      sessionManager.disconnect(sessionId);
+      authService.logout(session.getId());
       session.invalidate();
+    } else {
+      authService.logout(null);
     }
-    return ResponseEntity.ok(ApiResponse.ok("Operation successful", null));
+    return ResponseEntity.ok(ApiResponse.ok("Logged out successfully", null));
   }
 }

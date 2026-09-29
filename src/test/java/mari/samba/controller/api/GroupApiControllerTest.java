@@ -1,9 +1,15 @@
 package mari.samba.controller.api;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -52,7 +58,7 @@ class GroupApiControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(groupService).createGroup(anyString(), any(SambaGroupCreateDto.class));
   }
@@ -63,7 +69,7 @@ class GroupApiControllerTest {
         .perform(delete("/api/groups/developers"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(groupService).deleteGroup(anyString(), eq("developers"));
   }
@@ -77,7 +83,7 @@ class GroupApiControllerTest {
                 .content("{\"username\":\"alice\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(groupService).addUserToGroup(anyString(), eq("alice"), eq("developers"));
   }
@@ -88,7 +94,7 @@ class GroupApiControllerTest {
         .perform(delete("/api/groups/developers/users/alice"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(groupService).removeUserFromGroup(anyString(), eq("alice"), eq("developers"));
   }

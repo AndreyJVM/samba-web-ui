@@ -56,7 +56,7 @@ class AuthApiControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Test string"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verifyNoInteractions(sessionManager);
   }

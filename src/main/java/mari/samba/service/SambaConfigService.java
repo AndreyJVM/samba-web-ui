@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import mari.samba.config.SambaProperties;
 import mari.samba.dto.config.SambaBackupDto;
 import mari.samba.dto.config.SambaGlobalConfigDto;
 import mari.samba.dto.share.SambaShareCreateDto;
@@ -11,21 +12,42 @@ import mari.samba.model.SambaShare;
 import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
 import mari.samba.service.parser.SmbConfParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SambaConfigService {
 
-  private static final String SMB_CONF_PATH = "/etc/samba/smb.conf";
-  private static final String BACKUP_DIR = "/etc/samba/backups";
+  private static final Logger log = LoggerFactory.getLogger(SambaConfigService.class);
 
-  @Autowired private CommandExecutor commandExecutor;
+  public static final String SMB_CONF_PATH = "/etc/samba/smb.conf";
+  public static final String BACKUP_DIR = "/etc/samba/backups";
 
-  @Autowired private SmbConfParser smbConfParser;
+  private final CommandExecutor commandExecutor;
+  private final SmbConfParser smbConfParser;
+  private final String configPath;
+  private final String backupDir;
+
+  public SambaConfigService(
+      CommandExecutor commandExecutor,
+      SmbConfParser smbConfParser,
+      @Autowired(required = false) SambaProperties properties) {
+    this.commandExecutor = commandExecutor;
+    this.smbConfParser = smbConfParser;
+    this.configPath =
+        properties != null && properties.paths() != null && properties.paths().config() != null
+            ? properties.paths().config()
+            : SMB_CONF_PATH;
+    this.backupDir =
+        properties != null && properties.paths() != null && properties.paths().backups() != null
+            ? properties.paths().backups()
+            : BACKUP_DIR;
+  }
 
   public String getSmbConfContent(String sessionId) {
-    return commandExecutor.execute(sessionId, LinuxCommands.cat(SMB_CONF_PATH));
+    return commandExecutor.execute(sessionId, LinuxCommands.cat(configPath));
   }
 
   public List<SambaShare> parseShares(String content) {
@@ -41,18 +63,19 @@ public class SambaConfigService {
   }
 
   public void createBackup(String sessionId) {
-    commandExecutor.execute(sessionId, LinuxCommands.mkdir(BACKUP_DIR));
+    commandExecutor.execute(sessionId, LinuxCommands.mkdir(backupDir));
     String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-    String backupFile = BACKUP_DIR + "/smb.conf.backup_" + timestamp;
+    String backupFile = backupDir + "/smb.conf.backup_" + timestamp;
 
-    commandExecutor.execute(sessionId, LinuxCommands.copy(SMB_CONF_PATH, backupFile));
-    commandExecutor.execute(sessionId, LinuxCommands.cleanupOldBackups(BACKUP_DIR, 10));
+    commandExecutor.execute(sessionId, LinuxCommands.copy(configPath, backupFile));
+    commandExecutor.execute(sessionId, LinuxCommands.cleanupOldBackups(backupDir, 10));
+    log.info("Created configuration backup: {}", backupFile);
   }
 
   public List<SambaBackupDto> listBackups(String sessionId) {
     List<SambaBackupDto> backups = new ArrayList<>();
     try {
-      String cmd = LinuxCommands.listBackupsDetailed(BACKUP_DIR);
+      String cmd = LinuxCommands.listBackupsDetailed(backupDir);
       String output = commandExecutor.execute(sessionId, cmd);
       String[] lines = output.split("\\r?\\n");
 
@@ -70,7 +93,8 @@ public class SambaConfigService {
           backups.add(new SambaBackupDto(filename, date, size));
         }
       }
-    } catch (Exception ignored) {
+    } catch (Exception e) {
+      log.warn("Failed to list configuration backups: {}", e.getMessage());
     }
     return backups;
   }
@@ -80,11 +104,12 @@ public class SambaConfigService {
       throw new IllegalArgumentException("Operation failed due to an error.");
     }
 
-    String backupFile = BACKUP_DIR + "/" + filename;
+    String backupFile = backupDir + "/" + filename;
     createBackup(sessionId);
 
-    commandExecutor.execute(sessionId, LinuxCommands.copy(backupFile, SMB_CONF_PATH));
+    commandExecutor.execute(sessionId, LinuxCommands.copy(backupFile, configPath));
     commandExecutor.execute(sessionId, LinuxCommands.systemctl("restart", "smbd"));
+    log.info("Restored configuration from backup {} and restarted smbd", filename);
   }
 
   public void updateSmbConf(String sessionId, String content) {
@@ -93,8 +118,9 @@ public class SambaConfigService {
     createBackup(sessionId);
     commandExecutor.execute(sessionId, LinuxCommands.writeToFileStdin(tempFile), content);
     commandExecutor.execute(sessionId, LinuxCommands.testparmSilent(tempFile));
-    commandExecutor.execute(sessionId, LinuxCommands.move(tempFile, SMB_CONF_PATH));
+    commandExecutor.execute(sessionId, LinuxCommands.move(tempFile, configPath));
     commandExecutor.execute(sessionId, LinuxCommands.systemctl("restart", "smbd"));
+    log.info("Updated {} and restarted smbd", configPath);
   }
 
   public SambaGlobalConfigDto getGlobalConfig(String sessionId) {

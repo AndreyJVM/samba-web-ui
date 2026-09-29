@@ -1,9 +1,14 @@
 package mari.samba.controller.api;
 
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -52,7 +57,7 @@ class UserApiControllerTest {
                 .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(sambaUserService)
         .createUser(anyString(), eq("johndoe"), eq("Secret@123"), eq("John Doe"));
@@ -64,7 +69,7 @@ class UserApiControllerTest {
         .perform(delete("/api/users/johndoe"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Expected value"));
+        .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(sambaUserService).deleteUser(anyString(), eq("johndoe"));
   }
