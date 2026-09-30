@@ -16,13 +16,17 @@ RUN mkdir /var/run/sshd
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-# Эмуляция systemctl (В стандартном Docker нет systemd, а бэкенд использует systemctl)
+# Эмуляция systemctl для Ubuntu Sandbox (Бэкенд использует systemctl)
 RUN echo '#!/bin/bash\n\
-if [ "$1" = "restart" ]; then service $2 restart; fi\n\
-if [ "$1" = "start" ]; then service $2 start; fi\n\
-if [ "$1" = "stop" ]; then service $2 stop; fi\n\
-if [ "$1" = "status" ]; then service $2 status; fi\n\
-if [ "$1" = "is-active" ]; then service $2 status | grep -q "is running" && echo "active" || echo "inactive"; fi\n\
+action=$(echo "$1" | tr -d "'\''")\n\
+shift\n\
+if [ "$1" = "--" ]; then shift; fi\n\
+service=$(echo "$1" | tr -d "'\''")\n\
+if [ "$action" = "restart" ]; then service $service restart; fi\n\
+if [ "$action" = "start" ]; then service $service start; fi\n\
+if [ "$action" = "stop" ]; then service $service stop; fi\n\
+if [ "$action" = "status" ]; then service $service status; fi\n\
+if [ "$action" = "is-active" ]; then service $service status | grep -q "is running" && echo "active" || echo "inactive"; fi\n\
 exit 0\n\
 ' > /usr/bin/systemctl && chmod +x /usr/bin/systemctl
 
