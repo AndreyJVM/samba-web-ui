@@ -2,6 +2,7 @@ package mari.samba.controller.advice;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import mari.samba.dto.common.ApiResponse;
 import mari.samba.exception.SambaCommandException;
@@ -10,8 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -45,6 +49,34 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(msg));
   }
 
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMissingParams(
+      @NonNull MissingServletRequestParameterException ex, @NonNull HttpServletRequest request) {
+    String msg = "Required parameter is missing: " + ex.getParameterName();
+    log.warn("Missing parameter on {}: {}", request.getRequestURI(), ex.getMessage());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(msg));
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMessageNotReadable(
+      @NonNull HttpMessageNotReadableException ex, @NonNull HttpServletRequest request) {
+    log.warn("Malformed JSON on {}: {}", request.getRequestURI(), ex.getMessage());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(ApiResponse.error("Malformed JSON request."));
+  }
+
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(
+      @NonNull ConstraintViolationException ex, @NonNull HttpServletRequest request) {
+    String errors =
+        ex.getConstraintViolations().stream()
+            .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+            .collect(Collectors.joining("; "));
+
+    log.warn("Constraint violation on {}: {}", request.getRequestURI(), errors);
+    return ResponseEntity.badRequest().body(ApiResponse.error("Validation error: " + errors));
+  }
+
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ApiResponse<Void>> handleValidationException(
       @NonNull MethodArgumentNotValidException ex, @NonNull HttpServletRequest request) {
@@ -65,11 +97,12 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(ex.getMessage()));
   }
 
-  @ExceptionHandler(SecurityException.class)
+  @ExceptionHandler({SecurityException.class, AccessDeniedException.class})
   public ResponseEntity<ApiResponse<Void>> handleSecurityException(
-      @NonNull SecurityException ex, @NonNull HttpServletRequest request) {
+      @NonNull Exception ex, @NonNull HttpServletRequest request) {
+    String msg = (ex instanceof AccessDeniedException) ? "Access denied." : ex.getMessage();
     log.warn("Security violation on {}: {}", request.getRequestURI(), ex.getMessage());
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(ex.getMessage()));
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(msg));
   }
 
   @ExceptionHandler(SambaCommandException.class)
