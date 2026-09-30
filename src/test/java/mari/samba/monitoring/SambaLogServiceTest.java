@@ -1,4 +1,4 @@
-package mari.samba.service;
+package mari.samba.monitoring;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;

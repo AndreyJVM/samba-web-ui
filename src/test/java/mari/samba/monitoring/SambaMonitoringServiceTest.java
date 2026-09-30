@@ -1,4 +1,4 @@
-package mari.samba.service;
+package mari.samba.monitoring;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

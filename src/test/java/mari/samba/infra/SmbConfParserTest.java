@@ -1,10 +1,9 @@
-package mari.samba.service;
+package mari.samba.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
-import mari.samba.infra.SmbConfParser;
 import mari.samba.share.SambaShare;
 import mari.samba.share.SambaShareCreateDto;
 import mari.samba.smbconfig.SambaGlobalConfigDto;
