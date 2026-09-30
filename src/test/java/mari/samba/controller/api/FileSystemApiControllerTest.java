@@ -9,7 +9,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import mari.samba.dto.fs.CreateDirectoryDto;
 import mari.samba.dto.fs.DirectoryBrowseResultDto;
 import mari.samba.dto.fs.DiskUsageDto;
 import mari.samba.service.FileSystemService;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,6 +28,8 @@ import org.springframework.test.web.servlet.MockMvc;
 class FileSystemApiControllerTest {
 
   @Autowired private MockMvc mockMvc;
+
+  @Autowired private ObjectMapper objectMapper;
 
   @MockitoBean private FileSystemService fileSystemService;
 
@@ -41,9 +46,25 @@ class FileSystemApiControllerTest {
   }
 
   @Test
-  void testMakeDirectory_ShouldReturnSuccess() throws Exception {
+  void testMakeDirectoryParams_ShouldReturnSuccess() throws Exception {
     mockMvc
         .perform(post("/api/fs/mkdir").param("parentPath", "/srv/samba").param("name", "newfolder"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.message").isNotEmpty());
+
+    verify(fileSystemService).createDirectory(anyString(), eq("/srv/samba"), eq("newfolder"));
+  }
+
+  @Test
+  void testMakeDirectoryBody_ShouldReturnSuccess() throws Exception {
+    CreateDirectoryDto dto = new CreateDirectoryDto("/srv/samba", "newfolder");
+
+    mockMvc
+        .perform(
+            post("/api/fs/mkdir")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
         .andExpect(jsonPath("$.message").isNotEmpty());
