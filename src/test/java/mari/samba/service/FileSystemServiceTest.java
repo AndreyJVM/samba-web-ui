@@ -5,14 +5,15 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
 import mari.samba.config.SambaProperties;
 import mari.samba.dto.fs.DirectoryBrowseResultDto;
 import mari.samba.dto.fs.DiskUsageDto;
 import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -21,10 +22,19 @@ class FileSystemServiceTest {
 
   @Mock private CommandExecutor commandExecutor;
   @Mock private SambaProperties properties;
+  @Mock private SambaProperties.Security mockSecurity;
 
-  @InjectMocks private FileSystemService fileSystemService;
+  private FileSystemService fileSystemService;
 
   private static final String SESSION_ID = "test-session";
+
+  @BeforeEach
+  void setUp() {
+    when(properties.security()).thenReturn(mockSecurity);
+    when(mockSecurity.allowedRoots()).thenReturn(List.of("/srv", "/data", "/mnt"));
+
+    fileSystemService = new FileSystemService(commandExecutor, properties);
+  }
 
   // ==========================================
   // Tests for listDirectories
@@ -53,7 +63,7 @@ class FileSystemServiceTest {
 
     assertNotNull(result);
     assertEquals("/", result.currentPath());
-    assertEquals(5, result.directories().size());
+    assertEquals(3, result.directories().size());
     assertTrue(result.directories().stream().anyMatch(i -> i.fullPath().equals("/srv")));
     assertTrue(result.directories().stream().anyMatch(i -> i.fullPath().equals("/data")));
   }

@@ -16,11 +16,11 @@ import mari.samba.model.SambaShare;
 import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
 import mari.samba.service.parser.SmbConfParser;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -30,8 +30,18 @@ class SambaConfigServiceTest {
   @Mock private CommandExecutor commandExecutor;
   @Mock private SmbConfParser smbConfParser;
   @Mock private SambaProperties properties;
+  @Mock private SambaProperties.Paths mockPaths;
 
-  @InjectMocks private SambaConfigService sambaConfigService;
+  private SambaConfigService sambaConfigService;
+
+  @BeforeEach
+  void setUp() {
+    when(properties.paths()).thenReturn(mockPaths);
+    when(mockPaths.config()).thenReturn("/etc/samba/smb.conf");
+    when(mockPaths.backups()).thenReturn("/etc/samba/backups");
+
+    sambaConfigService = new SambaConfigService(commandExecutor, smbConfParser, properties);
+  }
 
   @Nested
   class ContentOperations {
@@ -177,7 +187,7 @@ class SambaConfigServiceTest {
       // when / then
       assertThatThrownBy(() -> sambaConfigService.restoreBackup("session-1", invalidName))
           .isInstanceOf(IllegalArgumentException.class)
-          .hasMessage("Operation failed due to an error.");
+          .hasMessage("Invalid backup filename format.");
     }
   }
 
