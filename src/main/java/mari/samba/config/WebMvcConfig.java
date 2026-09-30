@@ -4,6 +4,8 @@ import java.io.IOException;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.lang.NonNull;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -13,15 +15,24 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
 public class WebMvcConfig implements WebMvcConfigurer {
 
   @Override
-  public void addViewControllers(ViewControllerRegistry registry) {
-
+  public void addViewControllers(@NonNull ViewControllerRegistry registry) {
     registry.addViewController("/").setViewName("forward:/ui/index.html");
     registry.addViewController("/ui").setViewName("forward:/ui/index.html");
     registry.addViewController("/ui/").setViewName("forward:/ui/index.html");
   }
 
   @Override
-  public void addResourceHandlers(ResourceHandlerRegistry registry) {
+  public void addCorsMappings(@NonNull CorsRegistry registry) {
+    registry
+        .addMapping("/**")
+        .allowedOriginPatterns("*")
+        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        .allowedHeaders("*")
+        .allowCredentials(true);
+  }
+
+  @Override
+  public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
     registry
         .addResourceHandler("/ui/**")
         .addResourceLocations("classpath:/static/ui/")
@@ -29,8 +40,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
         .addResolver(
             new PathResourceResolver() {
               @Override
-              protected Resource getResource(String resourcePath, Resource location)
-                  throws IOException {
+              protected Resource getResource(
+                  @NonNull String resourcePath, @NonNull Resource location) throws IOException {
                 Resource requestedResource = location.createRelative(resourcePath);
 
                 if (requestedResource.exists()
@@ -39,7 +50,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                   return requestedResource;
                 }
 
-                // React SPA index.html
+                // Fallback for React/Vue SPA routing
                 return new ClassPathResource("/static/ui/index.html");
               }
             });
