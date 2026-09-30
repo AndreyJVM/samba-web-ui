@@ -8,6 +8,7 @@ import mari.samba.dto.auth.ConnectionRequestDto;
 import mari.samba.service.infra.SshSessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,8 +29,10 @@ public class AuthServiceImpl implements AuthService {
   }
 
   @Override
-  public void login(String sessionId, ConnectionRequestDto request, String clientIp)
+  public void login(
+      @NonNull String sessionId, @NonNull ConnectionRequestDto request, @NonNull String clientIp)
       throws Exception {
+
     if (bruteForceService.isBlocked(clientIp)) {
       log.warn("Blocked login attempt from IP {} due to too many failed attempts", clientIp);
       throw new SecurityException("Too many failed login attempts. IP temporarily blocked.");
@@ -77,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   public Map<String, String> getCurrentUserInfo(String sambaHost, String sambaUser) {
-    Map<String, String> userInfo = new HashMap<>();
+    Map<String, String> userInfo = new HashMap<>(2);
     userInfo.put("host", sambaHost != null ? sambaHost : "Not connected");
     userInfo.put("user", sambaUser != null ? sambaUser : "Unknown");
     return userInfo;
