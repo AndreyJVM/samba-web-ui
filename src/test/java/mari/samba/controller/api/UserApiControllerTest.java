@@ -7,11 +7,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
 import mari.samba.dto.user.SambaUserCreateDto;
 import mari.samba.model.SambaUser;
 import mari.samba.service.SambaUserService;
@@ -72,5 +74,21 @@ class UserApiControllerTest {
         .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(sambaUserService).deleteUser(anyString(), eq("johndoe"));
+  }
+
+  @Test
+  void testChangePassword_ShouldReturnSuccessMsg() throws Exception {
+    Map<String, String> body = Map.of("newPassword", "NewSecret@123");
+
+    mockMvc
+        .perform(
+            put("/api/users/johndoe/password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.message").isNotEmpty());
+
+    verify(sambaUserService).changePassword(anyString(), eq("johndoe"), eq("NewSecret@123"));
   }
 }
