@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
-import mari.samba.dto.config.SambaGlobalConfigDto;
-import mari.samba.dto.share.SambaShareCreateDto;
-import mari.samba.model.SambaShare;
-import mari.samba.service.parser.SmbConfParser;
+import mari.samba.infra.SmbConfParser;
+import mari.samba.share.SambaShare;
+import mari.samba.share.SambaShareCreateDto;
+import mari.samba.smbconfig.SambaGlobalConfigDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

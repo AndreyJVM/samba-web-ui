@@ -6,8 +6,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import mari.samba.config.SambaProperties;
-import mari.samba.service.infra.CommandExecutor;
-import mari.samba.service.infra.LinuxCommands;
+import mari.samba.infra.CommandExecutor;
+import mari.samba.infra.LinuxCommands;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

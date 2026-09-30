@@ -5,8 +5,8 @@ import static org.mockito.Mockito.*;
 
 import java.util.List;
 import java.util.Map;
-import mari.samba.service.infra.CommandExecutor;
-import mari.samba.service.infra.LinuxCommands;
+import mari.samba.infra.CommandExecutor;
+import mari.samba.infra.LinuxCommands;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
