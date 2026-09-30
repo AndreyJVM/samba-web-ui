@@ -8,21 +8,21 @@
 
 ```mermaid
 classDiagram
-    namespace Controller Layer {
+    namespace Controllers {
         class FileSystemApiController
     }
     
-    namespace Service Layer {
+    namespace Services {
         class FileSystemService
     }
     
-    namespace Infrastructure & Security {
+    namespace Infrastructure {
         class CommandExecutor
         class SshSessionManager
         class LinuxCommands
     }
     
-    namespace Data Transfer Objects {
+    namespace DTO {
         class DirectoryBrowseResultDto
         class DirectoryItemDto
         class DiskUsageDto
