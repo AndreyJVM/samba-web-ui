@@ -14,11 +14,20 @@ import mari.samba.service.infra.SshSessionManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controller handling authentication and session management.
+ *
+ * <p>Provides endpoints to authenticate users (via SSH), retrieve current session details, and
+ * perform logout operations. Incorporates Spring Security session contexts and basic protection
+ * against brute-force attacks via injected services.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthApiController {
@@ -27,6 +36,17 @@ public class AuthApiController {
   private final SshSessionManager sessionManager;
   private final BruteForceProtectionService bruteForceService;
 
+  /**
+   * Constructs a new {@link AuthApiController}.
+   *
+   * <p>Provides a fallback default implementation of {@link AuthService} (i.e., {@link
+   * AuthServiceImpl}) if no such bean is provided by the Spring context, which is primarily useful
+   * for targeted slice-tests.
+   *
+   * @param sessionManager handles SSH sessions with the underlying OS/Samba system
+   * @param bruteForceService provides tracking and limiting for login attempts
+   * @param authService the overarching authentication service (optional)
+   */
   public AuthApiController(
       SshSessionManager sessionManager,
       BruteForceProtectionService bruteForceService,
@@ -37,7 +57,14 @@ public class AuthApiController {
         authService != null ? authService : new AuthServiceImpl(sessionManager, bruteForceService);
   }
 
-  private String getClientIp(HttpServletRequest request) {
+  /**
+   * Helper method to extract the real IP address of the client, factoring in potential proxy
+   * headers like "X-Forwarded-For".
+   *
+   * @param request the HTTP request
+   * @return the resolved client IP address
+   */
+  private String getClientIp(@NonNull HttpServletRequest request) {
     String xfHeader = request.getHeader("X-Forwarded-For");
     if (xfHeader == null || xfHeader.isEmpty()) {
       return request.getRemoteAddr();
@@ -45,9 +72,19 @@ public class AuthApiController {
     return xfHeader.split(",")[0].trim();
   }
 
+  /**
+   * Authenticates a user and establishes a remote secure session.
+   *
+   * <p>Upon successful authentication, the authenticated user is populated into the {@link
+   * SecurityContextHolder} and appropriate session attributes are created.
+   *
+   * @param request the connection credentials DTO
+   * @param httpRequest the raw external HTTP request for determining IP and session
+   * @return a {@link ResponseEntity} with an {@link ApiResponse} wrapping the authentication status
+   */
   @PostMapping("/login")
   public ResponseEntity<ApiResponse<Void>> connect(
-      @Valid @RequestBody ConnectionRequestDto request, HttpServletRequest httpRequest) {
+      @Valid @RequestBody ConnectionRequestDto request, @NonNull HttpServletRequest httpRequest) {
 
     String clientIp = getClientIp(httpRequest);
 
@@ -83,9 +120,19 @@ public class AuthApiController {
     }
   }
 
+  /**
+   * Retrieves information about the currently authenticated user session.
+   *
+   * <p>Normally this forces the creation/validation of a CSRF token. If a user is missing
+   * credentials in the session context, it responds with an UNAUTHORIZED status.
+   *
+   * @param request the HTTP request used for CSRF token retrieval
+   * @param httpSession the user's HTTP session holding session keys
+   * @return an {@link ApiResponse} with a map containing current user properties
+   */
   @GetMapping("/me")
   public ResponseEntity<ApiResponse<Map<String, String>>> getCurrentUser(
-      HttpServletRequest request, HttpSession httpSession) {
+      @NonNull HttpServletRequest request, @Nullable HttpSession httpSession) {
 
     CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
     if (csrfToken != null) {
@@ -107,8 +154,14 @@ public class AuthApiController {
     return ResponseEntity.ok(ApiResponse.ok(data));
   }
 
+  /**
+   * Logs out the current user, unbinds the remote connections, and invalidates the session.
+   *
+   * @param session the user's current HTTP session bound for invalidation
+   * @return a 200 OK {@link ResponseEntity} indicating successful logout
+   */
   @PostMapping("/logout")
-  public ResponseEntity<ApiResponse<Void>> logout(HttpSession session) {
+  public ResponseEntity<ApiResponse<Void>> logout(@Nullable HttpSession session) {
     if (session != null) {
       authService.logout(session.getId());
       session.invalidate();
