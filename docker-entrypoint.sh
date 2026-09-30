@@ -26,7 +26,7 @@ EOF
 fi
 
 echo "[i] Starting Samba daemon (smbd)..."
-smbd -D
+systemctl start smbd
 
 echo "[i] Starting Samba Web UI (Spring Boot)..."
 exec java -jar /app/samba-web-ui.jar

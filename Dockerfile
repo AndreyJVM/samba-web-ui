@@ -40,6 +40,7 @@ RUN apk add --update --no-cache \
     sudo \
     bash \
     shadow \
+    procps \
     coreutils
 
 # Setup SSH Host Keys
@@ -54,6 +55,31 @@ RUN adduser -D -h /home/admin -s /bin/bash admin && \
 RUN mkdir -p /etc/samba/backups && \
     mkdir -p /mnt/samba/public && \
     chown -R admin:admin /mnt/samba
+
+# Polyfill systemctl for Alpine (which uses OpenRC)
+# The backend relies on 'systemctl' to check/manage Samba services.
+RUN echo '#!/bin/bash' > /usr/bin/systemctl && \
+    echo 'action=$(echo "$1" | tr -d "'\''")' >> /usr/bin/systemctl && \
+    echo 'shift' >> /usr/bin/systemctl && \
+    echo 'if [ "$1" = "--" ]; then shift; fi' >> /usr/bin/systemctl && \
+    echo 'service=$(echo "$1" | tr -d "'\''")' >> /usr/bin/systemctl && \
+    echo 'if [ "$service" = "smbd" ]; then exec_bin="smbd";' >> /usr/bin/systemctl && \
+    echo 'elif [ "$service" = "nmbd" ]; then exec_bin="nmbd";' >> /usr/bin/systemctl && \
+    echo 'else exec_bin="$service"; fi' >> /usr/bin/systemctl && \
+    echo 'if [ "$action" = "restart" ] || [ "$action" = "reload" ]; then' >> /usr/bin/systemctl && \
+    echo '    pkill "$exec_bin" || true' >> /usr/bin/systemctl && \
+    echo '    $exec_bin -D || true' >> /usr/bin/systemctl && \
+    echo 'elif [ "$action" = "start" ]; then' >> /usr/bin/systemctl && \
+    echo '    $exec_bin -D || true' >> /usr/bin/systemctl && \
+    echo 'elif [ "$action" = "stop" ]; then' >> /usr/bin/systemctl && \
+    echo '    pkill "$exec_bin" || true' >> /usr/bin/systemctl && \
+    echo 'elif [ "$action" = "status" ]; then' >> /usr/bin/systemctl && \
+    echo '    if pgrep "$exec_bin" > /dev/null; then echo "active (running)"; exit 0; else echo "inactive"; exit 3; fi' >> /usr/bin/systemctl && \
+    echo 'elif [ "$action" = "is-active" ]; then' >> /usr/bin/systemctl && \
+    echo '    if pgrep "$exec_bin" > /dev/null; then echo "active"; exit 0; else echo "inactive"; exit 3; fi' >> /usr/bin/systemctl && \
+    echo 'fi' >> /usr/bin/systemctl && \
+    echo 'exit 0' >> /usr/bin/systemctl && \
+    chmod +x /usr/bin/systemctl
 
 # Copy Docker entrypoint and apply permissions
 COPY docker-entrypoint.sh /usr/local/bin/
