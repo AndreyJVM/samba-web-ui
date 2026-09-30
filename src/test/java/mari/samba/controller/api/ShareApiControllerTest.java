@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -62,6 +63,18 @@ class ShareApiControllerTest {
   }
 
   @Test
+  void testGetShareSize_ShouldReturnSize() throws Exception {
+    when(shareService.getShareSize(anyString(), eq("private"))).thenReturn("15GB");
+
+    mockMvc
+        .perform(get("/api/shares/private/size"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.message").value("Share size calculated successfully"))
+        .andExpect(jsonPath("$.data").value("15GB"));
+  }
+
+  @Test
   void testCreateShare_ShouldReturnSuccess() throws Exception {
     SambaShareCreateDto dto =
         SambaShareCreateDto.builder()
@@ -97,5 +110,16 @@ class ShareApiControllerTest {
         .andExpect(jsonPath("$.message").isNotEmpty());
 
     verify(shareService).updateShare(anyString(), eq("data-share"), any(SambaShareCreateDto.class));
+  }
+
+  @Test
+  void testDeleteShare_ShouldReturnSuccess() throws Exception {
+    mockMvc
+        .perform(delete("/api/shares/test-delete"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.message").value("Share 'test-delete' deleted successfully"));
+
+    verify(shareService).deleteShare(anyString(), eq("test-delete"));
   }
 }
