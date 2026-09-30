@@ -11,7 +11,7 @@ import mari.samba.service.infra.CommandExecutor;
 import mari.samba.service.infra.LinuxCommands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,25 +19,17 @@ public class FileSystemService {
 
   private static final Logger log = LoggerFactory.getLogger(FileSystemService.class);
   private static final Pattern SAFE_DIR_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
-  private static final List<String> DEFAULT_ALLOWED_ROOTS =
-      List.of("/mnt", "/media", "/srv", "/data", "/home");
 
   private final CommandExecutor commandExecutor;
   private final List<String> allowedRoots;
 
-  public FileSystemService(
-      CommandExecutor commandExecutor, @Autowired(required = false) SambaProperties properties) {
+  public FileSystemService(CommandExecutor commandExecutor, SambaProperties properties) {
     this.commandExecutor = commandExecutor;
-    this.allowedRoots =
-        properties != null
-                && properties.security() != null
-                && properties.security().allowedRoots() != null
-            ? properties.security().allowedRoots()
-            : DEFAULT_ALLOWED_ROOTS;
+    this.allowedRoots = properties.security().allowedRoots();
   }
 
   /** Lists subdirectories within a requested path, returning normalized structure. */
-  public DirectoryBrowseResultDto listDirectories(String sessionId, String requestedPath) {
+  public DirectoryBrowseResultDto listDirectories(@NonNull String sessionId, String requestedPath) {
     String safePath = normalizePath(requestedPath);
     requireAllowedPath(safePath);
 
@@ -68,8 +60,9 @@ public class FileSystemService {
   }
 
   /** Creates a directory under the given parent directory with secure permissions. */
-  public void createDirectory(String sessionId, String parentPath, String name) {
-    if (name == null || !SAFE_DIR_NAME_PATTERN.matcher(name).matches()) {
+  public void createDirectory(
+      @NonNull String sessionId, @NonNull String parentPath, @NonNull String name) {
+    if (!SAFE_DIR_NAME_PATTERN.matcher(name).matches()) {
       throw new IllegalArgumentException(
           "Invalid directory name. Only alphanumeric characters, dashes, underscores, and dots are"
               + " allowed.");
@@ -87,7 +80,7 @@ public class FileSystemService {
   }
 
   /** Retrieves disk usage information for a specified path. */
-  public DiskUsageDto getDiskUsage(String sessionId, String requestedPath) {
+  public DiskUsageDto getDiskUsage(@NonNull String sessionId, String requestedPath) {
     String safePath = normalizePath(requestedPath);
     requireAllowedPath(safePath);
 

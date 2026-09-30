@@ -14,7 +14,7 @@ import mari.samba.service.infra.LinuxCommands;
 import mari.samba.service.parser.SmbConfParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,47 +22,36 @@ public class SambaConfigService {
 
   private static final Logger log = LoggerFactory.getLogger(SambaConfigService.class);
 
-  public static final String SMB_CONF_PATH = "/etc/samba/smb.conf";
-  public static final String BACKUP_DIR = "/etc/samba/backups";
-
   private final CommandExecutor commandExecutor;
   private final SmbConfParser smbConfParser;
   private final String configPath;
   private final String backupDir;
 
   public SambaConfigService(
-      CommandExecutor commandExecutor,
-      SmbConfParser smbConfParser,
-      @Autowired(required = false) SambaProperties properties) {
+      CommandExecutor commandExecutor, SmbConfParser smbConfParser, SambaProperties properties) {
     this.commandExecutor = commandExecutor;
     this.smbConfParser = smbConfParser;
-    this.configPath =
-        properties != null && properties.paths() != null && properties.paths().config() != null
-            ? properties.paths().config()
-            : SMB_CONF_PATH;
-    this.backupDir =
-        properties != null && properties.paths() != null && properties.paths().backups() != null
-            ? properties.paths().backups()
-            : BACKUP_DIR;
+    this.configPath = properties.paths().config();
+    this.backupDir = properties.paths().backups();
   }
 
-  public String getSmbConfContent(String sessionId) {
+  public String getSmbConfContent(@NonNull String sessionId) {
     return commandExecutor.execute(sessionId, LinuxCommands.cat(configPath));
   }
 
-  public List<SambaShare> parseShares(String content) {
+  public List<SambaShare> parseShares(@NonNull String content) {
     return smbConfParser.parseShares(content);
   }
 
-  public String buildShareSection(SambaShareCreateDto dto) {
+  public String buildShareSection(@NonNull SambaShareCreateDto dto) {
     return smbConfParser.buildShareSection(dto);
   }
 
-  public String removeShareSection(String content, String shareName) {
+  public String removeShareSection(@NonNull String content, @NonNull String shareName) {
     return smbConfParser.removeSection(content, shareName);
   }
 
-  public void createBackup(String sessionId) {
+  public void createBackup(@NonNull String sessionId) {
     commandExecutor.execute(sessionId, LinuxCommands.mkdir(backupDir));
     String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
     String backupFile = backupDir + "/smb.conf.backup_" + timestamp;
@@ -72,7 +61,7 @@ public class SambaConfigService {
     log.info("Created configuration backup: {}", backupFile);
   }
 
-  public List<SambaBackupDto> listBackups(String sessionId) {
+  public List<SambaBackupDto> listBackups(@NonNull String sessionId) {
     List<SambaBackupDto> backups = new ArrayList<>();
     try {
       String cmd = LinuxCommands.listBackupsDetailed(backupDir);
@@ -99,9 +88,9 @@ public class SambaConfigService {
     return backups;
   }
 
-  public void restoreBackup(String sessionId, String filename) {
+  public void restoreBackup(@NonNull String sessionId, @NonNull String filename) {
     if (!filename.matches("^smb\\.conf\\.backup_\\d{8}_\\d{6}$")) {
-      throw new IllegalArgumentException("Operation failed due to an error.");
+      throw new IllegalArgumentException("Invalid backup filename format.");
     }
 
     String backupFile = backupDir + "/" + filename;
@@ -112,7 +101,7 @@ public class SambaConfigService {
     log.info("Restored configuration from backup {} and restarted smbd", filename);
   }
 
-  public void updateSmbConf(String sessionId, String content) {
+  public void updateSmbConf(@NonNull String sessionId, @NonNull String content) {
     String tempFile = "/tmp/smb.conf.tmp";
 
     createBackup(sessionId);
@@ -123,12 +112,12 @@ public class SambaConfigService {
     log.info("Updated {} and restarted smbd", configPath);
   }
 
-  public SambaGlobalConfigDto getGlobalConfig(String sessionId) {
+  public SambaGlobalConfigDto getGlobalConfig(@NonNull String sessionId) {
     String content = getSmbConfContent(sessionId);
     return smbConfParser.parseGlobalConfig(content);
   }
 
-  public void updateGlobalConfig(String sessionId, SambaGlobalConfigDto dto) {
+  public void updateGlobalConfig(@NonNull String sessionId, @NonNull SambaGlobalConfigDto dto) {
     String currentContent = getSmbConfContent(sessionId);
     String updatedContent = smbConfParser.updateGlobalSection(currentContent, dto);
     updateSmbConf(sessionId, updatedContent);
