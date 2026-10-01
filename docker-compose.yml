@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   web:
     build:
@@ -11,25 +10,46 @@ services:
       - "8080:8080"
     environment:
       - TZ=UTC
+      - SPRING_PROFILES_ACTIVE=docker
     depends_on:
-      - samba-node
+      samba-node:
+        condition: service_healthy
+    networks:
+      - samba-network
 
   samba-node:
     build:
       context: .
       dockerfile: docker/Dockerfile.samba
     container_name: samba-node-sandbox
+    hostname: samba-node
     restart: unless-stopped
     ports:
       # Samba / SMB Ports (mapped to alternate host ports to avoid Windows native SMB/NetBIOS conflict)
       - "1445:445"
       - "1139:139"
-      # SSH Server (for direct verification if needed)
+      # SSH Server (for direct verification from host)
       - "2222:22"
     volumes:
-      # Mount storage directories for Samba shares
-      - ./data:/mnt/samba
-      - ./srv:/srv
-      # Keep smb.conf persisted globally
-      - ./config:/etc/samba
+      # Named volumes for reliable storage & persistence across all platforms (Windows/Linux/macOS)
+      - samba-shares:/srv/samba
+      - samba-config:/etc/samba
     privileged: true
+    healthcheck:
+      test: ["CMD-SHELL", "service smbd status && service nmbd status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - samba-network
+
+networks:
+  samba-network:
+    driver: bridge
+
+volumes:
+  samba-shares:
+    name: samba_sandbox_shares
+  samba-config:
+    name: samba_sandbox_config
