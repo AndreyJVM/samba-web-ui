@@ -21,14 +21,18 @@ COPY docker/scripts/systemctl-stub.sh /usr/bin/systemctl
 COPY docker/scripts/entrypoint.sh /entrypoint.sh
 COPY docker/config/smb-base.conf /tmp/smb-base.conf
 COPY scripts/setup-samba-server.sh /setup-samba-server.sh
+COPY docker/scripts/setup-test-data.sh /setup-test-data.sh
 
 # Настраиваем права доступа для скриптов
-RUN chmod +x /usr/bin/systemctl /entrypoint.sh /setup-samba-server.sh
+RUN chmod +x /usr/bin/systemctl /entrypoint.sh /setup-samba-server.sh /setup-test-data.sh
 
 # Запускаем скрипт начальной установки Samba-пользователя (admin) в неинтерактивном режиме
 ENV AUTO_ADMIN_USER=admin
 ENV AUTO_ADMIN_PASS=admin
 RUN /setup-samba-server.sh
+
+# Генерируем тестовые данные для песочницы разработчиков
+RUN /setup-test-data.sh
 
 # Подготавливаем структуру директорий и базовую конфигурацию Samba
 RUN mkdir -p /srv/samba/public && \
