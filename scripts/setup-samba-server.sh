@@ -69,38 +69,20 @@ SUDOERS_FILE="/etc/sudoers.d/samba-web-ui"
 SUDO_ENTRIES=()
 
 # Вспомогательная функция для безопасного поиска абсолютного пути к бинарнику.
-# Важно использовать `which` или `type -P`, а не `command -v`, так как command -v
-# для встроенных команд bash (например, kill) возвращает строку "kill",
-# а sudoers требует исключительно абсолютные пути (например, /bin/kill).
 resolve_cmd() {
     which "$1" 2>/dev/null || true
 }
 
 # ==================================================================
-# 1. СТАТИЧЕСКИЕ КОМАНДЫ (Строго Ограниченные Аргументы)
-# ==================================================================
-
-# Безопасное управление службой Samba
-SYSTEMCTL_BIN=$(resolve_cmd systemctl)
-if [ -n "$SYSTEMCTL_BIN" ]; then
-    for action in start stop restart reload status is-active; do
-        SUDO_ENTRIES+=("$SYSTEMCTL_BIN $action smbd")
-        SUDO_ENTRIES+=("$SYSTEMCTL_BIN $action nmbd")
-    done
-fi
-
-# Безопасное чтение пользователей Samba
-PDBEDIT_BIN=$(resolve_cmd pdbedit)
-[ -n "$PDBEDIT_BIN" ] && SUDO_ENTRIES+=("$PDBEDIT_BIN -L")
-
-
-# ==================================================================
-# 2. ДИНАМИЧЕСКИЕ КОМАНДЫ (Инструменты работы с файлами и юзерами)
+# РАЗРЕШЕНИЯ (Инструменты работы с системой Samba)
+# Открываем полный доступ к бинарникам (без ограничений аргументов),
+# так как бэкенд Java использует разные динамические флаги (например, --)
 # ==================================================================
 DYNAMIC_COMMANDS=(
+  systemctl pdbedit net tee
   useradd userdel chpasswd smbpasswd
   groupadd groupdel gpasswd
-  smbstatus df tail kill
+  smbstatus df tail kill find
   cat mv mkdir cp rm chmod chown
 )
 

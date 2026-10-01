@@ -44,6 +44,22 @@ class AuthApiControllerTest {
   }
 
   @Test
+  void testConnect_DockerHostname_Success() throws Exception {
+    ConnectionRequestDto dto =
+        new ConnectionRequestDto("samba-node", 22, "admin", "password", "admin", null, null);
+
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true));
+
+    verify(sessionManager).createSession(anyString(), any(ConnectionRequestDto.class));
+  }
+
+  @Test
   void testConnect_MissingPasswordForPasswordAuth_ShouldReturnBadRequest() throws Exception {
     ConnectionRequestDto dto =
         new ConnectionRequestDto("192.168.1.100", 22, "root", "password", null, null, null);
