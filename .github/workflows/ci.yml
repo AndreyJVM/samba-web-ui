@@ -23,6 +23,11 @@ jobs:
     - name: Verify Code Formatting (Spotless)
       run: mvn spotless:check
 
+    - name: Run OWASP Dependency Check
+      env:
+        NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      run: mvn org.owasp:dependency-check-maven:check
+
     - name: Build and Test with Maven
       run: mvn -B package --file pom.xml
 
