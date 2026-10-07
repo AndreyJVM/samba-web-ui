@@ -10,8 +10,9 @@ Samba Web UI обращается с сервером по SSH от имени �
 
 ```bash
 sudo apt update
-sudo apt install -y samba
+sudo apt install -y samba winbind krb5-user
 ```
+*(Примечание: пакеты `winbind` и `krb5-user` требуются, если вы планируете использовать интеграцию с Active Directory)*
 
 ## 2. Создание пользователя `samba-admin`
 
@@ -33,9 +34,9 @@ sudo visudo -f /etc/sudoers.d/samba-web-ui
 Вставьте следующую строку (всё в одну линию):
 
 ```shell
-samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/sbin/groupadd, /sbin/groupadd, /usr/sbin/groupdel, /sbin/groupdel, /usr/bin/gpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm, /bin/mkdir, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown, /usr/bin/smbstatus
+samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/userdel, /sbin/userdel, /usr/sbin/chpasswd, /usr/bin/chpasswd, /usr/sbin/groupadd, /sbin/groupadd, /usr/sbin/groupdel, /sbin/groupdel, /usr/bin/gpasswd, /usr/bin/smbpasswd, /usr/bin/pdbedit, /bin/systemctl, /usr/bin/systemctl, /bin/cat, /usr/bin/cat, /bin/mv, /usr/bin/mv, /bin/cp, /usr/bin/cp, /bin/rm, /usr/bin/rm, /bin/mkdir, /usr/bin/mkdir, /bin/chmod, /usr/bin/chmod, /bin/chown, /usr/bin/chown, /usr/bin/smbstatus, /usr/bin/du, /usr/bin/df, /usr/bin/find, /usr/bin/tail, /bin/kill, /usr/bin/kill, /usr/bin/net, /usr/bin/tee, /usr/bin/testparm
 ```
-*(Примечание: Добавлены команды `groupadd`, `groupdel`, `gpasswd` для управления составом групп)*
+*(Примечание: Список команд расширен для поддержки новых функций: мониторинг логов (`tail`), дискового пространства (`du`, `df`), проверка конфигурации (`testparm`) и ввод в домен AD (`net`, `tee`))*
 
 Защитите файл прав:
 
