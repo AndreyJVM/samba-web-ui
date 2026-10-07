@@ -20,83 +20,77 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class AuthApiControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @Autowired private ObjectMapper objectMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-  @MockitoBean private SshSessionManager sessionManager;
-  @MockitoBean private mari.samba.auth.BruteForceProtectionService bruteForceService;
+    @MockitoBean
+    private SshSessionManager sessionManager;
 
-  @Test
-  void testConnect_Success() throws Exception {
-    ConnectionRequestDto dto =
-        new ConnectionRequestDto("192.168.1.100", 22, "root", "password", "Secret@123", null, null);
+    @MockitoBean
+    private mari.samba.auth.BruteForceProtectionService bruteForceService;
 
-    mockMvc
-        .perform(
-            post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true));
+    @Test
+    void testConnect_Success() throws Exception {
+        ConnectionRequestDto dto =
+                new ConnectionRequestDto("192.168.1.100", 22, "root", "password", "Secret@123", null, null);
 
-    verify(sessionManager).createSession(anyString(), any(ConnectionRequestDto.class));
-  }
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
-  @Test
-  void testConnect_DockerHostname_Success() throws Exception {
-    ConnectionRequestDto dto =
-        new ConnectionRequestDto("samba-node", 22, "admin", "password", "admin", null, null);
+        verify(sessionManager).createSession(anyString(), any(ConnectionRequestDto.class));
+    }
 
-    mockMvc
-        .perform(
-            post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true));
+    @Test
+    void testConnect_DockerHostname_Success() throws Exception {
+        ConnectionRequestDto dto = new ConnectionRequestDto("samba-node", 22, "admin", "password", "admin", null, null);
 
-    verify(sessionManager).createSession(anyString(), any(ConnectionRequestDto.class));
-  }
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
-  @Test
-  void testConnect_MissingPasswordForPasswordAuth_ShouldReturnBadRequest() throws Exception {
-    ConnectionRequestDto dto =
-        new ConnectionRequestDto("192.168.1.100", 22, "root", "password", null, null, null);
+        verify(sessionManager).createSession(anyString(), any(ConnectionRequestDto.class));
+    }
 
-    mockMvc
-        .perform(
-            post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+    @Test
+    void testConnect_MissingPasswordForPasswordAuth_ShouldReturnBadRequest() throws Exception {
+        ConnectionRequestDto dto = new ConnectionRequestDto("192.168.1.100", 22, "root", "password", null, null, null);
 
-    verifyNoInteractions(sessionManager);
-  }
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-  @Test
-  void testGetCurrentUser() throws Exception {
-    mockMvc
-        .perform(
-            get("/api/auth/me")
-                .sessionAttr("sambaHost", "192.168.1.100")
-                .sessionAttr("sambaUser", "root"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data.host").value("192.168.1.100"))
-        .andExpect(jsonPath("$.data.user").value("root"));
-  }
+        verifyNoInteractions(sessionManager);
+    }
 
-  @Test
-  void testLogout() throws Exception {
-    mockMvc
-        .perform(post("/api/auth/logout").sessionAttr("dummy", "dummy"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isString());
+    @Test
+    void testGetCurrentUser() throws Exception {
+        mockMvc.perform(get("/api/auth/me")
+                        .sessionAttr("sambaHost", "192.168.1.100")
+                        .sessionAttr("sambaUser", "root"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.host").value("192.168.1.100"))
+                .andExpect(jsonPath("$.data.user").value("root"));
+    }
 
-    verify(sessionManager).disconnect(anyString());
-  }
+    @Test
+    void testLogout() throws Exception {
+        mockMvc.perform(post("/api/auth/logout").sessionAttr("dummy", "dummy"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isString());
+
+        verify(sessionManager).disconnect(anyString());
+    }
 }

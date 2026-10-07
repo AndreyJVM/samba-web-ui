@@ -4,17 +4,17 @@ import java.util.List;
 
 public record SambaGroup(String name, List<String> members) {
 
-  public SambaGroup {
-    if (members == null) {
-      members = List.of();
+    public SambaGroup {
+        if (members == null) {
+            members = List.of();
+        }
     }
-  }
 
-  public String getName() {
-    return name;
-  }
+    public String getName() {
+        return name;
+    }
 
-  public List<String> getMembers() {
-    return members;
-  }
+    public List<String> getMembers() {
+        return members;
+    }
 }

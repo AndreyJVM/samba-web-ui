@@ -13,15 +13,15 @@ import org.junit.jupiter.api.Test;
 
 class SmbConfParserTest {
 
-  private SmbConfParser parser;
+    private SmbConfParser parser;
 
-  @BeforeEach
-  void setUp() {
-    parser = new SmbConfParser();
-  }
+    @BeforeEach
+    void setUp() {
+        parser = new SmbConfParser();
+    }
 
-  private final String sampleConfig =
-      """
+    private final String sampleConfig =
+            """
             # Global settings
             [global]
                workgroup = TESTGROUP
@@ -51,104 +51,109 @@ class SmbConfParserTest {
                valid users = admin, @managers
             """;
 
-  @Test
-  @DisplayName("Should parse global configuration from smb.conf")
-  void shouldParseGlobalConfig() {
-    SambaGlobalConfigDto global = parser.parseGlobalConfig(sampleConfig);
+    @Test
+    @DisplayName("Should parse global configuration from smb.conf")
+    void shouldParseGlobalConfig() {
+        SambaGlobalConfigDto global = parser.parseGlobalConfig(sampleConfig);
 
-    assertThat(global.getWorkgroup()).isEqualTo("TESTGROUP");
-    assertThat(global.getServerString()).isEqualTo("Test File Server");
-    assertThat(global.getSecurity()).isEqualTo("user");
-    assertThat(global.getMapToGuest()).isEqualTo("Bad User");
-    assertThat(global.getInterfaces()).isEqualTo("192.168.1.0/24");
-    assertThat(global.isBindInterfacesOnly()).isTrue();
-    assertThat(global.isLoadPrinters()).isFalse();
-    assertThat(global.isDisableNetbios()).isTrue();
-    assertThat(global.getServerMinProtocol()).isEqualTo("SMB2");
-    assertThat(global.getServerMaxProtocol()).isEqualTo("SMB3");
-  }
+        assertThat(global.getWorkgroup()).isEqualTo("TESTGROUP");
+        assertThat(global.getServerString()).isEqualTo("Test File Server");
+        assertThat(global.getSecurity()).isEqualTo("user");
+        assertThat(global.getMapToGuest()).isEqualTo("Bad User");
+        assertThat(global.getInterfaces()).isEqualTo("192.168.1.0/24");
+        assertThat(global.isBindInterfacesOnly()).isTrue();
+        assertThat(global.isLoadPrinters()).isFalse();
+        assertThat(global.isDisableNetbios()).isTrue();
+        assertThat(global.getServerMinProtocol()).isEqualTo("SMB2");
+        assertThat(global.getServerMaxProtocol()).isEqualTo("SMB3");
+    }
 
-  @Test
-  @DisplayName("Should parse only user-defined shares")
-  void shouldParseOnlyUserShares() {
-    List<SambaShare> shares = parser.parseShares(sampleConfig);
+    @Test
+    @DisplayName("Should parse only user-defined shares")
+    void shouldParseOnlyUserShares() {
+        List<SambaShare> shares = parser.parseShares(sampleConfig);
 
-    assertThat(shares).hasSize(2);
+        assertThat(shares).hasSize(2);
 
-    SambaShare publicShare =
-        shares.stream().filter(s -> s.getName().equals("public")).findFirst().orElse(null);
+        SambaShare publicShare = shares.stream()
+                .filter(s -> s.getName().equals("public"))
+                .findFirst()
+                .orElse(null);
 
-    assertThat(publicShare).isNotNull();
-    assertThat(publicShare.getPath()).isEqualTo("/srv/samba/public");
-    assertThat(publicShare.isReadOnly()).isFalse();
-    assertThat(publicShare.isGuestOk()).isTrue();
-    assertThat(publicShare.isBrowseable()).isTrue();
+        assertThat(publicShare).isNotNull();
+        assertThat(publicShare.getPath()).isEqualTo("/srv/samba/public");
+        assertThat(publicShare.isReadOnly()).isFalse();
+        assertThat(publicShare.isGuestOk()).isTrue();
+        assertThat(publicShare.isBrowseable()).isTrue();
 
-    SambaShare privateShare =
-        shares.stream().filter(s -> s.getName().equals("private")).findFirst().orElse(null);
+        SambaShare privateShare = shares.stream()
+                .filter(s -> s.getName().equals("private"))
+                .findFirst()
+                .orElse(null);
 
-    assertThat(privateShare).isNotNull();
-    assertThat(privateShare.getPath()).isEqualTo("/srv/samba/private");
-    assertThat(privateShare.isReadOnly()).isTrue();
-    assertThat(privateShare.isGuestOk()).isFalse();
-    assertThat(privateShare.getValidUsers()).isEqualTo("admin, @managers");
-  }
+        assertThat(privateShare).isNotNull();
+        assertThat(privateShare.getPath()).isEqualTo("/srv/samba/private");
+        assertThat(privateShare.isReadOnly()).isTrue();
+        assertThat(privateShare.isGuestOk()).isFalse();
+        assertThat(privateShare.getValidUsers()).isEqualTo("admin, @managers");
+    }
 
-  @Test
-  @DisplayName("Should build valid share section")
-  void shouldBuildShareSection() {
-    SambaShareCreateDto dto =
-        SambaShareCreateDto.builder()
-            .name("finance")
-            .path("/srv/samba/finance")
-            .comment("Finance Docs")
-            .readOnly(true)
-            .guestOk(false)
-            .browseable(true)
-            .validUsers("accountant")
-            .build();
+    @Test
+    @DisplayName("Should build valid share section")
+    void shouldBuildShareSection() {
+        SambaShareCreateDto dto = SambaShareCreateDto.builder()
+                .name("finance")
+                .path("/srv/samba/finance")
+                .comment("Finance Docs")
+                .readOnly(true)
+                .guestOk(false)
+                .browseable(true)
+                .validUsers("accountant")
+                .build();
 
-    String section = parser.buildShareSection(dto);
+        String section = parser.buildShareSection(dto);
 
-    assertThat(section).contains("[finance]");
-    assertThat(section).contains("path = /srv/samba/finance");
-    assertThat(section).contains("comment = Finance Docs");
-    assertThat(section).contains("read only = yes");
-    assertThat(section).contains("guest ok = no");
-    assertThat(section).contains("valid users = accountant");
-  }
+        assertThat(section).contains("[finance]");
+        assertThat(section).contains("path = /srv/samba/finance");
+        assertThat(section).contains("comment = Finance Docs");
+        assertThat(section).contains("read only = yes");
+        assertThat(section).contains("guest ok = no");
+        assertThat(section).contains("valid users = accountant");
+    }
 
-  @Test
-  @DisplayName("Should remove specified share section")
-  void shouldRemoveSection() {
-    String result = parser.removeSection(sampleConfig, "public");
+    @Test
+    @DisplayName("Should remove specified share section")
+    void shouldRemoveSection() {
+        String result = parser.removeSection(sampleConfig, "public");
 
-    assertThat(result).doesNotContain("[public]");
-    assertThat(result).doesNotContain("/srv/samba/public");
-    assertThat(result).contains("[global]");
-    assertThat(result).contains("[private]");
-  }
+        assertThat(result).doesNotContain("[public]");
+        assertThat(result).doesNotContain("/srv/samba/public");
+        assertThat(result).contains("[global]");
+        assertThat(result).contains("[private]");
+    }
 
-  @Test
-  @DisplayName("Should throw exception when removing non-existent section")
-  void shouldThrowExceptionWhenRemovingNonExistentSection() {
-    assertThatThrownBy(() -> parser.removeSection(sampleConfig, "non_existent"))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("not found");
-  }
+    @Test
+    @DisplayName("Should throw exception when removing non-existent section")
+    void shouldThrowExceptionWhenRemovingNonExistentSection() {
+        assertThatThrownBy(() -> parser.removeSection(sampleConfig, "non_existent"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("not found");
+    }
 
-  @Test
-  @DisplayName("Should update global section while preserving shares")
-  void shouldUpdateGlobalSection() {
-    SambaGlobalConfigDto newGlobal =
-        SambaGlobalConfigDto.builder().workgroup("NEWCORP").serverString("New Server").build();
+    @Test
+    @DisplayName("Should update global section while preserving shares")
+    void shouldUpdateGlobalSection() {
+        SambaGlobalConfigDto newGlobal = SambaGlobalConfigDto.builder()
+                .workgroup("NEWCORP")
+                .serverString("New Server")
+                .build();
 
-    String updatedConfig = parser.updateGlobalSection(sampleConfig, newGlobal);
+        String updatedConfig = parser.updateGlobalSection(sampleConfig, newGlobal);
 
-    assertThat(updatedConfig).contains("workgroup = NEWCORP");
-    assertThat(updatedConfig).contains("server string = New Server");
-    assertThat(updatedConfig).doesNotContain("workgroup = TESTGROUP");
-    assertThat(updatedConfig).contains("[public]");
-    assertThat(updatedConfig).contains("[private]");
-  }
+        assertThat(updatedConfig).contains("workgroup = NEWCORP");
+        assertThat(updatedConfig).contains("server string = New Server");
+        assertThat(updatedConfig).doesNotContain("workgroup = TESTGROUP");
+        assertThat(updatedConfig).contains("[public]");
+        assertThat(updatedConfig).contains("[private]");
+    }
 }

@@ -4,6 +4,7 @@
   <img src="https://img.shields.io/badge/Java-21-orange.svg" alt="Java 21">
   <img src="https://img.shields.io/badge/Spring%20Boot-3.4-brightgreen.svg" alt="Spring Boot">
   <img src="https://img.shields.io/badge/Docker-Ready-blue.svg" alt="Docker Ready">
+  <img src="https://img.shields.io/badge/code%20style-palantir--spotless-magenta.svg" alt="Code Style">
   <img src="https://img.shields.io/badge/Docs-MkDocs%20Material-purple.svg" alt="Documentation">
 </p>
 

@@ -165,10 +165,7 @@
                 <configuration>
                     <lineEndings>GIT_ATTRIBUTES</lineEndings>
                     <java>
-                        <googleJavaFormat>
-                            <version>${google-java-format.version}</version>
-                            <style>GOOGLE</style>
-                        </googleJavaFormat>
+                        <palantirJavaFormat />
                         <removeUnusedImports />
                         <trimTrailingWhitespace />
                         <endWithNewline />
@@ -186,5 +183,3 @@
         </plugins>
     </build>
 </project>
-
-

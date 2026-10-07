@@ -24,67 +24,63 @@ import org.springframework.test.web.servlet.MockMvc;
 @WithMockUser
 class AdApiControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @Autowired private ObjectMapper objectMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-  @MockBean private AdIntegrationService adIntegrationService;
+    @MockBean
+    private AdIntegrationService adIntegrationService;
 
-  @Test
-  void testGetStatus_ReturnsStatus() throws Exception {
-    AdStatusDto mockStatus = new AdStatusDto(true, "mari.local", "SAMBA-SERVER", true, true, true);
-    when(adIntegrationService.getStatus(any(String.class))).thenReturn(mockStatus);
+    @Test
+    void testGetStatus_ReturnsStatus() throws Exception {
+        AdStatusDto mockStatus = new AdStatusDto(true, "mari.local", "SAMBA-SERVER", true, true, true);
+        when(adIntegrationService.getStatus(any(String.class))).thenReturn(mockStatus);
 
-    MockHttpSession session = new MockHttpSession();
+        MockHttpSession session = new MockHttpSession();
 
-    mockMvc
-        .perform(get("/api/ad/status").session(session))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data.isJoined").value(true))
-        .andExpect(jsonPath("$.data.statusMessage").value("mari.local"));
-  }
+        mockMvc.perform(get("/api/ad/status").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.isJoined").value(true))
+                .andExpect(jsonPath("$.data.statusMessage").value("mari.local"));
+    }
 
-  @Test
-  void testJoinDomain_Success() throws Exception {
-    AdJoinRequestDto requestDto =
-        new AdJoinRequestDto("mari.local", "Administrator", "password123", "192.168.1.1");
-    AdStatusDto mockStatus = new AdStatusDto(true, "mari.local", "SAMBA-SERVER", true, true, true);
-    when(adIntegrationService.joinDomain(any(String.class), eq(requestDto))).thenReturn(mockStatus);
+    @Test
+    void testJoinDomain_Success() throws Exception {
+        AdJoinRequestDto requestDto = new AdJoinRequestDto("mari.local", "Administrator", "password123", "192.168.1.1");
+        AdStatusDto mockStatus = new AdStatusDto(true, "mari.local", "SAMBA-SERVER", true, true, true);
+        when(adIntegrationService.joinDomain(any(String.class), eq(requestDto))).thenReturn(mockStatus);
 
-    MockHttpSession session = new MockHttpSession();
+        MockHttpSession session = new MockHttpSession();
 
-    mockMvc
-        .perform(
-            post("/api/ad/join")
-                .session(session)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Successfully joined domain"))
-        .andExpect(jsonPath("$.data.isJoined").value(true));
-  }
+        mockMvc.perform(post("/api/ad/join")
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Successfully joined domain"))
+                .andExpect(jsonPath("$.data.isJoined").value(true));
+    }
 
-  @Test
-  void testLeaveDomain_Success() throws Exception {
-    AdJoinRequestDto requestDto =
-        new AdJoinRequestDto("mari.local", "Administrator", "password123", "192.168.1.1");
-    AdStatusDto mockStatus = new AdStatusDto(false, null, null, false, false, false);
-    when(adIntegrationService.leaveDomain(any(String.class), eq(requestDto)))
-        .thenReturn(mockStatus);
+    @Test
+    void testLeaveDomain_Success() throws Exception {
+        AdJoinRequestDto requestDto = new AdJoinRequestDto("mari.local", "Administrator", "password123", "192.168.1.1");
+        AdStatusDto mockStatus = new AdStatusDto(false, null, null, false, false, false);
+        when(adIntegrationService.leaveDomain(any(String.class), eq(requestDto)))
+                .thenReturn(mockStatus);
 
-    MockHttpSession session = new MockHttpSession();
+        MockHttpSession session = new MockHttpSession();
 
-    mockMvc
-        .perform(
-            post("/api/ad/leave")
-                .session(session)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").value("Successfully left domain"))
-        .andExpect(jsonPath("$.data.isJoined").value(false));
-  }
+        mockMvc.perform(post("/api/ad/leave")
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Successfully left domain"))
+                .andExpect(jsonPath("$.data.isJoined").value(false));
+    }
 }

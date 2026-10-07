@@ -14,18 +14,13 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class WebMvcConfigTest {
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @Test
-  void testRootRoutesForwardToIndex() throws Exception {
-    mockMvc.perform(get("/")).andExpect(status().isOk()).andExpect(forwardedUrl("/ui/index.html"));
-    mockMvc
-        .perform(get("/ui"))
-        .andExpect(status().isOk())
-        .andExpect(forwardedUrl("/ui/index.html"));
-    mockMvc
-        .perform(get("/ui/"))
-        .andExpect(status().isOk())
-        .andExpect(forwardedUrl("/ui/index.html"));
-  }
+    @Test
+    void testRootRoutesForwardToIndex() throws Exception {
+        mockMvc.perform(get("/")).andExpect(status().isOk()).andExpect(forwardedUrl("/ui/index.html"));
+        mockMvc.perform(get("/ui")).andExpect(status().isOk()).andExpect(forwardedUrl("/ui/index.html"));
+        mockMvc.perform(get("/ui/")).andExpect(status().isOk()).andExpect(forwardedUrl("/ui/index.html"));
+    }
 }

@@ -18,113 +18,112 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class FileSystemServiceTest {
 
-  @Mock private CommandExecutor commandExecutor;
-  @Mock private SambaProperties properties;
-  @Mock private SambaProperties.Security mockSecurity;
+    @Mock
+    private CommandExecutor commandExecutor;
 
-  private FileSystemService fileSystemService;
+    @Mock
+    private SambaProperties properties;
 
-  private static final String SESSION_ID = "test-session";
+    @Mock
+    private SambaProperties.Security mockSecurity;
 
-  @BeforeEach
-  void setUp() {
-    when(properties.security()).thenReturn(mockSecurity);
-    when(mockSecurity.allowedRoots()).thenReturn(List.of("/srv", "/data", "/mnt"));
+    private FileSystemService fileSystemService;
 
-    fileSystemService = new FileSystemService(commandExecutor, properties);
-  }
+    private static final String SESSION_ID = "test-session";
 
-  // ==========================================
-  // Tests for listDirectories
-  // ==========================================
+    @BeforeEach
+    void setUp() {
+        when(properties.security()).thenReturn(mockSecurity);
+        when(mockSecurity.allowedRoots()).thenReturn(List.of("/srv", "/data", "/mnt"));
 
-  @Test
-  void testListDirectories_ShouldParseGivenOutput() throws Exception {
-    String path = "/srv/samba";
-    String mockOutput = "/srv/samba/public\n/srv/samba/private";
+        fileSystemService = new FileSystemService(commandExecutor, properties);
+    }
 
-    when(commandExecutor.execute(eq(SESSION_ID), anyString())).thenReturn(mockOutput);
+    // ==========================================
+    // Tests for listDirectories
+    // ==========================================
 
-    DirectoryBrowseResultDto result = fileSystemService.listDirectories(SESSION_ID, path);
+    @Test
+    void testListDirectories_ShouldParseGivenOutput() throws Exception {
+        String path = "/srv/samba";
+        String mockOutput = "/srv/samba/public\n/srv/samba/private";
 
-    assertNotNull(result);
-    assertEquals("/srv/samba", result.currentPath());
-    assertEquals("/srv", result.parentPath());
-    assertEquals(2, result.directories().size());
-    assertEquals("public", result.directories().get(0).name());
-    assertEquals("/srv/samba/public", result.directories().get(0).fullPath());
-  }
+        when(commandExecutor.execute(eq(SESSION_ID), anyString())).thenReturn(mockOutput);
 
-  @Test
-  void testListDirectories_RootPath_ShouldReturnAllowedRoots() {
-    DirectoryBrowseResultDto result = fileSystemService.listDirectories(SESSION_ID, "/");
+        DirectoryBrowseResultDto result = fileSystemService.listDirectories(SESSION_ID, path);
 
-    assertNotNull(result);
-    assertEquals("/", result.currentPath());
-    assertEquals(3, result.directories().size());
-    assertTrue(result.directories().stream().anyMatch(i -> i.fullPath().equals("/srv")));
-    assertTrue(result.directories().stream().anyMatch(i -> i.fullPath().equals("/data")));
-  }
+        assertNotNull(result);
+        assertEquals("/srv/samba", result.currentPath());
+        assertEquals("/srv", result.parentPath());
+        assertEquals(2, result.directories().size());
+        assertEquals("public", result.directories().get(0).name());
+        assertEquals("/srv/samba/public", result.directories().get(0).fullPath());
+    }
 
-  @Test
-  void testListDirectories_UnauthorizedPath_ShouldThrowSecurityException() {
-    assertThrows(
-        SecurityException.class,
-        () -> fileSystemService.listDirectories(SESSION_ID, "/etc/shadow"));
-  }
+    @Test
+    void testListDirectories_RootPath_ShouldReturnAllowedRoots() {
+        DirectoryBrowseResultDto result = fileSystemService.listDirectories(SESSION_ID, "/");
 
-  // ==========================================
-  // Tests for createDirectory
-  // ==========================================
+        assertNotNull(result);
+        assertEquals("/", result.currentPath());
+        assertEquals(3, result.directories().size());
+        assertTrue(result.directories().stream().anyMatch(i -> i.fullPath().equals("/srv")));
+        assertTrue(result.directories().stream().anyMatch(i -> i.fullPath().equals("/data")));
+    }
 
-  @Test
-  void testCreateDirectory_ValidName_ShouldExecuteMkdirAndChmod() throws Exception {
-    fileSystemService.createDirectory(SESSION_ID, "/srv/samba", "new_folder");
+    @Test
+    void testListDirectories_UnauthorizedPath_ShouldThrowSecurityException() {
+        assertThrows(SecurityException.class, () -> fileSystemService.listDirectories(SESSION_ID, "/etc/shadow"));
+    }
 
-    verify(commandExecutor)
-        .execute(eq(SESSION_ID), eq(LinuxCommands.mkdir("/srv/samba/new_folder")));
-    verify(commandExecutor)
-        .execute(eq(SESSION_ID), eq(LinuxCommands.chmod("0775", "/srv/samba/new_folder")));
-  }
+    // ==========================================
+    // Tests for createDirectory
+    // ==========================================
 
-  @Test
-  void testCreateDirectory_InvalidName_ShouldThrowIllegalArgumentException() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> fileSystemService.createDirectory(SESSION_ID, "/srv/samba", "bad;folder*name"));
-  }
+    @Test
+    void testCreateDirectory_ValidName_ShouldExecuteMkdirAndChmod() throws Exception {
+        fileSystemService.createDirectory(SESSION_ID, "/srv/samba", "new_folder");
 
-  @Test
-  void testCreateDirectory_UnauthorizedParent_ShouldThrowSecurityException() {
-    assertThrows(
-        SecurityException.class,
-        () -> fileSystemService.createDirectory(SESSION_ID, "/root", "my_folder"));
-  }
+        verify(commandExecutor).execute(eq(SESSION_ID), eq(LinuxCommands.mkdir("/srv/samba/new_folder")));
+        verify(commandExecutor).execute(eq(SESSION_ID), eq(LinuxCommands.chmod("0775", "/srv/samba/new_folder")));
+    }
 
-  // ==========================================
-  // Tests for getDiskUsage
-  // ==========================================
+    @Test
+    void testCreateDirectory_InvalidName_ShouldThrowIllegalArgumentException() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fileSystemService.createDirectory(SESSION_ID, "/srv/samba", "bad;folder*name"));
+    }
 
-  @Test
-  void testGetDiskUsage_ValidDfOutput_ShouldParseCorrectly() throws Exception {
-    String path = "/srv/samba";
-    String mockDfOutput =
-        "Filesystem     1024-blocks      Used Available Capacity Mounted on\n"
-            + "/dev/sda1        104857600  41943040  62914560      40% /srv";
+    @Test
+    void testCreateDirectory_UnauthorizedParent_ShouldThrowSecurityException() {
+        assertThrows(
+                SecurityException.class, () -> fileSystemService.createDirectory(SESSION_ID, "/root", "my_folder"));
+    }
 
-    when(commandExecutor.execute(eq(SESSION_ID), anyString())).thenReturn(mockDfOutput);
+    // ==========================================
+    // Tests for getDiskUsage
+    // ==========================================
 
-    DiskUsageDto result = fileSystemService.getDiskUsage(SESSION_ID, path);
+    @Test
+    void testGetDiskUsage_ValidDfOutput_ShouldParseCorrectly() throws Exception {
+        String path = "/srv/samba";
+        String mockDfOutput = "Filesystem     1024-blocks      Used Available Capacity Mounted on\n"
+                + "/dev/sda1        104857600  41943040  62914560      40% /srv";
 
-    assertNotNull(result);
-    assertEquals(path, result.path());
-    assertEquals(40, result.usePercent());
-    assertEquals("/srv", result.mountPoint());
-    assertTrue(result.total().contains("GB"));
-  }
+        when(commandExecutor.execute(eq(SESSION_ID), anyString())).thenReturn(mockDfOutput);
 
-  @Test
-  void testGetDiskUsage_UnauthorizedPath_ShouldThrowSecurityException() {
-    assertThrows(SecurityException.class, () -> fileSystemService.getDiskUsage(SESSION_ID, "/etc"));
-  }
+        DiskUsageDto result = fileSystemService.getDiskUsage(SESSION_ID, path);
+
+        assertNotNull(result);
+        assertEquals(path, result.path());
+        assertEquals(40, result.usePercent());
+        assertEquals("/srv", result.mountPoint());
+        assertTrue(result.total().contains("GB"));
+    }
+
+    @Test
+    void testGetDiskUsage_UnauthorizedPath_ShouldThrowSecurityException() {
+        assertThrows(SecurityException.class, () -> fileSystemService.getDiskUsage(SESSION_ID, "/etc"));
+    }
 }

@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @ConfigurationPropertiesScan
 @EnableConfigurationProperties(SambaProperties.class)
 public class SambaWebUiApplication {
-  public static void main(String[] args) {
-    SpringApplication.run(SambaWebUiApplication.class, args);
-  }
+    public static void main(String[] args) {
+        SpringApplication.run(SambaWebUiApplication.class, args);
+    }
 }

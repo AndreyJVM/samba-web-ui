@@ -25,136 +25,128 @@ import org.springframework.web.bind.annotation.RestController;
 @AutoConfigureMockMvc(addFilters = false)
 class GlobalExceptionHandlerTest {
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @Test
-  void testHandleSshSessionExpiredException_ShouldReturn401() throws Exception {
-    mockMvc
-        .perform(get("/dummy/ssh-expired"))
-        .andExpect(status().isUnauthorized())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Connection lost internally"));
-  }
-
-  @Test
-  void testHandleIllegalArgumentException_ShouldReturn400() throws Exception {
-    mockMvc
-        .perform(get("/dummy/invalid-arg"))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Operation failed due to an error."));
-  }
-
-  @Test
-  void testHandleSambaCommandException_ShouldReturn500() throws Exception {
-    mockMvc
-        .perform(get("/dummy/samba-cmd"))
-        .andExpect(status().isInternalServerError())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Samba command failed: smbpasswd failed"));
-  }
-
-  @Test
-  void testHandleMissingParams_ShouldReturn400() throws Exception {
-    mockMvc
-        .perform(get("/dummy/missing-param"))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Required parameter is missing: req"));
-  }
-
-  @Test
-  void testHandleMessageNotReadable_ShouldReturn400() throws Exception {
-    mockMvc
-        .perform(
-            post("/dummy/malformed")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"badJson: }"))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Malformed JSON request."));
-  }
-
-  @Test
-  void testHandleAccessDenied_ShouldReturn403() throws Exception {
-    mockMvc
-        .perform(get("/dummy/access-denied"))
-        .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Access denied."));
-  }
-
-  @Test
-  void testHandleConstraintViolation_ShouldReturn400() throws Exception {
-    mockMvc
-        .perform(get("/dummy/constraint"))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Validation error: "));
-  }
-
-  @Test
-  void testHandleGeneralException_ShouldReturn500() throws Exception {
-    mockMvc
-        .perform(get("/dummy/general-exception"))
-        .andExpect(status().isInternalServerError())
-        .andExpect(jsonPath("$.success").value(false))
-        .andExpect(jsonPath("$.message").value("Database is down"));
-  }
-
-  @RestController
-  static class DummyController {
-    @GetMapping("/dummy/ssh-expired")
-    public void throwSshException() {
-      throw new SshSessionExpiredException("Connection lost internally");
+    @Test
+    void testHandleSshSessionExpiredException_ShouldReturn401() throws Exception {
+        mockMvc.perform(get("/dummy/ssh-expired"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Connection lost internally"));
     }
 
-    @GetMapping("/dummy/invalid-arg")
-    public void throwIllegalArgumentException() {
-      throw new IllegalArgumentException("Operation failed due to an error.");
+    @Test
+    void testHandleIllegalArgumentException_ShouldReturn400() throws Exception {
+        mockMvc.perform(get("/dummy/invalid-arg"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Operation failed due to an error."));
     }
 
-    @GetMapping("/dummy/samba-cmd")
-    public void throwSambaCmdException() {
-      throw new SambaCommandException("smbpasswd failed");
+    @Test
+    void testHandleSambaCommandException_ShouldReturn500() throws Exception {
+        mockMvc.perform(get("/dummy/samba-cmd"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Samba command failed: smbpasswd failed"));
     }
 
-    @GetMapping("/dummy/missing-param")
-    public void throwMissingParam(@RequestParam("req") String req) {}
-
-    @PostMapping("/dummy/malformed")
-    public void readMalformed(@RequestBody DummyRequest req) {}
-
-    @GetMapping("/dummy/access-denied")
-    public void throwAccessDenied() {
-      throw new AccessDeniedException("You do not have permission");
+    @Test
+    void testHandleMissingParams_ShouldReturn400() throws Exception {
+        mockMvc.perform(get("/dummy/missing-param"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Required parameter is missing: req"));
     }
 
-    @GetMapping("/dummy/constraint")
-    public void throwConstraintViolation() {
-      throw new ConstraintViolationException("Invalid parameter", Set.of());
+    @Test
+    void testHandleMessageNotReadable_ShouldReturn400() throws Exception {
+        mockMvc.perform(post("/dummy/malformed")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"badJson: }"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Malformed JSON request."));
     }
 
-    @GetMapping("/dummy/general-exception")
-    public void throwGeneralException() {
-      throw new RuntimeException("Database is down");
-    }
-  }
-
-  static class DummyRequest {
-    public String data;
-  }
-
-  @Configuration
-  static class DummyContextConfig {
-    @org.springframework.context.annotation.Bean
-    public DummyController dummyController() {
-      return new DummyController();
+    @Test
+    void testHandleAccessDenied_ShouldReturn403() throws Exception {
+        mockMvc.perform(get("/dummy/access-denied"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Access denied."));
     }
 
-    @org.springframework.context.annotation.Bean
-    public GlobalExceptionHandler globalExceptionHandler() {
-      return new GlobalExceptionHandler();
+    @Test
+    void testHandleConstraintViolation_ShouldReturn400() throws Exception {
+        mockMvc.perform(get("/dummy/constraint"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Validation error: "));
     }
-  }
+
+    @Test
+    void testHandleGeneralException_ShouldReturn500() throws Exception {
+        mockMvc.perform(get("/dummy/general-exception"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Database is down"));
+    }
+
+    @RestController
+    static class DummyController {
+        @GetMapping("/dummy/ssh-expired")
+        public void throwSshException() {
+            throw new SshSessionExpiredException("Connection lost internally");
+        }
+
+        @GetMapping("/dummy/invalid-arg")
+        public void throwIllegalArgumentException() {
+            throw new IllegalArgumentException("Operation failed due to an error.");
+        }
+
+        @GetMapping("/dummy/samba-cmd")
+        public void throwSambaCmdException() {
+            throw new SambaCommandException("smbpasswd failed");
+        }
+
+        @GetMapping("/dummy/missing-param")
+        public void throwMissingParam(@RequestParam("req") String req) {}
+
+        @PostMapping("/dummy/malformed")
+        public void readMalformed(@RequestBody DummyRequest req) {}
+
+        @GetMapping("/dummy/access-denied")
+        public void throwAccessDenied() {
+            throw new AccessDeniedException("You do not have permission");
+        }
+
+        @GetMapping("/dummy/constraint")
+        public void throwConstraintViolation() {
+            throw new ConstraintViolationException("Invalid parameter", Set.of());
+        }
+
+        @GetMapping("/dummy/general-exception")
+        public void throwGeneralException() {
+            throw new RuntimeException("Database is down");
+        }
+    }
+
+    static class DummyRequest {
+        public String data;
+    }
+
+    @Configuration
+    static class DummyContextConfig {
+        @org.springframework.context.annotation.Bean
+        public DummyController dummyController() {
+            return new DummyController();
+        }
+
+        @org.springframework.context.annotation.Bean
+        public GlobalExceptionHandler globalExceptionHandler() {
+            return new GlobalExceptionHandler();
+        }
+    }
 }

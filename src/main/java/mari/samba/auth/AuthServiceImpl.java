@@ -16,72 +16,67 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-  private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
-  private final SshSessionManager sessionManager;
-  private final BruteForceProtectionService bruteForceService;
+    private final SshSessionManager sessionManager;
+    private final BruteForceProtectionService bruteForceService;
 
-  public AuthServiceImpl(
-      SshSessionManager sessionManager, BruteForceProtectionService bruteForceService) {
-    this.sessionManager = sessionManager;
-    this.bruteForceService = bruteForceService;
-  }
-
-  @Override
-  public void login(
-      @NonNull String sessionId, @NonNull ConnectionRequestDto request, @NonNull String clientIp)
-      throws Exception {
-
-    if (bruteForceService.isBlocked(clientIp)) {
-      log.warn("Blocked login attempt from IP {} due to too many failed attempts", clientIp);
-      throw new SecurityException("Too many failed login attempts. IP temporarily blocked.");
+    public AuthServiceImpl(SshSessionManager sessionManager, BruteForceProtectionService bruteForceService) {
+        this.sessionManager = sessionManager;
+        this.bruteForceService = bruteForceService;
     }
 
-    if (!request.isKeyAuth()
-        && (request.getPassword() == null || request.getPassword().isBlank())) {
-      throw new IllegalArgumentException("Password is required when not using key authentication.");
+    @Override
+    public void login(@NonNull String sessionId, @NonNull ConnectionRequestDto request, @NonNull String clientIp)
+            throws Exception {
+
+        if (bruteForceService.isBlocked(clientIp)) {
+            log.warn("Blocked login attempt from IP {} due to too many failed attempts", clientIp);
+            throw new SecurityException("Too many failed login attempts. IP temporarily blocked.");
+        }
+
+        if (!request.isKeyAuth()
+                && (request.getPassword() == null || request.getPassword().isBlank())) {
+            throw new IllegalArgumentException("Password is required when not using key authentication.");
+        }
+
+        try {
+            sessionManager.createSession(sessionId, request);
+
+            List<SimpleGrantedAuthority> authorities =
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            bruteForceService.resetFailedLogin(clientIp);
+            log.info("User '{}' successfully authenticated for host '{}'", request.getUsername(), request.getHost());
+
+        } catch (Exception e) {
+            bruteForceService.registerFailedLogin(clientIp);
+            log.warn(
+                    "Failed authentication attempt for user '{}' from IP {}: {}",
+                    request.getUsername(),
+                    clientIp,
+                    e.getMessage());
+            throw e;
+        }
     }
 
-    try {
-      sessionManager.createSession(sessionId, request);
-
-      List<SimpleGrantedAuthority> authorities =
-          Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
-      UsernamePasswordAuthenticationToken authentication =
-          new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
-
-      SecurityContextHolder.getContext().setAuthentication(authentication);
-
-      bruteForceService.resetFailedLogin(clientIp);
-      log.info(
-          "User '{}' successfully authenticated for host '{}'",
-          request.getUsername(),
-          request.getHost());
-
-    } catch (Exception e) {
-      bruteForceService.registerFailedLogin(clientIp);
-      log.warn(
-          "Failed authentication attempt for user '{}' from IP {}: {}",
-          request.getUsername(),
-          clientIp,
-          e.getMessage());
-      throw e;
+    @Override
+    public void logout(String sessionId) {
+        if (sessionId != null) {
+            sessionManager.disconnect(sessionId);
+        }
+        SecurityContextHolder.clearContext();
     }
-  }
 
-  @Override
-  public void logout(String sessionId) {
-    if (sessionId != null) {
-      sessionManager.disconnect(sessionId);
+    @Override
+    public Map<String, String> getCurrentUserInfo(String sambaHost, String sambaUser) {
+        Map<String, String> userInfo = new HashMap<>(2);
+        userInfo.put("host", sambaHost != null ? sambaHost : "Not connected");
+        userInfo.put("user", sambaUser != null ? sambaUser : "Unknown");
+        return userInfo;
     }
-    SecurityContextHolder.clearContext();
-  }
-
-  @Override
-  public Map<String, String> getCurrentUserInfo(String sambaHost, String sambaUser) {
-    Map<String, String> userInfo = new HashMap<>(2);
-    userInfo.put("host", sambaHost != null ? sambaHost : "Not connected");
-    userInfo.put("user", sambaUser != null ? sambaUser : "Unknown");
-    return userInfo;
-  }
 }

@@ -18,59 +18,62 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class SambaLogServiceTest {
 
-  @Mock private CommandExecutor commandExecutor;
-  @Mock private SambaProperties properties;
+    @Mock
+    private CommandExecutor commandExecutor;
 
-  @InjectMocks private SambaLogService sambaLogService;
+    @Mock
+    private SambaProperties properties;
 
-  @Nested
-  class GetRecentLogs {
+    @InjectMocks
+    private SambaLogService sambaLogService;
 
-    @Test
-    void getRecentLogs_withAllowedLinesCount_executesTailWithRequestedLines() throws Exception {
-      // given
-      String sessionId = "test-session";
-      int requestedLines = 200;
-      String expectedLog = "line 1\nline 2";
-      String expectedCmd = LinuxCommands.tail("/var/log/samba/log.smbd", 200);
-      when(commandExecutor.execute(eq(sessionId), eq(expectedCmd))).thenReturn(expectedLog);
+    @Nested
+    class GetRecentLogs {
 
-      // when
-      String actualLog = sambaLogService.getRecentLogs(sessionId, requestedLines);
+        @Test
+        void getRecentLogs_withAllowedLinesCount_executesTailWithRequestedLines() throws Exception {
+            // given
+            String sessionId = "test-session";
+            int requestedLines = 200;
+            String expectedLog = "line 1\nline 2";
+            String expectedCmd = LinuxCommands.tail("/var/log/samba/log.smbd", 200);
+            when(commandExecutor.execute(eq(sessionId), eq(expectedCmd))).thenReturn(expectedLog);
 
-      // then
-      assertThat(actualLog).isEqualTo(expectedLog);
+            // when
+            String actualLog = sambaLogService.getRecentLogs(sessionId, requestedLines);
+
+            // then
+            assertThat(actualLog).isEqualTo(expectedLog);
+        }
+
+        @Test
+        void getRecentLogs_withDisallowedLinesCount_defaultsTo50Lines() throws Exception {
+            // given
+            String sessionId = "test-session";
+            int invalidLines = 999;
+            String expectedLog = "default log content";
+            String expectedCmd = LinuxCommands.tail("/var/log/samba/log.smbd", 50);
+            when(commandExecutor.execute(eq(sessionId), eq(expectedCmd))).thenReturn(expectedLog);
+
+            // when
+            String actualLog = sambaLogService.getRecentLogs(sessionId, invalidLines);
+
+            // then
+            assertThat(actualLog).isEqualTo(expectedLog);
+        }
+
+        @Test
+        void getRecentLogs_whenCommandThrows_returnsFriendlyErrorMessage() throws Exception {
+            // given
+            String sessionId = "test-session";
+            when(commandExecutor.execute(eq(sessionId), anyString())).thenThrow(new RuntimeException("Access denied"));
+
+            // when
+            String actualLog = sambaLogService.getRecentLogs(sessionId, 50);
+
+            // then
+            assertThat(actualLog).contains("Log file empty or not accessible");
+            assertThat(actualLog).contains("/var/log/samba/log.smbd");
+        }
     }
-
-    @Test
-    void getRecentLogs_withDisallowedLinesCount_defaultsTo50Lines() throws Exception {
-      // given
-      String sessionId = "test-session";
-      int invalidLines = 999;
-      String expectedLog = "default log content";
-      String expectedCmd = LinuxCommands.tail("/var/log/samba/log.smbd", 50);
-      when(commandExecutor.execute(eq(sessionId), eq(expectedCmd))).thenReturn(expectedLog);
-
-      // when
-      String actualLog = sambaLogService.getRecentLogs(sessionId, invalidLines);
-
-      // then
-      assertThat(actualLog).isEqualTo(expectedLog);
-    }
-
-    @Test
-    void getRecentLogs_whenCommandThrows_returnsFriendlyErrorMessage() throws Exception {
-      // given
-      String sessionId = "test-session";
-      when(commandExecutor.execute(eq(sessionId), anyString()))
-          .thenThrow(new RuntimeException("Access denied"));
-
-      // when
-      String actualLog = sambaLogService.getRecentLogs(sessionId, 50);
-
-      // then
-      assertThat(actualLog).contains("Log file empty or not accessible");
-      assertThat(actualLog).contains("/var/log/samba/log.smbd");
-    }
-  }
 }

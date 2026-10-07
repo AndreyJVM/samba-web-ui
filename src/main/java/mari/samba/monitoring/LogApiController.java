@@ -10,37 +10,35 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/logs")
 public class LogApiController {
 
-  private final SambaLogService logService;
+    private final SambaLogService logService;
 
-  public LogApiController(SambaLogService logService) {
-    this.logService = logService;
-  }
+    public LogApiController(SambaLogService logService) {
+        this.logService = logService;
+    }
 
-  @GetMapping
-  public ApiResponse<Map<String, String>> getLogs(
-      HttpSession session,
-      @RequestParam(value = "lines", defaultValue = "100") int lines,
-      @RequestParam(value = "path", required = false) String path) {
-    String sessionId = session.getId();
-    String content =
-        (path != null && !path.isBlank())
-            ? logService.getRecentLogs(sessionId, path, lines)
-            : logService.getRecentLogs(sessionId, lines);
-    Map<String, String> data = new HashMap<>();
-    data.put("content", content);
-    return ApiResponse.ok("Logs retrieved successfully", data);
-  }
+    @GetMapping
+    public ApiResponse<Map<String, String>> getLogs(
+            HttpSession session,
+            @RequestParam(value = "lines", defaultValue = "100") int lines,
+            @RequestParam(value = "path", required = false) String path) {
+        String sessionId = session.getId();
+        String content = (path != null && !path.isBlank())
+                ? logService.getRecentLogs(sessionId, path, lines)
+                : logService.getRecentLogs(sessionId, lines);
+        Map<String, String> data = new HashMap<>();
+        data.put("content", content);
+        return ApiResponse.ok("Logs retrieved successfully", data);
+    }
 
-  @GetMapping("/raw")
-  public ApiResponse<String> getRawLogs(
-      HttpSession session,
-      @RequestParam(value = "lines", defaultValue = "100") int lines,
-      @RequestParam(value = "path", required = false) String path) {
-    String sessionId = session.getId();
-    String content =
-        (path != null && !path.isBlank())
-            ? logService.getRecentLogs(sessionId, path, lines)
-            : logService.getRecentLogs(sessionId, lines);
-    return ApiResponse.ok("Logs retrieved successfully", content);
-  }
+    @GetMapping("/raw")
+    public ApiResponse<String> getRawLogs(
+            HttpSession session,
+            @RequestParam(value = "lines", defaultValue = "100") int lines,
+            @RequestParam(value = "path", required = false) String path) {
+        String sessionId = session.getId();
+        String content = (path != null && !path.isBlank())
+                ? logService.getRecentLogs(sessionId, path, lines)
+                : logService.getRecentLogs(sessionId, lines);
+        return ApiResponse.ok("Logs retrieved successfully", content);
+    }
 }

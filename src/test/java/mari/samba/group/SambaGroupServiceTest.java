@@ -16,59 +16,61 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class SambaGroupServiceTest {
 
-  @Mock private CommandExecutor commandExecutor;
-  @Mock private SambaProperties properties;
+    @Mock
+    private CommandExecutor commandExecutor;
 
-  @InjectMocks private SambaGroupService sambaGroupService;
+    @Mock
+    private SambaProperties properties;
 
-  private static final String SESSION_ID = "test-session";
+    @InjectMocks
+    private SambaGroupService sambaGroupService;
 
-  @Test
-  void getAllGroups_ShouldFilterAndParseCorrectly() throws Exception {
-    String mockGetentOutput =
-        "root:x:0:\n"
-            + "daemon:x:1:\n"
-            + "smb_managers:x:1001:alice,bob\n"
-            + "smb_emptygroup:x:1002:\n"
-            + "docker:x:999:admin\n";
+    private static final String SESSION_ID = "test-session";
 
-    when(commandExecutor.execute(SESSION_ID, "getent group")).thenReturn(mockGetentOutput);
+    @Test
+    void getAllGroups_ShouldFilterAndParseCorrectly() throws Exception {
+        String mockGetentOutput = "root:x:0:\n"
+                + "daemon:x:1:\n"
+                + "smb_managers:x:1001:alice,bob\n"
+                + "smb_emptygroup:x:1002:\n"
+                + "docker:x:999:admin\n";
 
-    List<SambaGroup> groups = sambaGroupService.getAllGroups(SESSION_ID);
+        when(commandExecutor.execute(SESSION_ID, "getent group")).thenReturn(mockGetentOutput);
 
-    assertNotNull(groups);
-    assertEquals(2, groups.size());
+        List<SambaGroup> groups = sambaGroupService.getAllGroups(SESSION_ID);
 
-    SambaGroup group1 = groups.get(0);
-    assertEquals("managers", group1.name());
-    assertEquals(List.of("alice", "bob"), group1.members());
+        assertNotNull(groups);
+        assertEquals(2, groups.size());
 
-    SambaGroup group2 = groups.get(1);
-    assertEquals("emptygroup", group2.name());
-    assertTrue(group2.members().isEmpty());
-  }
+        SambaGroup group1 = groups.get(0);
+        assertEquals("managers", group1.name());
+        assertEquals(List.of("alice", "bob"), group1.members());
 
-  @Test
-  void createGroup_ShouldExecuteCorrectCommand() throws Exception {
-    SambaGroupCreateDto dto = new SambaGroupCreateDto("developers", "Developers group");
+        SambaGroup group2 = groups.get(1);
+        assertEquals("emptygroup", group2.name());
+        assertTrue(group2.members().isEmpty());
+    }
 
-    sambaGroupService.createGroup(SESSION_ID, dto);
+    @Test
+    void createGroup_ShouldExecuteCorrectCommand() throws Exception {
+        SambaGroupCreateDto dto = new SambaGroupCreateDto("developers", "Developers group");
 
-    verify(commandExecutor).execute(eq(SESSION_ID), eq("sudo groupadd 'smb_developers'"));
-  }
+        sambaGroupService.createGroup(SESSION_ID, dto);
 
-  @Test
-  void deleteGroup_ShouldExecuteCorrectCommand() throws Exception {
-    sambaGroupService.deleteGroup(SESSION_ID, "developers");
+        verify(commandExecutor).execute(eq(SESSION_ID), eq("sudo groupadd 'smb_developers'"));
+    }
 
-    verify(commandExecutor).execute(eq(SESSION_ID), eq("sudo groupdel 'smb_developers'"));
-  }
+    @Test
+    void deleteGroup_ShouldExecuteCorrectCommand() throws Exception {
+        sambaGroupService.deleteGroup(SESSION_ID, "developers");
 
-  @Test
-  void addUserToGroup_ShouldExecuteCorrectCommand() throws Exception {
-    sambaGroupService.addUserToGroup(SESSION_ID, "john.doe", "developers");
+        verify(commandExecutor).execute(eq(SESSION_ID), eq("sudo groupdel 'smb_developers'"));
+    }
 
-    verify(commandExecutor)
-        .execute(eq(SESSION_ID), eq("sudo gpasswd -a 'john.doe' 'smb_developers'"));
-  }
+    @Test
+    void addUserToGroup_ShouldExecuteCorrectCommand() throws Exception {
+        sambaGroupService.addUserToGroup(SESSION_ID, "john.doe", "developers");
+
+        verify(commandExecutor).execute(eq(SESSION_ID), eq("sudo gpasswd -a 'john.doe' 'smb_developers'"));
+    }
 }

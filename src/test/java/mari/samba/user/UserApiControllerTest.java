@@ -26,66 +26,62 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class UserApiControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @Autowired private ObjectMapper objectMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-  @MockitoBean private SambaUserService sambaUserService;
+    @MockitoBean
+    private SambaUserService sambaUserService;
 
-  @Test
-  void testGetAllUsers_ShouldReturnUsersList() throws Exception {
-    SambaUser testUser = new SambaUser("johndoe", "John Doe", true, "/home/johndoe", "/bin/bash");
-    when(sambaUserService.getAllUsers(anyString())).thenReturn(List.of(testUser));
+    @Test
+    void testGetAllUsers_ShouldReturnUsersList() throws Exception {
+        SambaUser testUser = new SambaUser("johndoe", "John Doe", true, "/home/johndoe", "/bin/bash");
+        when(sambaUserService.getAllUsers(anyString())).thenReturn(List.of(testUser));
 
-    mockMvc
-        .perform(get("/api/users").sessionAttr("dummy", "dummy"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data[0].username").value("johndoe"))
-        .andExpect(jsonPath("$.data[0].fullName").value("John Doe"));
-  }
+        mockMvc.perform(get("/api/users").sessionAttr("dummy", "dummy"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].username").value("johndoe"))
+                .andExpect(jsonPath("$.data[0].fullName").value("John Doe"));
+    }
 
-  @Test
-  void testCreateUser_ShouldReturnSuccessMsg() throws Exception {
-    SambaUserCreateDto dto = new SambaUserCreateDto("johndoe", "John Doe", "Secret@123");
+    @Test
+    void testCreateUser_ShouldReturnSuccessMsg() throws Exception {
+        SambaUserCreateDto dto = new SambaUserCreateDto("johndoe", "John Doe", "Secret@123");
 
-    mockMvc
-        .perform(
-            post("/api/users")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+        mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-    verify(sambaUserService)
-        .createUser(anyString(), eq("johndoe"), eq("Secret@123"), eq("John Doe"));
-  }
+        verify(sambaUserService).createUser(anyString(), eq("johndoe"), eq("Secret@123"), eq("John Doe"));
+    }
 
-  @Test
-  void testDeleteUser_ShouldReturnSuccessMsg() throws Exception {
-    mockMvc
-        .perform(delete("/api/users/johndoe"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+    @Test
+    void testDeleteUser_ShouldReturnSuccessMsg() throws Exception {
+        mockMvc.perform(delete("/api/users/johndoe"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-    verify(sambaUserService).deleteUser(anyString(), eq("johndoe"));
-  }
+        verify(sambaUserService).deleteUser(anyString(), eq("johndoe"));
+    }
 
-  @Test
-  void testChangePassword_ShouldReturnSuccessMsg() throws Exception {
-    Map<String, String> body = Map.of("newPassword", "NewSecret@123");
+    @Test
+    void testChangePassword_ShouldReturnSuccessMsg() throws Exception {
+        Map<String, String> body = Map.of("newPassword", "NewSecret@123");
 
-    mockMvc
-        .perform(
-            put("/api/users/johndoe/password")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(body)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+        mockMvc.perform(put("/api/users/johndoe/password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-    verify(sambaUserService).changePassword(anyString(), eq("johndoe"), eq("NewSecret@123"));
-  }
+        verify(sambaUserService).changePassword(anyString(), eq("johndoe"), eq("NewSecret@123"));
+    }
 }

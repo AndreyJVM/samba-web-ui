@@ -18,63 +18,68 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class SambaShareServiceTest {
 
-  @Mock private CommandExecutor commandExecutor;
-  @Mock private SambaConfigService configService;
-  @Mock private FileSystemService fileSystemService;
+    @Mock
+    private CommandExecutor commandExecutor;
 
-  @InjectMocks private SambaShareService shareService;
+    @Mock
+    private SambaConfigService configService;
 
-  private final String SESSION_ID = "test-session-id";
+    @Mock
+    private FileSystemService fileSystemService;
 
-  @Test
-  void createShare_ShouldCreateDirectoryAndSetPermissions() throws Exception {
-    // Arrange
-    SambaShareCreateDto dto =
-        SambaShareCreateDto.builder()
-            .name("testShare")
-            .path("/srv/samba/test")
-            .comment("Test comment")
-            .forceUser("samba-admin")
-            .validUsers("user1, user2")
-            .readOnly(false)
-            .browseable(true)
-            .build();
+    @InjectMocks
+    private SambaShareService shareService;
 
-    when(configService.getSmbConfContent(SESSION_ID)).thenReturn("");
-    when(configService.parseShares("")).thenReturn(Collections.emptyList());
+    private final String SESSION_ID = "test-session-id";
 
-    when(configService.buildShareSection(dto))
-        .thenReturn("[testShare]\n  path = /srv/samba/test\n");
+    @Test
+    void createShare_ShouldCreateDirectoryAndSetPermissions() throws Exception {
+        // Arrange
+        SambaShareCreateDto dto = SambaShareCreateDto.builder()
+                .name("testShare")
+                .path("/srv/samba/test")
+                .comment("Test comment")
+                .forceUser("samba-admin")
+                .validUsers("user1, user2")
+                .readOnly(false)
+                .browseable(true)
+                .build();
 
-    // Act
-    shareService.createShare(SESSION_ID, dto);
+        when(configService.getSmbConfContent(SESSION_ID)).thenReturn("");
+        when(configService.parseShares("")).thenReturn(Collections.emptyList());
 
-    // Assert
-    verify(fileSystemService).requireAllowedPath("/srv/samba/test");
-    verify(commandExecutor).execute(SESSION_ID, LinuxCommands.mkdir("/srv/samba/test"));
-    verify(commandExecutor).execute(SESSION_ID, LinuxCommands.chmod("0775", "/srv/samba/test"));
-    verify(commandExecutor)
-        .execute(SESSION_ID, LinuxCommands.chownRecursive("samba-admin", "/srv/samba/test"));
+        when(configService.buildShareSection(dto)).thenReturn("[testShare]\n  path = /srv/samba/test\n");
 
-    verify(configService).updateSmbConf(SESSION_ID, "\n[testShare]\n  path = /srv/samba/test\n");
-  }
+        // Act
+        shareService.createShare(SESSION_ID, dto);
 
-  @Test
-  void createShare_ShouldThrowException_WhenShareAlreadyExists() throws Exception {
-    // Arrange
-    SambaShareCreateDto dto =
-        SambaShareCreateDto.builder().name("existingShare").path("/srv/samba/existing").build();
+        // Assert
+        verify(fileSystemService).requireAllowedPath("/srv/samba/test");
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.mkdir("/srv/samba/test"));
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.chmod("0775", "/srv/samba/test"));
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.chownRecursive("samba-admin", "/srv/samba/test"));
 
-    SambaShare existingShare = SambaShare.builder().name("existingShare").build();
+        verify(configService).updateSmbConf(SESSION_ID, "\n[testShare]\n  path = /srv/samba/test\n");
+    }
 
-    when(configService.getSmbConfContent(SESSION_ID)).thenReturn("");
-    when(configService.parseShares("")).thenReturn(Collections.singletonList(existingShare));
+    @Test
+    void createShare_ShouldThrowException_WhenShareAlreadyExists() throws Exception {
+        // Arrange
+        SambaShareCreateDto dto = SambaShareCreateDto.builder()
+                .name("existingShare")
+                .path("/srv/samba/existing")
+                .build();
 
-    // Act & Assert
-    assertThatThrownBy(() -> shareService.createShare(SESSION_ID, dto))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining("Share already exists");
+        SambaShare existingShare = SambaShare.builder().name("existingShare").build();
 
-    verify(commandExecutor, never()).execute(anyString(), anyString());
-  }
+        when(configService.getSmbConfContent(SESSION_ID)).thenReturn("");
+        when(configService.parseShares("")).thenReturn(Collections.singletonList(existingShare));
+
+        // Act & Assert
+        assertThatThrownBy(() -> shareService.createShare(SESSION_ID, dto))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Share already exists");
+
+        verify(commandExecutor, never()).execute(anyString(), anyString());
+    }
 }

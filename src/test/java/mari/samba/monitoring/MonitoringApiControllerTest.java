@@ -23,62 +23,59 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class MonitoringApiControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @MockitoBean private SambaMonitoringService monitoringService;
+    @MockitoBean
+    private SambaMonitoringService monitoringService;
 
-  @Test
-  void testGetDashboard_WhenRunning_ShouldReturnFullStats() throws Exception {
-    when(monitoringService.isServiceRunning(anyString())).thenReturn(true);
-    when(monitoringService.getDiskUsage(anyString())).thenReturn(List.of("/ 50% 100G"));
-    when(monitoringService.getActiveConnections(anyString()))
-        .thenReturn(List.of(Map.of("pid", "1234", "user", "root")));
-    when(monitoringService.getOpenFiles(anyString()))
-        .thenReturn(List.of(Map.of("file", "/path/to/file")));
+    @Test
+    void testGetDashboard_WhenRunning_ShouldReturnFullStats() throws Exception {
+        when(monitoringService.isServiceRunning(anyString())).thenReturn(true);
+        when(monitoringService.getDiskUsage(anyString())).thenReturn(List.of("/ 50% 100G"));
+        when(monitoringService.getActiveConnections(anyString()))
+                .thenReturn(List.of(Map.of("pid", "1234", "user", "root")));
+        when(monitoringService.getOpenFiles(anyString())).thenReturn(List.of(Map.of("file", "/path/to/file")));
 
-    mockMvc
-        .perform(get("/api/monitoring/dashboard"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data.isRunning").value(true))
-        .andExpect(jsonPath("$.data.diskUsage[0]").value("/ 50% 100G"))
-        .andExpect(jsonPath("$.data.connections[0].pid").value("1234"))
-        .andExpect(jsonPath("$.data.openFiles[0].file").value("/path/to/file"));
-  }
+        mockMvc.perform(get("/api/monitoring/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.isRunning").value(true))
+                .andExpect(jsonPath("$.data.diskUsage[0]").value("/ 50% 100G"))
+                .andExpect(jsonPath("$.data.connections[0].pid").value("1234"))
+                .andExpect(jsonPath("$.data.openFiles[0].file").value("/path/to/file"));
+    }
 
-  @Test
-  void testGetDashboard_WhenNotRunning_ShouldReturnEmptyData() throws Exception {
-    when(monitoringService.isServiceRunning(anyString())).thenReturn(false);
-    when(monitoringService.getDiskUsage(anyString())).thenReturn(List.of("/ 50% 100G"));
+    @Test
+    void testGetDashboard_WhenNotRunning_ShouldReturnEmptyData() throws Exception {
+        when(monitoringService.isServiceRunning(anyString())).thenReturn(false);
+        when(monitoringService.getDiskUsage(anyString())).thenReturn(List.of("/ 50% 100G"));
 
-    mockMvc
-        .perform(get("/api/monitoring/dashboard"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data.isRunning").value(false))
-        .andExpect(jsonPath("$.data.connections").isEmpty())
-        .andExpect(jsonPath("$.data.openFiles").isEmpty());
-  }
+        mockMvc.perform(get("/api/monitoring/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.isRunning").value(false))
+                .andExpect(jsonPath("$.data.connections").isEmpty())
+                .andExpect(jsonPath("$.data.openFiles").isEmpty());
+    }
 
-  @Test
-  void testControlService_ShouldReturnSuccess() throws Exception {
-    mockMvc
-        .perform(post("/api/monitoring/control").param("action", "restart"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+    @Test
+    void testControlService_ShouldReturnSuccess() throws Exception {
+        mockMvc.perform(post("/api/monitoring/control").param("action", "restart"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-    verify(monitoringService).controlService(anyString(), eq("restart"));
-  }
+        verify(monitoringService).controlService(anyString(), eq("restart"));
+    }
 
-  @Test
-  void testKillSession_ShouldReturnSuccess() throws Exception {
-    mockMvc
-        .perform(delete("/api/monitoring/sessions/1234"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+    @Test
+    void testKillSession_ShouldReturnSuccess() throws Exception {
+        mockMvc.perform(delete("/api/monitoring/sessions/1234"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-    verify(monitoringService).killSession(anyString(), eq("1234"));
-  }
+        verify(monitoringService).killSession(anyString(), eq("1234"));
+    }
 }

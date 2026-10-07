@@ -25,74 +25,70 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 class GroupApiControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-  @Autowired private ObjectMapper objectMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-  @MockitoBean private SambaGroupService groupService;
+    @MockitoBean
+    private SambaGroupService groupService;
 
-  @Test
-  void testGetAllGroups_ShouldReturnGroups() throws Exception {
-    SambaGroup group = new SambaGroup("developers", List.of("alice", "bob"));
-    when(groupService.getAllGroups(anyString())).thenReturn(List.of(group));
+    @Test
+    void testGetAllGroups_ShouldReturnGroups() throws Exception {
+        SambaGroup group = new SambaGroup("developers", List.of("alice", "bob"));
+        when(groupService.getAllGroups(anyString())).thenReturn(List.of(group));
 
-    mockMvc
-        .perform(get("/api/groups"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data[0].name").value("developers"))
-        .andExpect(jsonPath("$.data[0].members[0]").value("alice"));
-  }
+        mockMvc.perform(get("/api/groups"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].name").value("developers"))
+                .andExpect(jsonPath("$.data[0].members[0]").value("alice"));
+    }
 
-  @Test
-  void testCreateGroup_ShouldReturnSuccess() throws Exception {
-    SambaGroupCreateDto dto = new SambaGroupCreateDto("developers", "Description");
+    @Test
+    void testCreateGroup_ShouldReturnSuccess() throws Exception {
+        SambaGroupCreateDto dto = new SambaGroupCreateDto("developers", "Description");
 
-    mockMvc
-        .perform(
-            post("/api/groups")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+        mockMvc.perform(post("/api/groups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-    verify(groupService).createGroup(anyString(), any(SambaGroupCreateDto.class));
-  }
+        verify(groupService).createGroup(anyString(), any(SambaGroupCreateDto.class));
+    }
 
-  @Test
-  void testDeleteGroup_ShouldReturnSuccess() throws Exception {
-    mockMvc
-        .perform(delete("/api/groups/developers"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+    @Test
+    void testDeleteGroup_ShouldReturnSuccess() throws Exception {
+        mockMvc.perform(delete("/api/groups/developers"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-    verify(groupService).deleteGroup(anyString(), eq("developers"));
-  }
+        verify(groupService).deleteGroup(anyString(), eq("developers"));
+    }
 
-  @Test
-  void testAddUserToGroup_ShouldReturnSuccess() throws Exception {
-    mockMvc
-        .perform(
-            post("/api/groups/developers/users")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\":\"alice\"}"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+    @Test
+    void testAddUserToGroup_ShouldReturnSuccess() throws Exception {
+        mockMvc.perform(post("/api/groups/developers/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"alice\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-    verify(groupService).addUserToGroup(anyString(), eq("alice"), eq("developers"));
-  }
+        verify(groupService).addUserToGroup(anyString(), eq("alice"), eq("developers"));
+    }
 
-  @Test
-  void testRemoveUserFromGroup_ShouldReturnSuccess() throws Exception {
-    mockMvc
-        .perform(delete("/api/groups/developers/users/alice"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.message").isNotEmpty());
+    @Test
+    void testRemoveUserFromGroup_ShouldReturnSuccess() throws Exception {
+        mockMvc.perform(delete("/api/groups/developers/users/alice"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
 
-    verify(groupService).removeUserFromGroup(anyString(), eq("alice"), eq("developers"));
-  }
+        verify(groupService).removeUserFromGroup(anyString(), eq("alice"), eq("developers"));
+    }
 }
