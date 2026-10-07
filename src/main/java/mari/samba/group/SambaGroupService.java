@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import mari.samba.config.SambaProperties;
 import mari.samba.infra.CommandExecutor;
+import mari.samba.infra.LinuxCommands;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -58,30 +59,25 @@ public class SambaGroupService {
 
     public void createGroup(String sessionId, SambaGroupCreateDto dto) {
         String fullGroupName = groupPrefix + dto.groupName();
-        String command = String.format("sudo groupadd %s", escape(fullGroupName));
+        String command = String.format("sudo groupadd %s", LinuxCommands.escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
     }
 
     public void deleteGroup(String sessionId, String groupName) {
         String fullGroupName = groupPrefix + groupName;
-        String command = String.format("sudo groupdel %s", escape(fullGroupName));
+        String command = String.format("sudo groupdel %s", LinuxCommands.escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
     }
 
     public void addUserToGroup(String sessionId, String username, String groupName) {
         String fullGroupName = groupPrefix + groupName;
-        String command = String.format("sudo gpasswd -a %s %s", escape(username), escape(fullGroupName));
+        String command = String.format("sudo gpasswd -a %s %s", LinuxCommands.escape(username), LinuxCommands.escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
     }
 
     public void removeUserFromGroup(String sessionId, String username, String groupName) {
         String fullGroupName = groupPrefix + groupName;
-        String command = String.format("sudo gpasswd -d %s %s", escape(username), escape(fullGroupName));
+        String command = String.format("sudo gpasswd -d %s %s", LinuxCommands.escape(username), LinuxCommands.escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
-    }
-
-    private String escape(String arg) {
-        if (arg == null) return "''";
-        return "'" + arg.replace("'", "'\\''") + "'";
     }
 }
