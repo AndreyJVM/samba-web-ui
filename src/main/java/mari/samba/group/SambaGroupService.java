@@ -71,13 +71,15 @@ public class SambaGroupService {
 
     public void addUserToGroup(String sessionId, String username, String groupName) {
         String fullGroupName = groupPrefix + groupName;
-        String command = String.format("sudo gpasswd -a %s %s", LinuxCommands.escape(username), LinuxCommands.escape(fullGroupName));
+        String command = String.format(
+                "sudo gpasswd -a %s %s", LinuxCommands.escape(username), LinuxCommands.escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
     }
 
     public void removeUserFromGroup(String sessionId, String username, String groupName) {
         String fullGroupName = groupPrefix + groupName;
-        String command = String.format("sudo gpasswd -d %s %s", LinuxCommands.escape(username), LinuxCommands.escape(fullGroupName));
+        String command = String.format(
+                "sudo gpasswd -d %s %s", LinuxCommands.escape(username), LinuxCommands.escape(fullGroupName));
         commandExecutor.execute(sessionId, command);
     }
 }
