@@ -100,6 +100,8 @@
                 <configuration>
                     <!-- Read NVD API Key from environment variable NVD_API_KEY -->
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                    <!-- Increase delay to avoid 403 Rate Limit errors from NVD -->
+                    <nvdApiDelay>5000</nvdApiDelay>
                     <!-- Fail the build if a vulnerability with CVSS > 7 is found -->
                     <failBuildOnCVSS>7</failBuildOnCVSS>
                     <skipProvidedScope>true</skipProvidedScope>
