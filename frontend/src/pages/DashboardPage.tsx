@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { FileStack, Power, Folder, ArrowUp, FolderPlus, ChevronRight } from "lucide-react";
 import { api } from "../lib/api";
 import { useToast } from "../components/ui/toast";
@@ -255,7 +255,7 @@ export default function DashboardPage() {
                <div className="w-5 h-5 border-2 border-border border-t-foreground rounded-full animate-spin"></div>
              </div>
            ) : (
-             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0 divide-y sm:divide-y-0 sm:gap-[1px] bg-border p-[1px]">
+             <div className="flex flex-col divide-y divide-border border border-border bg-surface">
                {browseData?.parentPath && (
                  <button 
                    onClick={() => navigateTo(browseData.parentPath!)}

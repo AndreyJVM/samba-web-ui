@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { FolderKanban, HardDrive, Plus, Trash2, Settings2, ShieldCheck, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { FolderKanban, HardDrive, Plus, Trash2, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/ui/toast";
 import { useConfirm } from "../../components/ui/confirm";
 import { Modal } from "../../components/ui/modal";
 import { FilePickerModal } from "../../components/ui/file-picker";
 import { Toggle } from "../../components/ui/toggle";
+import { AutocompleteInput } from "../../components/ui/autocomplete";
 import { useTranslation } from "../../lib/i18n";
 
 interface Share {
@@ -159,18 +160,6 @@ export default function SharesPage() {
     setIsEditing(true);
   };
 
-  const toggleToValidUsers = (token: string) => {
-    if (!currentShare) return;
-    let current = (currentShare.validUsers || "").split(",").map(s => s.trim()).filter(Boolean);
-    if (current.includes(token)) {
-      current = current.filter(s => s !== token);
-    } else {
-      current.push(token);
-    }
-    setCurrentShare({ ...currentShare, validUsers: current.join(", ") });
-  };
-
-  const activeTokens = (currentShare?.validUsers || "").split(",").map(t => t.trim());
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
@@ -322,66 +311,24 @@ export default function SharesPage() {
                </div>
             </div>
 
-            <div className="space-y-3 pt-4 border-t border-border">
-              <div className="flex flex-col gap-1">
-                <label className="text-[12px] font-medium text-foreground">{t("shares.validUsers")}</label>
-                <p className="text-[12px] text-status-disabled">{t("shares.validUsersHint")}</p>
+            
+              <div className="space-y-3 pt-4 border-t border-border">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[12px] font-medium text-foreground">{t("shares.validUsers")}</label>
+                  <p className="text-[12px] text-status-disabled">{t("shares.validUsersHint")}</p>
+                </div>
+                
+                <AutocompleteInput 
+                  multiple={true}
+                  suggestions={[...users.map(u => u.username), ...groups.map(g => '@' + g.name)]}
+                  value={currentShare.validUsers || ""} 
+                  onChange={(e: any) => setCurrentShare({ ...currentShare, validUsers: e.target.value })} 
+                  className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-[13px] font-mono rounded-lg shadow-sm-subtle"
+                  placeholder="user1, user2, @admins"
+                />
               </div>
-              
-              <input 
-                value={currentShare.validUsers || ""} 
-                onChange={(e) => setCurrentShare({ ...currentShare, validUsers: e.target.value })} 
-                className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-[13px] font-mono rounded-lg shadow-sm-subtle"
-                placeholder="user1, user2, @admins"
-              />
 
-              <div className="bg-surface rounded-lg border border-border shadow-sm-subtle p-4 space-y-4">
-                {groups.length > 0 && (
-                  <div>
-                    <div className="text-[11px] font-semibold text-status-disabled uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5" /> {t("shares.externalGroups")}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                       {groups.map(g => {
-                         const tk = `@${g.name}`;
-                         const active = activeTokens.includes(tk);
-                         return (
-                           <button 
-                              key={g.name} type="button" onClick={() => toggleToValidUsers(tk)}
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-mono font-medium transition-colors border ${active ? 'bg-foreground text-background border-foreground shadow-sm' : 'bg-surface border-border text-foreground hover:bg-surface-hover'}`}
-                           >
-                             {tk}
-                           </button>
-                         )
-                       })}
-                    </div>
-                  </div>
-                )}
-                {users.length > 0 && (
-                  <div>
-                    <div className="text-[11px] font-semibold text-status-disabled uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5" /> {t("shares.localUsers")}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                       {users.map(u => {
-                         const tk = u.username;
-                         const active = activeTokens.includes(tk);
-                         return (
-                           <button 
-                              key={u.username} type="button" onClick={() => toggleToValidUsers(tk)}
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-mono font-medium transition-colors border ${active ? 'bg-foreground text-background border-foreground shadow-sm' : 'bg-surface border-border text-foreground hover:bg-surface-hover'}`}
-                           >
-                             {tk}
-                           </button>
-                         )
-                       })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-2">
+              <div className="pt-2">
               <button 
                 type="button"
                 onClick={() => setShowAdvanced(!showAdvanced)}
@@ -396,25 +343,36 @@ export default function SharesPage() {
               {showAdvanced && (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 animate-in slide-in-from-top-2 duration-300">
                     {[
-                      { l: t("shares.writeList"), k: "writeList", p: "@admins, user1" },
-                      { l: t("shares.maxConn"), k: "maxConnections", p: "0" },
-                      { l: t("shares.createMask"), k: "createMask", p: "0644" },
-                      { l: t("shares.dirMask"), k: "directoryMask", p: "0755" },
-                      { l: t("shares.forceUser"), k: "forceUser", p: "user1" },
-                      { l: t("shares.forceGroup"), k: "forceGroup", p: "users" },
-                      { l: t("shares.hostsAllow"), k: "hostsAllow", p: "192.168.1." },
-                      { l: t("shares.hostsDeny"), k: "hostsDeny", p: "ALL" },
-                    ].map(field => (
-                      <div key={field.k} className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-semibold text-status-disabled uppercase" title={field.l}>{field.l}</label>
-                        <input 
-                          value={(currentShare as any)[field.k] || ""} 
-                          onChange={(e) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
-                          className="bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring transition-all py-1.5 px-2.5 text-[12px] font-mono rounded-md shadow-sm-subtle text-foreground"
-                          placeholder={field.p}
-                        />
-                      </div>
-                    ))}
+                        { l: t("shares.writeList"), k: "writeList", p: "@admins, user1", mult: true, sug: [...users.map(u => u.username), ...groups.map(g => '@' + g.name)] },
+                        { l: t("shares.maxConn"), k: "maxConnections", p: "0" },
+                        { l: t("shares.createMask"), k: "createMask", p: "0644" },
+                        { l: t("shares.dirMask"), k: "directoryMask", p: "0755" },
+                        { l: t("shares.forceUser"), k: "forceUser", p: "user1", mult: false, sug: users.map(u => u.username) },
+                        { l: t("shares.forceGroup"), k: "forceGroup", p: "users", mult: false, sug: groups.map(g => g.name) },
+                        { l: t("shares.hostsAllow"), k: "hostsAllow", p: "192.168.1." },
+                        { l: t("shares.hostsDeny"), k: "hostsDeny", p: "ALL" },
+                      ].map(field => (
+                        <div key={field.k} className="flex flex-col gap-1.5 overflow-visible">
+                          <label className="text-[11px] font-semibold text-status-disabled uppercase" title={field.l}>{field.l}</label>
+                          {field.sug ? (
+                            <AutocompleteInput 
+                              multiple={field.mult}
+                              suggestions={field.sug}
+                              value={(currentShare as any)[field.k] || ""} 
+                              onChange={(e: any) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
+                              className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring transition-all py-1.5 px-2.5 text-[12px] font-mono rounded-md shadow-sm-subtle text-foreground"
+                              placeholder={field.p}
+                            />
+                          ) : (
+                            <input 
+                              value={(currentShare as any)[field.k] || ""} 
+                              onChange={(e) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
+                              className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring transition-all py-1.5 px-2.5 text-[12px] font-mono rounded-md shadow-sm-subtle text-foreground"
+                              placeholder={field.p}
+                            />
+                          )}
+                        </div>
+                      ))}
                  </div>
               )}
             </div>

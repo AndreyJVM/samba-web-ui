@@ -5,11 +5,13 @@ import { useToast } from "../../components/ui/toast";
 import { useConfirm } from "../../components/ui/confirm";
 import { Modal } from "../../components/ui/modal";
 import { useTranslation } from "../../lib/i18n";
+import { AutocompleteInput } from "../../components/ui/autocomplete";
 
 interface Group { name: string; members: string[]; }
 
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [users, setUsers] = useState<{username: string}[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [isCreating, setIsCreating] = useState(false);
@@ -26,8 +28,12 @@ export default function GroupsPage() {
   const fetchGroups = async () => {
     try {
       setLoading(true);
-      const res = await api.get<Group[]>("/api/groups");
+      const [res, usersRes] = await Promise.all([
+        api.get<Group[]>("/api/groups"),
+        api.get<{username: string}[]>("/api/users").catch(() => [])
+      ]);
       setGroups(res);
+      setUsers(usersRes || []);
     } catch (err: any) {
       toastError("API Error", err.message);
     } finally {
@@ -232,13 +238,14 @@ export default function GroupsPage() {
         <form onSubmit={handleAddUser} className="space-y-5">
           <div className="space-y-1.5">
             <label className="text-[13px] font-medium text-foreground">{t("users.username")}</label>
-            <input 
-              required autoFocus
-              className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-sm font-mono rounded-lg shadow-sm-subtle"
-              value={usernameToAdd} 
-              onChange={(e) => setUsernameToAdd(e.target.value)} 
-              placeholder="john_doe"
-            />
+            <AutocompleteInput 
+                required autoFocus
+                className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-sm font-mono rounded-lg shadow-sm-subtle"
+                value={usernameToAdd} 
+                onChange={(e: any) => setUsernameToAdd(e.target.value)} 
+                placeholder="john_doe"
+                suggestions={users.map(u => u.username)}
+              />
           </div>
           <div className="pt-4 flex justify-end gap-3 border-t border-border mt-2">
              <button type="button" onClick={() => setIsAddingUser(false)} className="text-sm font-medium text-foreground bg-surface border border-border px-5 py-2.5 rounded-md hover:bg-surface-hover shadow-sm-subtle transition-colors">
