@@ -5,7 +5,7 @@ import { useToast } from "../../components/ui/toast";
 import { useConfirm } from "../../components/ui/confirm";
 import { Modal } from "../../components/ui/modal";
 import { useTranslation } from "../../lib/i18n";
-import { AutocompleteInput } from "../../components/ui/autocomplete";
+import { MultiSelect } from "../../components/ui/multi-select";
 
 interface Group { name: string; members: string[]; }
 
@@ -77,8 +77,9 @@ export default function GroupsPage() {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post(`/api/groups/${targetGroup}/users`, { username: usernameToAdd });
-      success(t("common.add"), `User ${usernameToAdd} added to ${targetGroup}`);
+      const users = usernameToAdd.split(',').map(s => s.trim()).filter(Boolean);
+      await Promise.all(users.map(u => api.post(`/api/groups/${targetGroup}/users`, { username: u })));
+      success(t("common.add"), `Users ${users.join(', ')} added to ${targetGroup}`);
       setIsAddingUser(false);
       setUsernameToAdd("");
       fetchGroups();
@@ -238,13 +239,12 @@ export default function GroupsPage() {
         <form onSubmit={handleAddUser} className="space-y-5">
           <div className="space-y-1.5">
             <label className="text-[13px] font-medium text-foreground">{t("users.username")}</label>
-            <AutocompleteInput 
-                required autoFocus
-                className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-sm font-mono rounded-lg shadow-sm-subtle"
+            <MultiSelect 
+                className="w-full text-sm font-mono"
                 value={usernameToAdd} 
-                onChange={(e: any) => setUsernameToAdd(e.target.value)} 
-                placeholder="john_doe"
-                suggestions={users.map(u => u.username)}
+                onChange={(val: string) => setUsernameToAdd(val)} 
+                placeholder="john_doe, user2"
+                options={users.map(u => u.username)}
               />
           </div>
           <div className="pt-4 flex justify-end gap-3 border-t border-border mt-2">

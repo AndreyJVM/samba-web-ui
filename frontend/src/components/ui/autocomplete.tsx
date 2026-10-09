@@ -2,22 +2,16 @@
 
 interface AutocompleteInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   suggestions: string[];
-  multiple?: boolean;
 }
 
-export function AutocompleteInput({ suggestions, multiple, value, onChange, ...props }: AutocompleteInputProps) {
+export function AutocompleteInput({ suggestions, value, onChange, className, ...props }: AutocompleteInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const strValue = (value as string) || "";
-
-  // For multiple, get the current token being typed
-  const tokens = strValue.split(',').map(s => s.trim());
-  const currentToken = multiple ? tokens[tokens.length - 1] : strValue;
-
-  const filtered = currentToken 
-    ? suggestions.filter(s => s.toLowerCase().includes(currentToken.toLowerCase()) && s !== currentToken)
+  const filtered = strValue 
+    ? suggestions.filter(s => s.toLowerCase().includes(strValue.toLowerCase()) && s !== strValue)
     : suggestions;
 
   useEffect(() => {
@@ -31,17 +25,8 @@ export function AutocompleteInput({ suggestions, multiple, value, onChange, ...p
   }, []);
 
   const handleSelect = (suggestion: string) => {
-    if (multiple) {
-      const newTokens = [...tokens];
-      newTokens[newTokens.length - 1] = suggestion;
-      const newValue = newTokens.join(', ') + (newTokens.length > 0 ? ', ' : '');
-      if (onChange) {
-        onChange({ target: { value: newValue } } as any);
-      }
-    } else {
-      if (onChange) {
-        onChange({ target: { value: suggestion } } as any);
-      }
+    if (onChange) {
+      onChange({ target: { value: suggestion } } as any);
     }
     setIsOpen(false);
     setActiveIndex(-1);
@@ -64,9 +49,11 @@ export function AutocompleteInput({ suggestions, multiple, value, onChange, ...p
   };
 
   return (
-    <div className="relative w-full" ref={wrapperRef}>
+    <div className={`relative w-full ${className || ''}`} ref={wrapperRef}>
       <input
         {...props}
+        className="w-full bg-transparent outline-none text-foreground placeholder:text-status-disabled py-2.5 px-3.5"
+        style={{ width: '100%' }}
         value={value}
         onChange={(e) => {
           onChange && onChange(e);
@@ -80,8 +67,9 @@ export function AutocompleteInput({ suggestions, multiple, value, onChange, ...p
         }}
         autoComplete="off"
       />
+      
       {isOpen && filtered.length > 0 && (
-        <ul className="absolute z-50 w-full bg-surface border border-border mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <ul className="absolute z-[100] w-full bg-surface border border-border mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
           {filtered.map((suggestion, idx) => (
             <li
               key={suggestion}

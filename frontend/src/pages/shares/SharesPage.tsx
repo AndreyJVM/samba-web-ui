@@ -7,6 +7,7 @@ import { Modal } from "../../components/ui/modal";
 import { FilePickerModal } from "../../components/ui/file-picker";
 import { Toggle } from "../../components/ui/toggle";
 import { AutocompleteInput } from "../../components/ui/autocomplete";
+import { MultiSelect } from "../../components/ui/multi-select";
 import { useTranslation } from "../../lib/i18n";
 
 interface Share {
@@ -318,12 +319,10 @@ export default function SharesPage() {
                   <p className="text-[12px] text-status-disabled">{t("shares.validUsersHint")}</p>
                 </div>
                 
-                <AutocompleteInput 
-                  multiple={true}
-                  suggestions={[...users.map(u => u.username), ...groups.map(g => '@' + g.name)]}
+                <MultiSelect 
+                  options={[...users.map(u => u.username), ...groups.map(g => '@' + g.name)]}
                   value={currentShare.validUsers || ""} 
-                  onChange={(e: any) => setCurrentShare({ ...currentShare, validUsers: e.target.value })} 
-                  className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-[13px] font-mono rounded-lg shadow-sm-subtle"
+                  onChange={(val: string) => setCurrentShare({ ...currentShare, validUsers: val })} 
                   placeholder="user1, user2, @admins"
                 />
               </div>
@@ -355,14 +354,24 @@ export default function SharesPage() {
                         <div key={field.k} className="flex flex-col gap-1.5 overflow-visible">
                           <label className="text-[11px] font-semibold text-status-disabled uppercase" title={field.l}>{field.l}</label>
                           {field.sug ? (
-                            <AutocompleteInput 
-                              multiple={field.mult}
-                              suggestions={field.sug}
-                              value={(currentShare as any)[field.k] || ""} 
-                              onChange={(e: any) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
-                              className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring transition-all py-1.5 px-2.5 text-[12px] font-mono rounded-md shadow-sm-subtle text-foreground"
-                              placeholder={field.p}
-                            />
+                            field.mult ? (
+                              <MultiSelect 
+                                options={field.sug}
+                                value={(currentShare as any)[field.k] || ""} 
+                                onChange={(val: string) => setCurrentShare({ ...currentShare, [field.k]: val })} 
+                                placeholder={field.p}
+                              />
+                            ) : (
+                              <div className="w-full bg-surface border border-border focus-within:border-border-strong focus-within:ring-4 focus-within:ring-ring transition-all rounded-md shadow-sm-subtle flex items-center">
+                                <AutocompleteInput 
+                                  suggestions={field.sug}
+                                  value={(currentShare as any)[field.k] || ""} 
+                                  onChange={(e: any) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
+                                  className="w-full text-[12px] font-mono rounded-md !py-1.5 !px-2.5"
+                                  placeholder={field.p}
+                                />
+                              </div>
+                            )
                           ) : (
                             <input 
                               value={(currentShare as any)[field.k] || ""} 
