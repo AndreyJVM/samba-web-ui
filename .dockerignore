@@ -1,0 +1,14 @@
+# Запретить всё, разрешить только то, что копирует Dockerfile
+*
+
+!mvnw
+!.mvn
+!pom.xml
+!src
+!frontend
+
+# Внутри frontend всё это пересоздаётся при сборке в образе
+frontend/node_modules
+frontend/node
+frontend/dist
+frontend/*.tsbuildinfo
