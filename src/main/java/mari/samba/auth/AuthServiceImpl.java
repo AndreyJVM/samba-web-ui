@@ -30,7 +30,7 @@ public class AuthServiceImpl implements AuthService {
     public void login(@NonNull String sessionId, @NonNull ConnectionRequestDto request, @NonNull String clientIp)
             throws Exception {
 
-        if (bruteForceService.isBlocked(clientIp)) {
+        if (bruteForceService.isBlocked(clientIp, request.getUsername())) {
             log.warn("Blocked login attempt from IP {} due to too many failed attempts", clientIp);
             throw new SecurityException("Too many failed login attempts. IP temporarily blocked.");
         }
@@ -50,11 +50,11 @@ public class AuthServiceImpl implements AuthService {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            bruteForceService.resetFailedLogin(clientIp);
+            bruteForceService.resetFailedLogin(clientIp, request.getUsername());
             log.info("User '{}' successfully authenticated for host '{}'", request.getUsername(), request.getHost());
 
         } catch (Exception e) {
-            bruteForceService.registerFailedLogin(clientIp);
+            bruteForceService.registerFailedLogin(clientIp, request.getUsername());
             log.warn(
                     "Failed authentication attempt for user '{}' from IP {}: {}",
                     request.getUsername(),
