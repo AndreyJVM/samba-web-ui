@@ -1,4 +1,4 @@
-﻿package mari.samba.auth;
+package mari.samba.auth;
 
 public interface BruteForceProtectionService {
     void registerFailedLogin(String ipAddress, String username);

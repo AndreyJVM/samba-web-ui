@@ -2,9 +2,11 @@ package mari.samba.filesystem;
 
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import java.util.Base64;
 import mari.samba.core.ApiResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Controller for performing low-level remote file system operations.
@@ -15,6 +17,42 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/fs")
 public class FileSystemApiController {
+    @PostMapping("/copy")
+    public ApiResponse<Void> copyItem(@NonNull HttpSession session, @RequestBody java.util.Map<String, String> body) {
+        String sessionId = session.getId();
+        String source = body.get("source");
+        String destination = body.get("destination");
+        fileSystemService.copyItem(sessionId, source, destination);
+        return ApiResponse.ok("Copied successfully", null);
+    }
+
+    @PostMapping("/move")
+    public ApiResponse<Void> moveItem(@NonNull HttpSession session, @RequestBody java.util.Map<String, String> body) {
+        String sessionId = session.getId();
+        String source = body.get("source");
+        String destination = body.get("destination");
+        fileSystemService.moveItem(sessionId, source, destination);
+        return ApiResponse.ok("Moved successfully", null);
+    }
+
+    @PostMapping("/delete")
+    public ApiResponse<Void> deleteItem(@NonNull HttpSession session, @RequestBody java.util.Map<String, String> body) {
+        String sessionId = session.getId();
+        String target = body.get("target");
+        fileSystemService.deleteItem(sessionId, target);
+        return ApiResponse.ok("Deleted successfully", null);
+    }
+
+    @PostMapping("/upload")
+    public ApiResponse<Void> uploadFile(
+            @NonNull HttpSession session, @RequestParam("path") String path, @RequestParam("file") MultipartFile file)
+            throws Exception {
+        String sessionId = session.getId();
+        byte[] content = file.getBytes();
+        String base64Content = Base64.getEncoder().encodeToString(content);
+        fileSystemService.uploadFile(sessionId, path, file.getOriginalFilename(), base64Content);
+        return ApiResponse.ok("File uploaded", null);
+    }
 
     private final FileSystemService fileSystemService;
 

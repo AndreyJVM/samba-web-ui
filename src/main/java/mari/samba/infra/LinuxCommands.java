@@ -91,7 +91,7 @@ public final class LinuxCommands {
 
     public static String findDirectories(String path) {
         return String.format(
-                "sudo find -L %s -mindepth 1 -maxdepth 1 -type d ! -name '.*' 2>/dev/null | sort",
+                "sudo find -L %s -mindepth 1 -maxdepth 1 ! -name '.*' -printf '%%y|%%s|%%p\\n' 2>/dev/null | sort",
                 escape(requireValidPath(path)));
     }
 

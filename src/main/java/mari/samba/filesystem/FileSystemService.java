@@ -13,6 +13,45 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class FileSystemService {
+    public void copyItem(@NonNull String sessionId, @NonNull String source, @NonNull String destination) {
+        requireAllowedPath(normalizePath(source));
+        requireAllowedPath(normalizePath(destination));
+        String command = String.format(
+                "sudo cp -r %s %s",
+                mari.samba.infra.LinuxCommands.escape(source), mari.samba.infra.LinuxCommands.escape(destination));
+        commandExecutor.execute(sessionId, command);
+    }
+
+    public void moveItem(@NonNull String sessionId, @NonNull String source, @NonNull String destination) {
+        requireAllowedPath(normalizePath(source));
+        requireAllowedPath(normalizePath(destination));
+        String command = String.format(
+                "sudo mv %s %s",
+                mari.samba.infra.LinuxCommands.escape(source), mari.samba.infra.LinuxCommands.escape(destination));
+        commandExecutor.execute(sessionId, command);
+    }
+
+    public void deleteItem(@NonNull String sessionId, @NonNull String target) {
+        requireAllowedPath(normalizePath(target));
+        String command = String.format("sudo rm -rf %s", mari.samba.infra.LinuxCommands.escape(target));
+        commandExecutor.execute(sessionId, command);
+    }
+
+    public void uploadFile(
+            @NonNull String sessionId,
+            @NonNull String directory,
+            @NonNull String filename,
+            @NonNull String base64Content) {
+        String safeParent = normalizePath(directory);
+        requireAllowedPath(safeParent);
+        String targetPath = safeParent.endsWith("/") ? safeParent + filename : safeParent + "/" + filename;
+        requireAllowedPath(targetPath);
+
+        String command = String.format(
+                "echo '%s' | base64 -d | sudo tee %s > /dev/null",
+                base64Content, mari.samba.infra.LinuxCommands.escape(targetPath));
+        commandExecutor.execute(sessionId, command);
+    }
 
     private static final Logger log = LoggerFactory.getLogger(FileSystemService.class);
     private static final Pattern SAFE_DIR_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
@@ -32,7 +71,7 @@ public class FileSystemService {
 
         if ("/".equals(safePath)) {
             List<DirectoryItemDto> rootDirs = allowedRoots.stream()
-                    .map(root -> new DirectoryItemDto(root.replaceFirst("^/", ""), root))
+                    .map(root -> new DirectoryItemDto(root.replaceFirst("^/", ""), root, "dir", 0))
                     .toList();
             return new DirectoryBrowseResultDto("/", "/", rootDirs);
         }
@@ -42,12 +81,22 @@ public class FileSystemService {
 
         List<DirectoryItemDto> subDirs = Arrays.stream(rawOutput.split("\\r?\\n"))
                 .map(String::trim)
-                .filter(line -> !line.isEmpty() && !line.equals(safePath))
-                .filter(line -> !line.contains("/."))
-                .map(fullPath -> {
+                .filter(line -> !line.isEmpty())
+                .map(line -> {
+                    String[] parts = line.split("\\|", 3);
+                    if (parts.length < 3) return null;
+                    String typeCode = parts[0];
+                    long size = 0;
+                    try {
+                        size = Long.parseLong(parts[1]);
+                    } catch (Exception ignored) {
+                    }
+                    String fullPath = parts[2];
+                    String type = "d".equals(typeCode) ? "dir" : ("f".equals(typeCode) ? "file" : "link");
                     String dirName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-                    return new DirectoryItemDto(dirName, fullPath);
+                    return new DirectoryItemDto(dirName, fullPath, type, size);
                 })
+                .filter(item -> item != null)
                 .toList();
 
         return new DirectoryBrowseResultDto(safePath, parentPath, subDirs);

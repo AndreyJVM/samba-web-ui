@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
-import { FileStack, Power, Folder, ArrowUp, FolderPlus, ChevronRight } from "lucide-react";
+import { FileStack, Power,  } from "lucide-react";
 import { api } from "../lib/api";
 import { useToast } from "../components/ui/toast";
 import { useTranslation } from "../lib/i18n";
+import { FileManager } from "../components/FileManager";
 
 interface DashboardData {
   isRunning: boolean;
@@ -10,27 +11,21 @@ interface DashboardData {
   connections: any[];
   openFiles: any[];
 }
-interface DirectoryItem { name: string; fullPath: string; }
-interface BrowseResult { currentPath: string; parentPath: string | null; directories: DirectoryItem[]; }
+
+
 interface DiskUsage { total: string; used: string; available: string; usePercent: number; mountPoint: string; }
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [dashLoading, setDashLoading] = useState(true);
 
-  const [currentPath, setCurrentPath] = useState("/");
-  const [browseData, setBrowseData] = useState<BrowseResult | null>(null);
-  const [diskUsage, setDiskUsage] = useState<DiskUsage | null>(null);
-  const [filesLoading, setFilesLoading] = useState(false);
-  
-  const [isCreatingDir, setIsCreatingDir] = useState(false);
-  const [newDirName, setNewDirName] = useState("");
-
-  const { info, error: toastError, success } = useToast();
+      const [diskUsage, setDiskUsage] = useState<DiskUsage | null>(null);
+    
+    
+  const { info, error: toastError } = useToast();
   const { t } = useTranslation();
 
-  const navigateTo = (path: string) => setCurrentPath(path);
-
+  
   const fetchDashboard = useCallback(async () => {
     try {
       const res = await api.get<DashboardData>("/api/monitoring/dashboard");
@@ -42,19 +37,11 @@ export default function DashboardPage() {
     }
   }, [data, toastError]);
 
-  const fetchFiles = async (path: string) => {
-    setFilesLoading(true);
+  const fetchFiles = async () => {
     try {
-      const [browseRes, diskRes] = await Promise.all([
-        api.get<BrowseResult>(`/api/fs/browse?path=${encodeURIComponent(path)}`).catch(() => null),
-        api.get<DiskUsage>(`/api/fs/disk-usage?path=${encodeURIComponent(path)}`).catch(() => null)
-      ]);
-      if (browseRes) setBrowseData(browseRes);
+      const diskRes = await api.get<DiskUsage>(`/api/fs/disk-usage?path=/`).catch(() => null);
       if (diskRes) setDiskUsage(diskRes);
     } catch (err: any) {
-      toastError("FS Error", err.message);
-    } finally {
-      setFilesLoading(false);
     }
   };
 
@@ -65,8 +52,8 @@ export default function DashboardPage() {
   }, [fetchDashboard]);
 
   useEffect(() => {
-    fetchFiles(currentPath);
-  }, [currentPath]);
+    fetchFiles();
+  }, []);
 
   const handleServiceControl = async (action: string) => {
     try {
@@ -78,19 +65,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCreateDirectory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newDirName) return;
-    try {
-      await api.post(`/api/fs/mkdir?parentPath=${encodeURIComponent(currentPath)}&name=${encodeURIComponent(newDirName)}`);
-      success("Created", `Directory ${newDirName} created successfully`);
-      setIsCreatingDir(false);
-      setNewDirName("");
-      fetchFiles(currentPath);
-    } catch (err: any) {
-      toastError("Creation Error", err.message);
-    }
-  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -206,84 +180,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="bg-surface rounded-lg border border-border shadow-sm-subtle flex flex-col overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-hover/50">
-          <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-mono">
-            <button onClick={() => navigateTo("/")} className="text-foreground hover:text-brand px-1.5 py-0.5 rounded transition-colors hover:bg-border">{t("common.root")}</button>
-            {browseData?.currentPath.split("/").filter(Boolean).map((part, index, array) => {
-              const p = "/" + array.slice(0, index + 1).join("/");
-              return (
-                <div key={p} className="flex items-center gap-1.5">
-                  <ChevronRight className="w-3.5 h-3.5 text-status-disabled" />
-                  <button onClick={() => navigateTo(p)} className="text-foreground hover:text-brand px-1.5 py-0.5 rounded transition-colors hover:bg-border">{part}</button>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {!isCreatingDir ? (
-              <button 
-                onClick={() => setIsCreatingDir(true)} 
-                className="text-[12px] font-medium text-foreground bg-surface border border-border shadow-sm-subtle px-3 py-1.5 rounded-md hover:bg-surface-hover transition-colors flex items-center gap-1.5"
-              >
-                <FolderPlus className="w-3.5 h-3.5" /> {t("dashboard.mkdir")}
-              </button>
-            ) : (
-              <form onSubmit={handleCreateDirectory} className="flex gap-2 isolate">
-                <input 
-                  autoFocus required pattern="[a-zA-Z0-9_.-]+"
-                  className="text-xs font-mono border border-border bg-surface px-3 py-1.5 rounded-md shadow-sm-subtle focus:outline-none focus:ring-2 focus:ring-ring focus:border-border-strong w-48 text-foreground"
-                  placeholder={t("dashboard.dirname")}
-                  value={newDirName}
-                  onChange={e => setNewDirName(e.target.value)}
-                />
-                <button type="submit" className="text-xs font-medium text-brand-text bg-brand px-3 py-1.5 rounded-md hover:bg-brand-hover shadow-sm transition-colors">
-                  {t("common.save")}
-                </button>
-                <button type="button" onClick={() => setIsCreatingDir(false)} className="text-xs font-medium text-foreground bg-surface border border-border px-3 py-1.5 rounded-md hover:bg-surface-hover shadow-sm-subtle transition-colors">
-                  {t("common.cancel")}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-
-        <div className="min-h-[240px]">
-           {filesLoading ? (
-             <div className="flex justify-center items-center h-48">
-               <div className="w-5 h-5 border-2 border-border border-t-foreground rounded-full animate-spin"></div>
-             </div>
-           ) : (
-             <div className="flex flex-col divide-y divide-border border border-border bg-surface">
-               {browseData?.parentPath && (
-                 <button 
-                   onClick={() => navigateTo(browseData.parentPath!)}
-                   className="flex items-center gap-3 px-4 py-3 bg-surface hover:bg-surface-hover text-left transition-colors group"
-                 >
-                   <ArrowUp className="w-4 h-4 text-status-disabled group-hover:text-foreground transition-colors" />
-                   <span className="text-[13px] font-mono font-medium text-foreground">..</span>
-                 </button>
-               )}
-               {browseData?.directories.map(dir => (
-                 <button 
-                   key={dir.fullPath}
-                   onClick={() => navigateTo(dir.fullPath)}
-                   className="flex items-center gap-3 px-4 py-3 bg-surface hover:bg-surface-hover text-left transition-colors group"
-                 >
-                   <Folder className="w-4 h-4 text-status-disabled group-hover:text-foreground transition-colors" />
-                   <span className="text-[13px] font-mono font-medium text-foreground truncate" title={dir.name}>{dir.name}</span>
-                 </button>
-               ))}
-               {(!browseData?.directories || browseData.directories.length === 0) && !filesLoading && (
-                 <div className="col-span-full bg-surface text-center text-[13px] text-status-disabled font-mono py-16">
-                   {t("dashboard.dirEmpty")}
-                 </div>
-               )}
-             </div>
-           )}
-        </div>
-      </div>
+      <FileManager />
     </div>
   );
 }

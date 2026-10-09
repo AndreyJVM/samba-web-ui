@@ -1,4 +1,4 @@
-﻿package mari.samba.auth;
+package mari.samba.auth;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -18,8 +18,10 @@ public class BruteForceProtectionServiceImpl implements BruteForceProtectionServ
         this.maxAttempts = properties.security().maxLoginAttempts();
         Duration blockDuration = properties.security().loginBlockDuration();
 
-        this.ipAttemptsCache = Caffeine.newBuilder().expireAfterWrite(blockDuration).build();
-        this.userAttemptsCache = Caffeine.newBuilder().expireAfterWrite(blockDuration).build();
+        this.ipAttemptsCache =
+                Caffeine.newBuilder().expireAfterWrite(blockDuration).build();
+        this.userAttemptsCache =
+                Caffeine.newBuilder().expireAfterWrite(blockDuration).build();
     }
 
     @Override
