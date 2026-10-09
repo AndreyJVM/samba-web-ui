@@ -16,7 +16,8 @@ export const translations = {
       members: "Members",
       root: "root",
       browse: "Browse...",
-      select: "Select"
+      select: "Select",
+      search: "Search shares, users, groups..."
     },
     sidebar: {
       dashboard: "Overview",
@@ -179,7 +180,8 @@ export const translations = {
       members: "Участники",
       root: "root",
       browse: "Обзор...",
-      select: "Выбрать"
+      select: "Выбрать",
+      search: "Поиск папок, пользователей, групп..."
     },
     sidebar: {
       dashboard: "Обзор",

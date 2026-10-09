@@ -4,6 +4,7 @@ import { Server, FolderKanban, Users, Settings, LogOut, Play, Square, RefreshCw,
 import { api } from "../lib/api";
 import { useToast } from "./ui/toast";
 import { useTranslation } from "../lib/i18n";
+import { GlobalSearch } from "./ui/global-search";
 
 export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
@@ -174,12 +175,23 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden">
+        {/* Mobile Header */}
         <div className="h-16 border-b border-border bg-surface px-5 sm:px-6 flex items-center justify-between md:hidden shrink-0">
            <div className="font-semibold text-base flex items-center gap-2.5">
              <div className="bg-brand text-brand-text p-1.5 rounded-sm"><Server className="w-4 h-4" /></div>
              SAMBA<span className="text-status-disabled ml-1 text-xs uppercase font-bold">ADM</span>
            </div>
            <button onClick={toggleLang} className="text-sm font-bold uppercase">{lang}</button>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden md:flex h-16 border-b border-border bg-surface px-8 items-center justify-between shrink-0">
+           <div className="flex-1 flex items-center">
+              <GlobalSearch />
+           </div>
+           <div className="flex items-center gap-4">
+              {/* Optional secondary actions can go here */}
+           </div>
         </div>
         <div className="flex-1 p-5 sm:p-8 lg:p-10 overflow-y-auto custom-scrollbar">
           <div className="max-w-[1100px] w-full mx-auto pb-10">
