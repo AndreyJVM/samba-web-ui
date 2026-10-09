@@ -94,7 +94,7 @@ export function GlobalSearch() {
         <Search className="w-4 h-4 absolute left-3 text-status-disabled" />
         <input 
           className="w-full bg-surface-hover hover:bg-surface border border-transparent focus:border-border-strong focus:bg-surface focus:ring-4 focus:ring-ring transition-all py-2 pl-9 pr-4 text-[13px] font-medium rounded-lg text-foreground placeholder:text-status-disabled outline-none"
-          placeholder=t("common.search")
+          placeholder={t("common.search")}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
