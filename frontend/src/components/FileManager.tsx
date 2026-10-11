@@ -69,12 +69,55 @@ export function FileManager() {
     }
   };
 
-  const handleAction = async (action: 'copy' | 'move' | 'delete', side: 'left' | 'right') => {
+  const downloadFile = async (filePath: string, filename?: string) => {
+    try {
+      const res = await fetch(`/api/fs/download?path=${encodeURIComponent(filePath)}`);
+      if (!res.ok) {
+        let msg = "Download failed";
+        try {
+          const errJson = await res.json();
+          msg = errJson.message || msg;
+        } catch {
+          msg = (await res.text()) || msg;
+        }
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const downloadName = filename || (filePath.includes('/') ? filePath.substring(filePath.lastIndexOf('/') + 1) : filePath);
+      a.download = downloadName || "download";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      toastError("Download Error", err.message);
+    }
+  };
+
+  const handleAction = async (action: 'copy' | 'move' | 'delete' | 'download', side: 'left' | 'right') => {
     const selected = side === 'left' ? leftSelected : rightSelected;
     const destPath = side === 'left' ? rightPath : leftPath;
     const srcPath = side === 'left' ? leftPath : rightPath;
+    const data = side === 'left' ? leftData : rightData;
     
     if (selected.size === 0) return;
+
+    if (action === 'download') {
+      let count = 0;
+      for (const item of selected) {
+        const itemData = data?.directories.find(d => d.fullPath === item);
+        if (itemData && itemData.type === 'dir') continue;
+        await downloadFile(item, itemData?.name);
+        count++;
+      }
+      if (count === 0) {
+        toastError("Download Error", "No files selected for download");
+      }
+      return;
+    }
     
     if (action !== 'delete' && destPath === srcPath) {
       toastError("Error", "Source and destination are the same");
@@ -99,23 +142,10 @@ export function FileManager() {
 
   const uploadFile = async (file: File, path: string, side: 'left' | 'right') => {
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-                
-        
-        const formData = new FormData();
-        formData.append("path", path);
-        // We actually just send base64 in a multipart or something, wait.
-        // FileSystemApiController expects `MultipartFile file`.
-        // Let's create a File object and append it!
-      };
-      
       const formData = new FormData();
       formData.append("path", path);
       formData.append("file", file);
       
-      // Use native fetch to bypass JSON stringify in `api.post` if needed, 
-      // or check if `api.post` supports FormData
       const res = await fetch("/api/fs/upload", {
         method: "POST",
         body: formData
@@ -148,6 +178,7 @@ export function FileManager() {
         onSelectAll={() => selectAll('left')}
         onCreateDir={(name) => createDir(name, leftPath, 'left')}
         onUploadFile={(f) => uploadFile(f, leftPath, 'left')}
+        onDownloadFile={(p, name) => downloadFile(p, name)}
         onDrop={(e) => handleDrop(e, leftPath, 'left')}
         otherPanePath={rightPath}
         onAction={(a) => handleAction(a, 'left')}
@@ -163,6 +194,7 @@ export function FileManager() {
         onSelectAll={() => selectAll('right')}
         onCreateDir={(name) => createDir(name, rightPath, 'right')}
         onUploadFile={(f) => uploadFile(f, rightPath, 'right')}
+        onDownloadFile={(p, name) => downloadFile(p, name)}
         onDrop={(e) => handleDrop(e, rightPath, 'right')}
         otherPanePath={leftPath}
         onAction={(a) => handleAction(a, 'right')}

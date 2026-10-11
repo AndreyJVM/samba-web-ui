@@ -1,6 +1,7 @@
 package mari.samba.filesystem;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.regex.Pattern;
 import mari.samba.config.SambaProperties;
@@ -51,6 +52,15 @@ public class FileSystemService {
                 "echo '%s' | base64 -d | sudo tee %s > /dev/null",
                 base64Content, mari.samba.infra.LinuxCommands.escape(targetPath));
         commandExecutor.execute(sessionId, command);
+    }
+
+    public byte[] downloadFile(@NonNull String sessionId, @NonNull String filePath) {
+        String safePath = normalizePath(filePath);
+        requireAllowedPath(safePath);
+
+        String command = LinuxCommands.base64(safePath);
+        String base64Output = commandExecutor.execute(sessionId, command);
+        return Base64.getMimeDecoder().decode(base64Output.trim());
     }
 
     private static final Logger log = LoggerFactory.getLogger(FileSystemService.class);

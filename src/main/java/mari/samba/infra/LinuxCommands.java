@@ -77,6 +77,10 @@ public final class LinuxCommands {
         return String.format("sudo cat -- %s", escape(requireValidPath(path)));
     }
 
+    public static String base64(String path) {
+        return String.format("sudo base64 -- %s", escape(requireValidPath(path)));
+    }
+
     public static String writeToFileStdin(String targetPath) {
         return String.format("cat > %s", escape(requireValidPath(targetPath)));
     }

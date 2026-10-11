@@ -1,5 +1,5 @@
 ﻿import React, { useState } from "react";
-import { Folder, ArrowUp, FolderPlus, ChevronRight, File as FileIcon, Upload, MoveRight, Copy, Trash2, CheckSquare, Square } from "lucide-react";
+import { Folder, ArrowUp, FolderPlus, ChevronRight, File as FileIcon, Upload, Download, MoveRight, Copy, Trash2, CheckSquare, Square } from "lucide-react";
 import { useTranslation } from "../../lib/i18n";
 
 export interface DirectoryItem {
@@ -25,9 +25,10 @@ interface FilePaneProps {
   onSelectAll: () => void;
   onCreateDir: (name: string) => void;
   onUploadFile: (file: File) => void;
+  onDownloadFile?: (path: string, filename?: string) => void;
   onDrop: (e: React.DragEvent) => void;
   otherPanePath: string;
-  onAction: (action: 'copy' | 'move' | 'delete') => void;
+  onAction: (action: 'copy' | 'move' | 'delete' | 'download') => void;
   title: string;
 }
 
@@ -39,7 +40,7 @@ function formatSize(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-export function FilePane({ onNavigate, browseData, loading, selectedItems, onToggleSelect, onSelectAll, onCreateDir, onUploadFile, onDrop, onAction }: FilePaneProps) {
+export function FilePane({ onNavigate, browseData, loading, selectedItems, onToggleSelect, onSelectAll, onCreateDir, onUploadFile, onDownloadFile, onDrop, onAction }: FilePaneProps) {
   const { t } = useTranslation();
   const [isCreatingDir, setIsCreatingDir] = useState(false);
   const [newDirName, setNewDirName] = useState("");
@@ -160,9 +161,24 @@ export function FilePane({ onNavigate, browseData, loading, selectedItems, onTog
                         {isSelected ? <CheckSquare className="w-3.5 h-3.5 text-brand" /> : <Square className="w-3.5 h-3.5 text-status-disabled opacity-0 group-hover:opacity-100" />}
                       </button>
                     </td>
-                    <td className="px-2 py-2 flex items-center gap-2 max-w-[200px] truncate" title={item.name}>
-                      {isFolder ? <Folder className="w-3.5 h-3.5 text-status-disabled shrink-0" /> : <FileIcon className="w-3.5 h-3.5 text-status-disabled shrink-0" />}
-                      <span className="truncate">{item.name}</span>
+                    <td className="px-2 py-2 flex items-center justify-between gap-2 max-w-[200px]" title={item.name}>
+                      <div className="flex items-center gap-2 min-w-0 truncate">
+                        {isFolder ? <Folder className="w-3.5 h-3.5 text-status-disabled shrink-0" /> : <FileIcon className="w-3.5 h-3.5 text-status-disabled shrink-0" />}
+                        <span className="truncate">{item.name}</span>
+                      </div>
+                      {!isFolder && onDownloadFile && (
+                        <button
+                          type="button"
+                          title={t("common.download")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDownloadFile(item.fullPath, item.name);
+                          }}
+                          className="p-1 rounded text-status-disabled hover:text-foreground hover:bg-surface-hover/80 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </td>
                     <td className="px-2 py-2 text-right text-status-disabled">
                       {!isFolder && item.size !== undefined ? formatSize(item.size) : ''}
@@ -179,6 +195,9 @@ export function FilePane({ onNavigate, browseData, loading, selectedItems, onTog
         <div className="px-3 py-2 border-t border-border bg-surface flex items-center justify-between shrink-0">
           <span className="text-[11px] font-medium text-status-disabled">{selectedItems.size} selected</span>
           <div className="flex gap-1.5">
+            <button onClick={() => onAction('download')} className="px-2 py-1 bg-surface border border-border rounded text-[11px] font-medium flex items-center gap-1 hover:bg-surface-hover">
+              <Download className="w-3 h-3" /> {t("common.download")}
+            </button>
             <button onClick={() => onAction('copy')} className="px-2 py-1 bg-surface border border-border rounded text-[11px] font-medium flex items-center gap-1 hover:bg-surface-hover">
               <Copy className="w-3 h-3" /> Copy
             </button>

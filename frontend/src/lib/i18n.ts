@@ -17,7 +17,8 @@ export const translations = {
       root: "root",
       browse: "Browse...",
       select: "Select",
-      search: "Search shares, users, groups..."
+      search: "Search shares, users, groups...",
+      download: "Download"
     },
     sidebar: {
       dashboard: "Overview",
@@ -181,7 +182,8 @@ export const translations = {
       root: "root",
       browse: "Обзор...",
       select: "Выбрать",
-      search: "Поиск папок, пользователей, групп..."
+      search: "Поиск папок, пользователей, групп...",
+      download: "Скачать"
     },
     sidebar: {
       dashboard: "Обзор",

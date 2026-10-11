@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import mari.samba.config.SambaProperties;
 import mari.samba.infra.CommandExecutor;
@@ -125,5 +127,29 @@ class FileSystemServiceTest {
     @Test
     void testGetDiskUsage_UnauthorizedPath_ShouldThrowSecurityException() {
         assertThrows(SecurityException.class, () -> fileSystemService.getDiskUsage(SESSION_ID, "/etc"));
+    }
+
+    // ==========================================
+    // Tests for downloadFile
+    // ==========================================
+
+    @Test
+    void testDownloadFile_ValidPath_ShouldReturnDecodedBytes() throws Exception {
+        String path = "/srv/samba/test.txt";
+        String content = "Hello Samba Download!";
+        String base64Output = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+
+        when(commandExecutor.execute(eq(SESSION_ID), eq(LinuxCommands.base64(path))))
+                .thenReturn(base64Output);
+
+        byte[] result = fileSystemService.downloadFile(SESSION_ID, path);
+
+        assertNotNull(result);
+        assertArrayEquals(content.getBytes(StandardCharsets.UTF_8), result);
+    }
+
+    @Test
+    void testDownloadFile_UnauthorizedPath_ShouldThrowSecurityException() {
+        assertThrows(SecurityException.class, () -> fileSystemService.downloadFile(SESSION_ID, "/etc/shadow"));
     }
 }
