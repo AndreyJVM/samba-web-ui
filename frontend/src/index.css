@@ -4,39 +4,67 @@
 
 @layer base {
   :root {
-    --background: #fafafa;
-    --foreground: #09090b;
-    --surface: #ffffff;
-    --surface-hover: #f4f4f5;
-    --border: #e4e4e7;
-    --border-strong: #d4d4d8;
-    
-    --brand: #18181b;
-    --brand-hover: #27272a;
-    --brand-text: #ffffff;
+    /* Base theme tokens - Light */
+    --bg: #F4F6F1;
+    --surface: #FFFFFF;
+    --surface-2: #F4F6F1;
+    --surface-tint: #E4F8DB;
+    --border: #E1E6DC;
+    --border-strong: #CBD3C5;
+    --track: #E9EDE5;
+    --text: #0C0F0C;
+    --text-muted: #5B645B;
+    --text-on-tint: #4A554A;
+    --accent: #B9F0A6;
+    --accent-text: #1E6A38;
+    --on-accent: #0C0F0C;
+    --inverse: #0C0F0C;
 
+    /* Semantic aliases for backwards compatibility */
+    --background: var(--bg);
+    --foreground: var(--text);
+    --surface-hover: var(--surface-2);
+    --brand: var(--accent);
+    --brand-hover: var(--accent);
+    --brand-text: var(--on-accent);
+
+    /* TODO: status tokens are not defined in theme palette, keeping fallback functional colors */
     --status-active: #10b981;
     --status-warning: #f59e0b;
     --status-error: #ef4444;
-    --status-disabled: #71717a;
+    --status-disabled: var(--text-muted);
   }
 
   .dark {
-    --background: #000000;
-    --foreground: #ededed;
-    --surface: #0a0a0a;
-    --surface-hover: #171717;
-    --border: #262626;
-    --border-strong: #404040;
-    
-    --brand: #ededed;
-    --brand-hover: #fafafa;
-    --brand-text: #0a0a0a;
+    /* Base theme tokens - Dark */
+    --bg: #0B0D0B;
+    --surface: #151915;
+    --surface-2: #1D221D;
+    --surface-tint: #1D221D;
+    --border: #262C26;
+    --border-strong: #333A33;
+    --track: #262C26;
+    --text: #F2F5F0;
+    --text-muted: #9AA59A;
+    --text-on-tint: #C7D0C7;
+    --accent: #B9F0A6;
+    --accent-text: #B9F0A6;
+    --on-accent: #0C0F0C;
+    --inverse: #F2F5F0;
 
+    /* Semantic aliases for backwards compatibility */
+    --background: var(--bg);
+    --foreground: var(--text);
+    --surface-hover: var(--surface-2);
+    --brand: var(--accent);
+    --brand-hover: var(--accent);
+    --brand-text: var(--on-accent);
+
+    /* TODO: status tokens are not defined in theme palette, keeping fallback functional colors */
     --status-active: #10b981;
     --status-warning: #f59e0b;
     --status-error: #ef4444;
-    --status-disabled: #a3a3a3;
+    --status-disabled: var(--text-muted);
   }
 
   * {
@@ -44,8 +72,8 @@
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
+    background-color: var(--bg);
+    color: var(--text);
     @apply antialiased;
   }
 }
@@ -62,7 +90,7 @@
     @apply bg-border-strong rounded-full;
   }
   .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-[#404040];
+    @apply bg-border-strong;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-status-disabled;

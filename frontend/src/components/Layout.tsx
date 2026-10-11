@@ -10,7 +10,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const [userInfo, setUserInfo] = useState({ host: "", user: "" });
   const [serverStatus, setServerStatus] = useState<boolean | null>(null);
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+  const [isDark, setIsDark] = useState(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
+    if (saved === "dark") return true;
+    if (saved === "light") return false;
+    return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
   const { toast } = useToast();
   const { t, lang, setLanguage } = useTranslation();
 
@@ -66,10 +71,26 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (localStorage.getItem("theme") === "dark") {
-      setIsDark(true);
+    const saved = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const shouldBeDark = saved === "dark" || (!saved && prefersDark);
+    if (shouldBeDark) {
       document.documentElement.classList.add("dark");
+      setIsDark(true);
+    } else {
+      document.documentElement.classList.remove("dark");
+      setIsDark(false);
     }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      if (!localStorage.getItem("theme")) {
+        setIsDark(e.matches);
+        document.documentElement.classList.toggle("dark", e.matches);
+      }
+    };
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
   const navItems = [
@@ -82,20 +103,20 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen flex text-foreground bg-background font-sans selection:bg-brand/20">
+    <div className="min-h-screen flex text-foreground bg-background font-sans selection:bg-accent/20 selection:text-foreground">
       <aside className="w-[250px] bg-surface flex-col hidden md:flex border-r border-border shrink-0 z-20">
         <div className="h-16 px-5 flex items-center justify-between border-b border-border shrink-0">
           <div className="flex items-center gap-2.5 font-semibold text-[16px] tracking-wide">
-            <div className="bg-brand text-brand-text p-1.5 rounded-md shadow-sm">
+            <div className="bg-accent text-on-accent p-1.5 rounded-md">
               <Server className="w-5 h-5" />
             </div>
             <span>SAMBA<span className="opacity-50 font-bold ml-1 text-xs uppercase tracking-widest leading-none align-middle">ADM</span></span>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={toggleLang} className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors text-xs font-bold uppercase tracking-widest hidden sm:flex items-center gap-1">
+            <button onClick={toggleLang} className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-xs font-bold uppercase tracking-widest hidden sm:flex items-center gap-1">
               {lang}
             </button>
-            <button onClick={toggleDark} className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors hidden sm:block">
+            <button onClick={toggleDark} className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors hidden sm:block">
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
           </div>
@@ -105,16 +126,16 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           <div className="p-5 border-b border-border space-y-4">
             <div className="text-xs font-mono flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-status-disabled font-sans font-medium">{t("sidebar.server")}</span>
-                <span className="truncate max-w-[130px] bg-surface-hover px-2 py-0.5 rounded-sm border border-border" title={userInfo.host}>{userInfo.host}</span>
+                <span className="text-text-muted font-sans font-medium">{t("sidebar.server")}</span>
+                <span className="truncate max-w-[130px] bg-surface-2 px-2 py-0.5 rounded-sm border border-border" title={userInfo.host}>{userInfo.host}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-status-disabled font-sans font-medium">{t("sidebar.user")}</span>
-                <span className="text-foreground font-medium truncate max-w-[130px] bg-surface-hover px-2 py-0.5 rounded-sm border border-border" title={userInfo.user}>{userInfo.user}</span>
+                <span className="text-text-muted font-sans font-medium">{t("sidebar.user")}</span>
+                <span className="text-foreground font-medium truncate max-w-[130px] bg-surface-2 px-2 py-0.5 rounded-sm border border-border" title={userInfo.user}>{userInfo.user}</span>
               </div>
             </div>
             
-            <div className="flex items-center justify-between bg-surface-hover p-3 rounded-md border border-border shadow-sm-subtle">
+            <div className="flex items-center justify-between bg-surface-2 p-3 rounded-md border border-border">
               <div className="flex items-center gap-2.5">
                 <div className="relative flex h-3 w-3">
                   {serverStatus === true && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-active opacity-40"></span>}
@@ -126,16 +147,16 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               </div>
               <div className="flex gap-1">
                 {serverStatus === false && (
-                  <button onClick={() => handleServiceControl("start")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md shadow-sm hover:shadow-sm-subtle transition-all" title="Start">
+                  <button onClick={() => handleServiceControl("start")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md transition-all" title="Start">
                     <Play className="w-4 h-4" />
                   </button>
                 )}
                 {serverStatus === true && (
-                  <button onClick={() => handleServiceControl("stop")} className="p-1.5 text-status-error hover:bg-surface border border-transparent hover:border-border rounded-md shadow-sm hover:shadow-sm-subtle transition-all" title="Stop">
+                  <button onClick={() => handleServiceControl("stop")} className="p-1.5 text-status-error hover:bg-surface border border-transparent hover:border-border rounded-md transition-all" title="Stop">
                     <Square className="w-4 h-4" />
                   </button>
                 )}
-                <button onClick={() => handleServiceControl("restart")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md shadow-sm hover:shadow-sm-subtle transition-all" title="Restart">
+                <button onClick={() => handleServiceControl("restart")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md transition-all" title="Restart">
                   <RefreshCw className="w-4 h-4" />
                 </button>
               </div>
@@ -153,8 +174,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all text-sm font-medium ${
                   isActive
-                    ? "bg-brand text-brand-text shadow-sm"
-                    : "text-foreground hover:bg-surface-hover"
+                    ? "bg-accent text-on-accent"
+                    : "text-foreground hover:bg-surface-2"
                 }`}
               >
                 <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'opacity-100' : 'opacity-70'}`} />
@@ -167,7 +188,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         <div className="p-4 border-t border-border shrink-0">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors text-sm py-2.5 px-3 font-medium border border-transparent hover:border-border shadow-sm-subtle"
+            className="w-full flex items-center justify-center gap-2.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-sm py-2.5 px-3 font-medium border border-transparent hover:border-border"
           >
             <LogOut className="w-[18px] h-[18px]" /> {t("sidebar.logout")}
           </button>
@@ -178,8 +199,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         {/* Mobile Header */}
         <div className="h-16 border-b border-border bg-surface px-5 sm:px-6 flex items-center justify-between md:hidden shrink-0">
            <div className="font-semibold text-base flex items-center gap-2.5">
-             <div className="bg-brand text-brand-text p-1.5 rounded-sm"><Server className="w-4 h-4" /></div>
-             SAMBA<span className="text-status-disabled ml-1 text-xs uppercase font-bold">ADM</span>
+             <div className="bg-accent text-on-accent p-1.5 rounded-sm"><Server className="w-4 h-4" /></div>
+             SAMBA<span className="text-text-muted ml-1 text-xs uppercase font-bold">ADM</span>
            </div>
            <button onClick={toggleLang} className="text-sm font-bold uppercase">{lang}</button>
         </div>
