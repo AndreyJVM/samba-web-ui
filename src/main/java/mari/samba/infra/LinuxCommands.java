@@ -9,7 +9,8 @@ import java.util.regex.Pattern;
  */
 public final class LinuxCommands {
 
-    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z_][a-z0-9_-]{0,31}$");
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z_][a-z0-9_.-]{0,31}$");
+    private static final Pattern GROUP_PATTERN = Pattern.compile("^[a-z_][a-z0-9_.-]{0,31}$");
     private static final Pattern DANGEROUS_CHARS_PATTERN = Pattern.compile("[|&;\\$<>!\\n\\r`]");
 
     private LinuxCommands() {}
@@ -33,6 +34,13 @@ public final class LinuxCommands {
             throw new SecurityException("Invalid username format: possible injection detected.");
         }
         return username;
+    }
+
+    private static String requireValidGroupName(String groupName) {
+        if (groupName == null || !GROUP_PATTERN.matcher(groupName).matches()) {
+            throw new SecurityException("Invalid group name format: possible injection detected.");
+        }
+        return groupName;
     }
 
     private static String requireValidPath(String path) {
@@ -111,7 +119,7 @@ public final class LinuxCommands {
     }
 
     public static String chownRecursive(String owner, String path) {
-        if (!owner.matches("^[a-z_][a-z0-9_-]*(:[a-z_][a-z0-9_-]*)?$")) {
+        if (!owner.matches("^[a-z_][a-z0-9_.-]*(:[a-z_][a-z0-9_.-]*)?$")) {
             throw new SecurityException("Invalid chown owner profile.");
         }
         return String.format("sudo chown -R %s -- %s", escape(owner), escape(requireValidPath(path)));
@@ -201,6 +209,34 @@ public final class LinuxCommands {
 
     public static String deleteSambaUser(String username) {
         return String.format("sudo smbpasswd -x %s", escape(requireValidUsername(username)));
+    }
+
+    // ==========================================
+    // Linux / Samba Groups (groupadd / groupdel / gpasswd / getent)
+    // ==========================================
+
+    public static String getentGroup() {
+        return "getent group";
+    }
+
+    public static String addGroup(String groupName) {
+        return String.format("sudo groupadd %s", escape(requireValidGroupName(groupName)));
+    }
+
+    public static String deleteGroup(String groupName) {
+        return String.format("sudo groupdel %s", escape(requireValidGroupName(groupName)));
+    }
+
+    public static String addUserToGroup(String username, String groupName) {
+        return String.format(
+                "sudo gpasswd -a %s %s",
+                escape(requireValidUsername(username)), escape(requireValidGroupName(groupName)));
+    }
+
+    public static String removeUserFromGroup(String username, String groupName) {
+        return String.format(
+                "sudo gpasswd -d %s %s",
+                escape(requireValidUsername(username)), escape(requireValidGroupName(groupName)));
     }
 
     // ==========================================

@@ -25,6 +25,7 @@ class LinuxCommandsTest {
 
         assertDoesNotThrow(() -> LinuxCommands.checkUserExists("validuser_123"));
         assertDoesNotThrow(() -> LinuxCommands.checkUserExists("admin-root"));
+        assertDoesNotThrow(() -> LinuxCommands.checkUserExists("john.doe"));
 
         assertThrows(SecurityException.class, () -> LinuxCommands.checkUserExists("invalid user"));
         assertThrows(SecurityException.class, () -> LinuxCommands.checkUserExists("user;rm-rf"));
@@ -72,5 +73,24 @@ class LinuxCommandsTest {
         assertEquals(expected, LinuxCommands.listBackupsDetailed("/etc/samba"));
 
         assertThrows(SecurityException.class, () -> LinuxCommands.listBackupsDetailed("/etc;samba"));
+    }
+
+    @Test
+    void testGroupCommands_ValidateAndFormat() {
+        assertEquals("getent group", LinuxCommands.getentGroup());
+        assertEquals("sudo groupadd 'smb_developers'", LinuxCommands.addGroup("smb_developers"));
+        assertEquals("sudo groupdel 'smb_developers'", LinuxCommands.deleteGroup("smb_developers"));
+        assertEquals(
+                "sudo gpasswd -a 'john.doe' 'smb_developers'",
+                LinuxCommands.addUserToGroup("john.doe", "smb_developers"));
+        assertEquals(
+                "sudo gpasswd -d 'john.doe' 'smb_developers'",
+                LinuxCommands.removeUserFromGroup("john.doe", "smb_developers"));
+
+        // Malicious group names or usernames are rejected
+        assertThrows(SecurityException.class, () -> LinuxCommands.addGroup("dev; rm -rf /"));
+        assertThrows(SecurityException.class, () -> LinuxCommands.deleteGroup("dev|ls"));
+        assertThrows(SecurityException.class, () -> LinuxCommands.addUserToGroup("bad;user", "smb_developers"));
+        assertThrows(SecurityException.class, () -> LinuxCommands.removeUserFromGroup("john", "bad;grp"));
     }
 }

@@ -31,15 +31,15 @@ ENV AUTO_ADMIN_USER=admin
 ENV AUTO_ADMIN_PASS=admin
 RUN /setup-samba-server.sh
 
-# Генерируем тестовые данные для песочницы разработчиков
-RUN /setup-test-data.sh
-
 # Подготавливаем структуру директорий и базовую конфигурацию Samba
 RUN mkdir -p /srv/samba/public && \
     chown -R admin:admin /srv/samba/public && \
-    chmod -R 0755 /srv/samba/public && \
+    chmod -R 0777 /srv/samba/public && \
     mv /etc/samba/smb.conf /etc/samba/smb.conf.bak && \
     cp /tmp/smb-base.conf /etc/samba/smb.conf
+
+# Генерируем тестовые данные для песочницы разработчиков
+RUN /setup-test-data.sh
 
 # Открываем порты SSH (22) и Samba (139, 445)
 EXPOSE 22 139 445

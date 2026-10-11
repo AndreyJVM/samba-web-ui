@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -e
 
 echo "========================================================"
@@ -6,12 +6,19 @@ echo "       Samba Sandbox - Initializing Test Data           "
 echo "========================================================"
 
 echo ">>> [1/3] Создание тестовых групп..."
-groupadd developers
-groupadd qa
-groupadd hr
-groupadd finance
-groupadd managers
-groupadd interns
+
+create_group_if_not_exists() {
+    local g=$1
+    if ! getent group "$g" >/dev/null 2>&1; then
+        groupadd "$g"
+    fi
+}
+
+# Создаем POSIX группы и группы с префиксом smb_ для отображения в Web UI
+for base_group in developers qa hr finance managers interns; do
+    create_group_if_not_exists "$base_group"
+    create_group_if_not_exists "smb_$base_group"
+done
 
 echo ">>> [2/3] Создание тестовых пользователей..."
 TEST_PASS="test"
@@ -20,13 +27,17 @@ setup_user() {
     local username=$1
     local group=$2
     
-    # Создаем системного пользователя без возможности входа по SSH (no shell)
-    # и назначаем ему основную группу.
-    useradd -m -s /usr/sbin/nologin -g "$group" "$username"
+    # Создаем системного пользователя без интерактивного shell если не существует
+    if ! id "$username" >/dev/null 2>&1; then
+        useradd -m -s /usr/sbin/nologin -g "$group" "$username"
+    fi
     
-    # Устанавливаем пароль только для Samba
-    (echo "$TEST_PASS"; echo "$TEST_PASS") | smbpasswd -s -a "$username"
-    smbpasswd -e "$username"
+    # Добавляем в обе группы (POSIX и Web UI)
+    usermod -aG "$group,smb_$group" "$username"
+    
+    # Устанавливаем пароль для Samba
+    (echo "$TEST_PASS"; echo "$TEST_PASS") | smbpasswd -s -a "$username" 2>/dev/null || (echo "$TEST_PASS"; echo "$TEST_PASS") | smbpasswd -s "$username"
+    smbpasswd -e "$username" 2>/dev/null || true
 }
 
 setup_user "dev1" "developers"
@@ -38,25 +49,25 @@ setup_user "fin1" "finance"
 setup_user "boss" "managers"
 setup_user "intern1" "interns"
 
-# Пользователь admin (созданный ранее) добавляется во все группы для полного доступа
-for g in developers qa hr finance managers interns; do
-    usermod -aG "$g" admin
+# Пользователь admin добавляется во все группы для полного доступа
+for g in developers smb_developers qa smb_qa hr smb_hr finance smb_finance managers smb_managers interns smb_interns; do
+    usermod -aG "$g" admin 2>/dev/null || true
 done
 
 echo ">>> [3/3] Создание директорий и генерация тестовых файлов..."
+mkdir -p /srv/samba/public
 mkdir -p /srv/samba/developers
 mkdir -p /srv/samba/qa
 mkdir -p /srv/samba/hr
 mkdir -p /srv/samba/finance
 mkdir -p /srv/samba/management
 
-# Устанавливаем владельца и группу. Флаг 2 (SetGID) гарантирует, что 
-# новые файлы в этих папках унаследуют группу директории.
+# Устанавливаем владельца и группу. Флаг 2 (SetGID) гарантирует наследование группы.
 chown root:developers /srv/samba/developers
-chmod 2770 /srv/samba/developers
+chmod 2775 /srv/samba/developers
 
 chown root:qa /srv/samba/qa
-chmod 2770 /srv/samba/qa
+chmod 2775 /srv/samba/qa
 
 chown root:hr /srv/samba/hr
 chmod 2770 /srv/samba/hr
@@ -67,49 +78,72 @@ chmod 2770 /srv/samba/finance
 chown root:managers /srv/samba/management
 chmod 2770 /srv/samba/management
 
-# Генерация файлов
+chown admin:admin /srv/samba/public
+chmod 0777 /srv/samba/public
 
-# Developers
-echo "public static void main(String[] args) {}" > /srv/samba/developers/Main.java
-echo "console.log('hello world');" > /srv/samba/developers/app.js
-echo "# Project Architecture" > /srv/samba/developers/architecture.md
-echo "docker-compose up -d" > /srv/samba/developers/deploy.sh
-touch /srv/samba/developers/database-dump.sql
+# --- Генерация тестовых документов ---
 
-# QA
-echo "Test case 1: Login success" > /srv/samba/qa/test_cases_v1.xlsx
-echo "Automated UI tests" > /srv/samba/qa/cypress_suite.js
-touch /srv/samba/qa/bug_report_1304.pdf
-touch /srv/samba/qa/performance_results.csv
+# 1. Public Share
+echo "Welcome to Samba Web UI Public Storage. All users have access here." > /srv/samba/public/welcome_readme.txt
+echo "Corporate Policy Guidelines 2026. Confidential and proprietary." > /srv/samba/public/company_policy_2026.pdf
+echo "Quarterly All-Hands Presentation slides." > /srv/samba/public/quarterly_presentation.pptx
+echo "Department,Shift,Manager\nIT,Day,Alex\nQA,Day,Elena" > /srv/samba/public/general_schedule.xlsx
 
-# HR
-touch "/srv/samba/hr/Employee Handbook 2026.pdf"
-touch "/srv/samba/hr/Q3_Team_Building_Budget.xlsx"
-touch "/srv/samba/hr/Offer_Template.docx"
-echo "John Doe,Jane Smith" > "/srv/samba/hr/candidates_list.csv"
+# 2. Developers Share
+echo "public class Main { public static void main(String[] args) { System.out.println(\"Samba Demo\"); } }" > /srv/samba/developers/Main.java
+echo "console.log('Samba Developer Node');" > /srv/samba/developers/app.js
+echo "# Project Architecture Overview\nMicroservices with Samba File Storage." > /srv/samba/developers/architecture.md
+echo "#!/bin/bash\ndocker compose up -d" > /srv/samba/developers/deploy.sh
+echo "-- Database Dump Schema 2026\nCREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100));" > /srv/samba/developers/database-dump.sql
 
-# Finance
-touch "/srv/samba/finance/Q3_Revenue_Report.xlsx"
-touch "/srv/samba/finance/Tax_Declaration_2025.pdf"
-touch "/srv/samba/finance/Invoice_#48992.pdf"
-touch "/srv/samba/finance/Budget_Forecast_2027.xlsx"
-touch "/srv/samba/finance/Audit_Results_Internal.docx"
+# 3. QA Share
+echo "TestID,Feature,Status\nTC-01,File Download,PASSED\nTC-02,Upload,PASSED\nTC-03,Dark Theme,PASSED" > /srv/samba/qa/test_cases_v1.xlsx
+echo "describe('Samba UI Tests', () => { it('loads dashboard', () => {}); });" > /srv/samba/qa/cypress_suite.js
+echo "Bug Report #1304: Minor UI alignment glitch in dual-pane file manager." > /srv/samba/qa/bug_report_1304.pdf
+echo "Endpoint,p95,p99,ErrorRate\n/api/fs/browse,45ms,120ms,0.00%" > /srv/samba/qa/performance_results.csv
 
-# Management
-touch "/srv/samba/management/Company_Strategy_2030.pptx"
-touch "/srv/samba/management/Board_Meeting_Notes.docx"
-touch "/srv/samba/management/Partnership_Agreement.pdf"
+# 4. HR Share
+echo "Company Employee Handbook 2026 Edition." > "/srv/samba/hr/Employee Handbook 2026.pdf"
+echo "Item,Cost,Approved\nCatering,1500,Yes\nActivities,800,Yes" > "/srv/samba/hr/Q3_Team_Building_Budget.xlsx"
+echo "Employment Offer Agreement Template." > "/srv/samba/hr/Offer_Template.docx"
+echo "Candidate,Position,Status\nJohn Doe,Senior Java,Interview\nJane Smith,QA Lead,Offer" > "/srv/samba/hr/candidates_list.csv"
 
-# Назначаем права на созданные файлы, чтобы они принадлежали правильным группам
+# 5. Finance Share
+echo "Quarter,Revenue,Expenses,NetProfit\nQ1,540000,320000,220000\nQ2,610000,340000,270000\nQ3,680000,360000,320000" > "/srv/samba/finance/Q3_Revenue_Report.xlsx"
+echo "Annual Corporate Tax Declaration 2025." > "/srv/samba/finance/Tax_Declaration_2025.pdf"
+echo "Invoice #48992: Cloud Infrastructure Services." > "/srv/samba/finance/Invoice_#48992.pdf"
+echo "Year,ProjectedGrowth,CapEx,OpEx\n2027,15%,450000,1200000" > "/srv/samba/finance/Budget_Forecast_2027.xlsx"
+echo "Internal Financial Audit Summary and Findings." > "/srv/samba/finance/Audit_Results_Internal.docx"
+
+# 6. Management Share
+echo "Executive Board Strategy 2030." > "/srv/samba/management/Company_Strategy_2030.pptx"
+echo "Minutes of the Board of Directors Meeting." > "/srv/samba/management/Board_Meeting_Notes.docx"
+echo "Strategic Partnership and Non-Disclosure Agreement." > "/srv/samba/management/Partnership_Agreement.pdf"
+
+# Назначаем права на созданные файлы
+chmod 0664 /srv/samba/public/*
+chown -R admin:admin /srv/samba/public/*
+
+chmod 0664 /srv/samba/developers/*
 chown -R root:developers /srv/samba/developers/*
+
+chmod 0664 /srv/samba/qa/*
 chown -R root:qa /srv/samba/qa/*
+
+chmod 0660 /srv/samba/hr/*
 chown -R root:hr /srv/samba/hr/*
+
+chmod 0660 /srv/samba/finance/*
 chown -R root:finance /srv/samba/finance/*
+
+chmod 0660 /srv/samba/management/*
 chown -R root:managers /srv/samba/management/*
 
 echo "========================================================"
-echo " Тестовые пользователи и папки успешно созданы!         "
-echo " Добавлены mock-файлы: pdf, docx, xlsx, pptx, csv       "
+echo " Тестовые пользователи, группы и файлы успешно созданы! "
+echo " Группы: developers, qa, hr, finance, managers, interns "
+echo " Префиксы Web UI: smb_developers, smb_qa, smb_hr, ...   "
+echo " Mock-документы: pdf, docx, xlsx, pptx, csv, java, js   "
 echo " Пользователи: dev1, dev2, qa1, qa2, hr1, fin1, boss, intern1"
-echo " Пароль для всех тестовых аккаунтов: test"
+echo " Пароль для всех тестовых аккаунтов: test              "
 echo "========================================================"

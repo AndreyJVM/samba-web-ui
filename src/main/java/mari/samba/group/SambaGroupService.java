@@ -29,7 +29,7 @@ public class SambaGroupService {
     public List<SambaGroup> getAllGroups(String sessionId) {
         List<SambaGroup> groups = new ArrayList<>();
 
-        String output = commandExecutor.execute(sessionId, "getent group");
+        String output = commandExecutor.execute(sessionId, LinuxCommands.getentGroup());
         if (output == null || output.isBlank()) {
             return groups;
         }
@@ -59,27 +59,21 @@ public class SambaGroupService {
 
     public void createGroup(String sessionId, SambaGroupCreateDto dto) {
         String fullGroupName = groupPrefix + dto.groupName();
-        String command = String.format("sudo groupadd %s", LinuxCommands.escape(fullGroupName));
-        commandExecutor.execute(sessionId, command);
+        commandExecutor.execute(sessionId, LinuxCommands.addGroup(fullGroupName));
     }
 
     public void deleteGroup(String sessionId, String groupName) {
         String fullGroupName = groupPrefix + groupName;
-        String command = String.format("sudo groupdel %s", LinuxCommands.escape(fullGroupName));
-        commandExecutor.execute(sessionId, command);
+        commandExecutor.execute(sessionId, LinuxCommands.deleteGroup(fullGroupName));
     }
 
     public void addUserToGroup(String sessionId, String username, String groupName) {
         String fullGroupName = groupPrefix + groupName;
-        String command = String.format(
-                "sudo gpasswd -a %s %s", LinuxCommands.escape(username), LinuxCommands.escape(fullGroupName));
-        commandExecutor.execute(sessionId, command);
+        commandExecutor.execute(sessionId, LinuxCommands.addUserToGroup(username, fullGroupName));
     }
 
     public void removeUserFromGroup(String sessionId, String username, String groupName) {
         String fullGroupName = groupPrefix + groupName;
-        String command = String.format(
-                "sudo gpasswd -d %s %s", LinuxCommands.escape(username), LinuxCommands.escape(fullGroupName));
-        commandExecutor.execute(sessionId, command);
+        commandExecutor.execute(sessionId, LinuxCommands.removeUserFromGroup(username, fullGroupName));
     }
 }
