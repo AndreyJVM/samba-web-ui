@@ -30,41 +30,60 @@ class BruteForceProtectionServiceImplTest {
     @Test
     void testRegisterFailedLogin_ShouldBlockAfterMaxAttempts() {
         String ip = "192.168.1.100";
+        String user = "admin";
 
-        bruteForceService.registerFailedLogin(ip); // 1
-        assertThat(bruteForceService.isBlocked(ip)).isFalse();
+        bruteForceService.registerFailedLogin(ip, user); // 1
+        assertThat(bruteForceService.isBlocked(ip, user)).isFalse();
 
-        bruteForceService.registerFailedLogin(ip); // 2
-        assertThat(bruteForceService.isBlocked(ip)).isFalse();
+        bruteForceService.registerFailedLogin(ip, user); // 2
+        assertThat(bruteForceService.isBlocked(ip, user)).isFalse();
 
-        bruteForceService.registerFailedLogin(ip); // 3 (Max)
-        assertThat(bruteForceService.isBlocked(ip)).isTrue();
+        bruteForceService.registerFailedLogin(ip, user); // 3 (Max)
+        assertThat(bruteForceService.isBlocked(ip, user)).isTrue();
     }
 
     @Test
     void testResetFailedLogin_ShouldUnblock() {
         String ip = "10.0.0.1";
-        bruteForceService.registerFailedLogin(ip);
-        bruteForceService.registerFailedLogin(ip);
-        bruteForceService.registerFailedLogin(ip);
+        String user = "testuser";
+        bruteForceService.registerFailedLogin(ip, user);
+        bruteForceService.registerFailedLogin(ip, user);
+        bruteForceService.registerFailedLogin(ip, user);
 
-        assertThat(bruteForceService.isBlocked(ip)).isTrue();
+        assertThat(bruteForceService.isBlocked(ip, user)).isTrue();
 
-        bruteForceService.resetFailedLogin(ip);
+        bruteForceService.resetFailedLogin(ip, user);
 
-        assertThat(bruteForceService.isBlocked(ip)).isFalse();
+        assertThat(bruteForceService.isBlocked(ip, user)).isFalse();
     }
 
     @Test
     void testDifferentIps_ShouldNotAffectEachOther() {
         String ip1 = "10.0.0.10";
         String ip2 = "10.0.0.11";
+        String user = "user1";
 
-        bruteForceService.registerFailedLogin(ip1);
-        bruteForceService.registerFailedLogin(ip1);
-        bruteForceService.registerFailedLogin(ip1); // Block IP1
+        bruteForceService.registerFailedLogin(ip1, user);
+        bruteForceService.registerFailedLogin(ip1, user);
+        bruteForceService.registerFailedLogin(ip1, user); // Block IP1
 
-        assertThat(bruteForceService.isBlocked(ip1)).isTrue();
-        assertThat(bruteForceService.isBlocked(ip2)).isFalse(); // IP2 is still good
+        assertThat(bruteForceService.isBlocked(ip1, user)).isTrue();
+
+        // Actually, since we block by username too now, user1 is also blocked!
+        // So checking isBlocked(ip2, "user1") will be true.
+        // Let's check with another user for ip2 to verify IP independent blocking.
+        assertThat(bruteForceService.isBlocked(ip2, "user2")).isFalse();
+    }
+
+    @Test
+    void testUsernameLockout() {
+        String user = "targetUser";
+
+        bruteForceService.registerFailedLogin("1.1.1.1", user);
+        bruteForceService.registerFailedLogin("2.2.2.2", user);
+        bruteForceService.registerFailedLogin("3.3.3.3", user);
+
+        // The user is blocked due to 3 failed attempts, regardless of IP
+        assertThat(bruteForceService.isBlocked("4.4.4.4", user)).isTrue();
     }
 }

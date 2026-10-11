@@ -12,3 +12,7 @@ frontend/node_modules
 frontend/node
 frontend/dist
 frontend/*.tsbuildinfo
+!docker
+!scripts
+
+!scripts/

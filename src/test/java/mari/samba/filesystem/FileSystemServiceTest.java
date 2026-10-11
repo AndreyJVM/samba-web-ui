@@ -46,7 +46,7 @@ class FileSystemServiceTest {
     @Test
     void testListDirectories_ShouldParseGivenOutput() throws Exception {
         String path = "/srv/samba";
-        String mockOutput = "/srv/samba/public\n/srv/samba/private";
+        String mockOutput = "d|4096|/srv/samba/public\nd|4096|/srv/samba/private";
 
         when(commandExecutor.execute(eq(SESSION_ID), anyString())).thenReturn(mockOutput);
 
