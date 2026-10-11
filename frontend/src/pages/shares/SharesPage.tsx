@@ -54,7 +54,6 @@ export default function SharesPage() {
     }
   };
 
-
   const [isEditing, setIsEditing] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [currentShare, setCurrentShare] = useState<Partial<Share> | null>(null);
@@ -161,12 +160,11 @@ export default function SharesPage() {
     setIsEditing(true);
   };
 
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
         <h1 className="text-2xl font-semibold text-foreground tracking-tight">{t("shares.title")}</h1>
-        <button onClick={() => openEditor()} className="text-[13px] font-medium text-brand-text bg-brand px-4 py-2 rounded-md hover:bg-brand-hover shadow-sm transition-colors flex items-center gap-2">
+        <button onClick={() => openEditor()} className="text-[13px] font-medium text-on-accent bg-accent px-4 py-2 rounded-md hover:opacity-90 transition-colors flex items-center gap-2">
           <Plus className="w-4 h-4" /> {t("shares.newShare")}
         </button>
       </div>
@@ -174,22 +172,22 @@ export default function SharesPage() {
       {loading ? (
         <div className="flex flex-col gap-3">
           {[1,2,3].map(i => (
-             <div key={i} className="h-20 bg-surface shadow-sm-subtle border border-border/50 rounded-lg animate-pulse" />
+             <div key={i} className="h-20 bg-surface border border-border rounded-lg animate-pulse" />
           ))}
         </div>
       ) : shares.filter(s => s.name !== 'global').length === 0 ? (
-        <div className="text-center py-24 bg-surface rounded-lg border border-border border-dashed shadow-sm-subtle">
-          <FolderKanban className="w-12 h-12 text-status-disabled mx-auto mb-4 opacity-50" />
+        <div className="text-center py-24 bg-surface rounded-lg border border-border border-dashed">
+          <FolderKanban className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
           <h3 className="text-base font-semibold text-foreground">{t("shares.noShares")}</h3>
-          <p className="text-[13px] text-status-disabled mt-1 mb-6">{t("shares.noSharesDesc")}</p>
-          <button onClick={() => openEditor()} className="text-[13px] font-medium text-foreground bg-surface border border-border px-4 py-2 rounded-md hover:bg-surface-hover shadow-sm-subtle transition-colors">
+          <p className="text-[13px] text-text-muted mt-1 mb-6">{t("shares.noSharesDesc")}</p>
+          <button onClick={() => openEditor()} className="text-[13px] font-medium text-foreground bg-surface border border-border-strong px-4 py-2 rounded-md hover:bg-surface-2 transition-colors">
             {t("shares.createShare")}
           </button>
         </div>
       ) : (
-        <div className="bg-surface rounded-lg border border-border shadow-sm-subtle overflow-hidden overflow-x-auto">
+        <div className="bg-surface rounded-lg border border-border overflow-hidden overflow-x-auto">
           <table className="w-full text-left min-w-[800px] border-collapse">
-            <thead className="bg-surface-hover/50 text-[11px] font-medium text-status-disabled uppercase">
+            <thead className="bg-surface-2 text-[11px] font-medium text-text-muted uppercase">
               <tr>
                 <th className="py-3 px-5 w-[25%] font-medium">{t("shares.shareName")}</th>
                 <th className="py-3 px-5 w-[35%] font-medium">{t("shares.diskPath")}</th>
@@ -199,30 +197,30 @@ export default function SharesPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {shares.filter(s => s.name !== 'global').map((share) => (
-                <tr key={share.name} className="hover:bg-surface-hover/50 transition-colors group">
+              <tr key={share.name} className="hover:bg-surface-2 transition-colors group">
                   <td className="py-4 px-5">
                     <div className="flex items-center gap-2.5">
-                       <div className="bg-surface-hover border border-border/50 p-1.5 rounded-md">
+                       <div className="bg-surface-2 border border-border p-1.5 rounded-md">
                          <FolderKanban className="w-4 h-4 text-foreground" />
                        </div>
                        <span className="text-foreground font-semibold text-sm">{share.name}</span>
                     </div>
-                    {share.comment && <div className="text-[12px] text-status-disabled mt-1.5 truncate max-w-[220px]" title={share.comment}>{share.comment}</div>}
+                    {share.comment && <div className="text-[12px] text-text-muted mt-1.5 truncate max-w-[220px]" title={share.comment}>{share.comment}</div>}
                   </td>
                   
                   <td className="py-4 px-5">
                     <div className="flex flex-col gap-2 relative group-size">
-                      <span className="text-[13px] font-mono text-status-disabled bg-surface-hover px-2 py-1 rounded-md border border-border/50 inline-block w-fit" title={share.path}>
+                      <span className="text-[13px] font-mono text-text-muted bg-surface-2 px-2 py-1 rounded-md border border-border inline-block w-fit" title={share.path}>
                         {share.path || '/'}
                       </span>
                       <div className="flex items-center gap-2 mt-1 min-h-[20px]">
                         {!sizes[share.name] ? (
-                            <button onClick={() => fetchSize(share.name)} disabled={loadingSizes[share.name]} className="text-[11px] text-status-disabled hover:text-brand flex items-center gap-1.5 transition-colors">
+                            <button onClick={() => fetchSize(share.name)} disabled={loadingSizes[share.name]} className="text-[11px] text-text-muted hover:text-accent-text flex items-center gap-1.5 transition-colors">
                               <HardDrive className={`w-3.5 h-3.5 ${loadingSizes[share.name] ? 'animate-pulse' : ''}`} />
                               {loadingSizes[share.name] ? t('shares.calculating') : t('shares.calcSize')}
                             </button>
                         ) : (
-                            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-foreground bg-brand/10 text-brand px-2 py-0.5 rounded border border-brand/20">
+                            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-text-on-tint bg-surface-tint px-2 py-0.5 rounded border border-border">
                               <HardDrive className="w-3.5 h-3.5" />
                               {sizes[share.name]}
                             </span>
@@ -233,17 +231,19 @@ export default function SharesPage() {
 
                   <td className="py-4 px-5">
                     <div className="flex flex-wrap gap-2">
-                      {share.readOnly && <span className="bg-status-warning/10 text-status-warning border border-status-warning/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">RO</span>}
-                      {share.guestOk && <span className="bg-status-active/10 text-status-active border border-status-active/20 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">GUEST</span>}
-                      {!share.readOnly && !share.guestOk && <span className="text-status-disabled text-[10px] bg-surface-hover border border-border font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">{t("shares.private")}</span>}
+                      {/* TODO: status-warning and status-active tokens fallback */}
+                      {share.readOnly && <span className="bg-surface-2 text-status-warning border border-status-warning/30 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">RO</span>}
+                      {share.guestOk && <span className="bg-surface-2 text-status-active border border-status-active/30 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">GUEST</span>}
+                      {!share.readOnly && !share.guestOk && <span className="text-text-muted text-[10px] bg-surface-2 border border-border font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">{t("shares.private")}</span>}
                     </div>
                   </td>
                   <td className="py-4 px-5 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditor(share)} className="p-2 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors border border-transparent hover:border-border" title={t("shares.configure")}>
+                      <button onClick={() => openEditor(share)} className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors border border-transparent hover:border-border" title={t("shares.configure")}>
                         <Settings2 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(share.name)} className="p-2 text-status-disabled hover:text-status-error hover:bg-surface-hover rounded-md transition-colors border border-transparent hover:border-border" title={t("common.delete")}>
+                      {/* TODO: status-error token fallback */}
+                      <button onClick={() => handleDelete(share.name)} className="p-2 text-text-muted hover:text-status-error hover:bg-surface-2 rounded-md transition-colors border border-transparent hover:border-border" title={t("common.delete")}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -271,7 +271,7 @@ export default function SharesPage() {
                   value={currentShare.name} 
                   disabled={!currentShare.isNew}
                   onChange={(e) => setCurrentShare({ ...currentShare, name: e.target.value })} 
-                  className={`w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-[13px] rounded-lg shadow-sm-subtle ${!currentShare.isNew ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className={`w-full bg-surface border border-border-strong focus:border-accent focus:outline-none text-foreground transition-all py-2.5 px-3.5 text-[13px] rounded-lg ${!currentShare.isNew ? 'opacity-60 cursor-not-allowed' : ''}`}
                 />
               </div>
               <div className="space-y-2">
@@ -281,10 +281,10 @@ export default function SharesPage() {
                     required 
                     value={currentShare.path || ""} 
                     onChange={(e) => setCurrentShare({ ...currentShare, path: e.target.value })} 
-                    className="flex-1 bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-[13px] rounded-lg shadow-sm-subtle font-mono"
+                    className="flex-1 bg-surface border border-border-strong focus:border-accent focus:outline-none text-foreground transition-all py-2.5 px-3.5 text-[13px] rounded-lg font-mono"
                     placeholder="/mnt/disk1/data"
                   />
-                  <button type="button" onClick={() => setIsPickerOpen(true)} className="px-4 py-2 bg-surface-hover border border-border rounded-lg text-[13px] font-medium hover:bg-surface-active transition-colors">
+                  <button type="button" onClick={() => setIsPickerOpen(true)} className="px-4 py-2 bg-surface-2 hover:bg-surface border border-border-strong rounded-lg text-[13px] font-medium text-foreground transition-colors">
                      {t("common.browse") || "Browse..."}
                   </button>
                 </div>
@@ -296,47 +296,46 @@ export default function SharesPage() {
               <input 
                 value={currentShare.comment || ""} 
                 onChange={(e) => setCurrentShare({ ...currentShare, comment: e.target.value })} 
-                className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-[13px] rounded-lg shadow-sm-subtle"
+                className="w-full bg-surface border border-border-strong focus:border-accent focus:outline-none text-foreground transition-all py-2.5 px-3.5 text-[13px] rounded-lg"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-               <div className="bg-surface-hover p-4 rounded-lg border border-border/50">
+               <div className="bg-surface-2 p-4 rounded-lg border border-border">
                  <Toggle checked={currentShare.browseable || false} onChange={c => setCurrentShare({ ...currentShare, browseable: c })} label={t("shares.browseable")} />
                </div>
-               <div className="bg-surface-hover p-4 rounded-lg border border-border/50">
+               <div className="bg-surface-2 p-4 rounded-lg border border-border">
                  <Toggle checked={currentShare.readOnly || false} onChange={c => setCurrentShare({ ...currentShare, readOnly: c })} label={t("shares.readOnly")} />
                </div>
-               <div className="bg-surface-hover p-4 rounded-lg border border-border/50">
+               <div className="bg-surface-2 p-4 rounded-lg border border-border">
                  <Toggle checked={currentShare.guestOk || false} onChange={c => setCurrentShare({ ...currentShare, guestOk: c })} label={t("shares.guestOk")} />
                </div>
             </div>
 
-            
-              <div className="space-y-3 pt-4 border-t border-border">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[12px] font-medium text-foreground">{t("shares.validUsers")}</label>
-                  <p className="text-[12px] text-status-disabled">{t("shares.validUsersHint")}</p>
-                </div>
-                
-                <MultiSelect 
-                  options={[...users.map(u => u.username), ...groups.map(g => '@' + g.name)]}
-                  value={currentShare.validUsers || ""} 
-                  onChange={(val: string) => setCurrentShare({ ...currentShare, validUsers: val })} 
-                  placeholder="user1, user2, @admins"
-                />
+            <div className="space-y-3 pt-4 border-t border-border">
+              <div className="flex flex-col gap-1">
+                <label className="text-[12px] font-medium text-foreground">{t("shares.validUsers")}</label>
+                <p className="text-[12px] text-text-muted">{t("shares.validUsersHint")}</p>
               </div>
+              
+              <MultiSelect 
+                options={[...users.map(u => u.username), ...groups.map(g => '@' + g.name)]}
+                value={currentShare.validUsers || ""} 
+                onChange={(val: string) => setCurrentShare({ ...currentShare, validUsers: val })} 
+                placeholder="user1, user2, @admins"
+              />
+            </div>
 
-              <div className="pt-2">
+            <div className="pt-2">
               <button 
                 type="button"
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full flex items-center justify-between text-[13px] font-medium text-foreground py-3 border-b border-border/50 hover:bg-surface-hover/50 transition-colors rounded-t-lg px-2"
+                className="w-full flex items-center justify-between text-[13px] font-medium text-foreground py-3 border-b border-border hover:bg-surface-2 transition-colors rounded-t-lg px-2"
               >
                 <div className="flex items-center gap-2">
-                  <Settings2 className="w-4 h-4 text-status-disabled" /> {t("shares.advOptions")}
+                  <Settings2 className="w-4 h-4 text-text-muted" /> {t("shares.advOptions")}
                 </div>
-                {showAdvanced ? <ChevronUp className="w-4 h-4 text-status-disabled" /> : <ChevronDown className="w-4 h-4 text-status-disabled" />}
+                {showAdvanced ? <ChevronUp className="w-4 h-4 text-text-muted" /> : <ChevronDown className="w-4 h-4 text-text-muted" />}
               </button>
               
               {showAdvanced && (
@@ -352,7 +351,7 @@ export default function SharesPage() {
                         { l: t("shares.hostsDeny"), k: "hostsDeny", p: "ALL" },
                       ].map(field => (
                         <div key={field.k} className="flex flex-col gap-1.5 overflow-visible">
-                          <label className="text-[11px] font-semibold text-status-disabled uppercase" title={field.l}>{field.l}</label>
+                          <label className="text-[11px] font-semibold text-text-muted uppercase" title={field.l}>{field.l}</label>
                           {field.sug ? (
                             field.mult ? (
                               <MultiSelect 
@@ -362,12 +361,12 @@ export default function SharesPage() {
                                 placeholder={field.p}
                               />
                             ) : (
-                              <div className="w-full bg-surface border border-border focus-within:border-border-strong focus-within:ring-4 focus-within:ring-ring transition-all rounded-md shadow-sm-subtle flex items-center">
+                              <div className="w-full bg-surface border border-border-strong rounded-md flex items-center">
                                 <AutocompleteInput 
                                   suggestions={field.sug}
                                   value={(currentShare as any)[field.k] || ""} 
                                   onChange={(e: any) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
-                                  className="w-full text-[12px] font-mono rounded-md !py-1.5 !px-2.5"
+                                  className="w-full text-[12px] font-mono rounded-md !py-1.5 !px-2.5 text-foreground"
                                   placeholder={field.p}
                                 />
                               </div>
@@ -376,7 +375,7 @@ export default function SharesPage() {
                             <input 
                               value={(currentShare as any)[field.k] || ""} 
                               onChange={(e) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
-                              className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring transition-all py-1.5 px-2.5 text-[12px] font-mono rounded-md shadow-sm-subtle text-foreground"
+                              className="w-full bg-surface border border-border-strong focus:border-accent focus:outline-none transition-all py-1.5 px-2.5 text-[12px] font-mono rounded-md text-foreground"
                               placeholder={field.p}
                             />
                           )}
@@ -387,10 +386,10 @@ export default function SharesPage() {
             </div>
 
             <div className="pt-6 flex justify-end gap-3 border-t border-border">
-               <button type="button" onClick={() => setIsEditing(false)} className="text-[13px] font-medium text-foreground bg-surface border border-border px-5 py-2.5 rounded-md hover:bg-surface-hover shadow-sm-subtle transition-colors">
+               <button type="button" onClick={() => setIsEditing(false)} className="text-[13px] font-medium text-foreground bg-surface border border-border-strong px-5 py-2.5 rounded-md hover:bg-surface-2 transition-colors">
                  {t("common.cancel")}
                </button>
-               <button type="submit" className="text-[13px] font-medium text-brand-text bg-brand px-6 py-2.5 rounded-md hover:bg-brand-hover shadow-sm transition-colors">
+               <button type="submit" className="text-[13px] font-medium text-on-accent bg-accent px-6 py-2.5 rounded-md hover:opacity-90 transition-colors">
                  {t("common.save")}
                </button>
             </div>

@@ -41,22 +41,23 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       {isOpen && options && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => handleClose(false)} />
-          <div className="relative bg-surface border border-border shadow-subtle rounded-lg max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+          <div className="relative bg-surface border border-border rounded-lg max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
             <h2 className="text-lg font-semibold text-foreground mb-2">{options.title}</h2>
-            <p className="text-sm text-status-disabled mb-6">{options.message}</p>
+            <p className="text-sm text-text-muted mb-6">{options.message}</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => handleClose(false)}
-                className="px-4 py-2 text-[13px] font-medium text-foreground bg-surface border border-border rounded-md hover:bg-surface-hover shadow-sm-subtle transition-colors"
+                className="px-4 py-2 text-[13px] font-medium text-foreground bg-surface border border-border-strong rounded-md hover:bg-surface-2 transition-colors"
               >
                 {options.cancelText || t("common.cancel")}
               </button>
               <button
                 onClick={() => handleClose(true)}
-                className={`px-4 py-2 text-[13px] font-medium rounded-md shadow-sm transition-colors ${
+                className={`px-4 py-2 text-[13px] font-medium rounded-md transition-colors ${
                   options.destructive
+                    /* TODO: token for status-error is not in theme palette, keeping functional status color */
                     ? 'bg-status-error hover:bg-status-error/90 text-white'
-                    : 'bg-brand hover:bg-brand-hover text-brand-text'
+                    : 'bg-accent hover:opacity-90 text-on-accent'
                 }`}
               >
                 {options.confirmText || t("common.confirm")}

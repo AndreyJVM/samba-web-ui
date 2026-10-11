@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search, FolderKanban, Users, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
@@ -91,9 +91,9 @@ export function GlobalSearch() {
   return (
     <div className="relative w-full max-w-md" ref={wrapperRef}>
       <div className="relative flex items-center">
-        <Search className="w-4 h-4 absolute left-3 text-status-disabled" />
+        <Search className="w-4 h-4 absolute left-3 text-text-muted" />
         <input 
-          className="w-full bg-surface-hover hover:bg-surface border border-transparent focus:border-border-strong focus:bg-surface focus:ring-4 focus:ring-ring transition-all py-2 pl-9 pr-4 text-[13px] font-medium rounded-lg text-foreground placeholder:text-status-disabled outline-none"
+          className="w-full bg-surface-2 hover:bg-surface border border-border-strong focus:border-accent focus:bg-surface transition-all py-2 pl-9 pr-4 text-[13px] font-medium rounded-lg text-foreground placeholder:text-text-muted outline-none"
           placeholder={t("common.search")}
           value={query}
           onChange={(e) => {
@@ -106,9 +106,9 @@ export function GlobalSearch() {
       </div>
 
       {isOpen && query.trim() !== "" && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-lg shadow-lg z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-surface border border-border rounded-lg z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           {results.length === 0 ? (
-            <div className="p-4 text-center text-[13px] text-status-disabled">
+            <div className="p-4 text-center text-[13px] text-text-muted">
               No results found for "{query}"
             </div>
           ) : (
@@ -118,18 +118,18 @@ export function GlobalSearch() {
                 return (
                   <li 
                     key={`${res.type}-${res.title}-${idx}`}
-                    className={`px-3 py-2 cursor-pointer flex items-center gap-3 transition-colors ${idx === activeIndex ? 'bg-surface-hover' : 'hover:bg-surface-hover'}`}
+                    className={`px-3 py-2 cursor-pointer flex items-center gap-3 transition-colors ${idx === activeIndex ? 'bg-surface-2' : 'hover:bg-surface-2'}`}
                     onClick={() => handleSelect(res.path)}
                     onMouseEnter={() => setActiveIndex(idx)}
                   >
-                    <div className="bg-background border border-border p-2 rounded-md shrink-0">
-                      <Icon className="w-4 h-4 text-brand" />
+                    <div className="bg-surface-2 border border-border p-2 rounded-md shrink-0">
+                      <Icon className="w-4 h-4 text-accent-text" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[13px] font-semibold text-foreground truncate">{res.title}</div>
-                      <div className="text-[11px] text-status-disabled truncate">{res.subtitle}</div>
+                      <div className="text-[11px] text-text-muted truncate">{res.subtitle}</div>
                     </div>
-                    <div className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-status-disabled bg-background px-2 py-1 rounded border border-border/50">
+                    <div className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-text-muted bg-surface-2 px-2 py-1 rounded border border-border">
                       {res.type}
                     </div>
                   </li>

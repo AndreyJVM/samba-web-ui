@@ -48,17 +48,18 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-lg border animate-in slide-in-from-bottom-5 fade-in duration-300 ${
+            className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border animate-in slide-in-from-bottom-5 fade-in duration-300 ${
               t.type === "success"
-                ? "bg-[#ecfdf5] border-[#a7f3d0] text-[#065f46]"
+                ? "bg-surface-tint border-border text-accent-text"
                 : t.type === "error"
-                ? "bg-[#fef2f2] border-[#fecaca] text-[#991b1b]"
-                : "bg-white border-slate-200 text-slate-800"
+                /* TODO: token for status-error is not in theme palette, keeping functional status color */
+                ? "bg-surface border-status-error/30 text-status-error"
+                : "bg-surface border-border text-foreground"
             }`}
           >
-            {t.type === "success" && <CheckCircle className="w-5 h-5 mt-0.5 shrink-0" />}
-            {t.type === "error" && <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />}
-            {t.type === "info" && <Info className="w-5 h-5 mt-0.5 text-blue-500 shrink-0" />}
+            {t.type === "success" && <CheckCircle className="w-5 h-5 mt-0.5 text-accent-text shrink-0" />}
+            {t.type === "error" && <AlertCircle className="w-5 h-5 mt-0.5 text-status-error shrink-0" />}
+            {t.type === "info" && <Info className="w-5 h-5 mt-0.5 text-text-muted shrink-0" />}
             
             <div className="flex-1">
               <h4 className="text-[14px] font-bold">{t.title}</h4>
@@ -67,7 +68,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
             
             <button
               onClick={() => removeToast(t.id)}
-              className="p-1 rounded-md opacity-50 hover:opacity-100 transition-opacity"
+              className="p-1 rounded-md opacity-50 hover:opacity-100 transition-opacity text-foreground"
             >
               <X className="w-4 h-4" />
             </button>

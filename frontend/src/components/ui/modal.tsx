@@ -33,17 +33,17 @@ export function Modal({ isOpen, onClose, title, description, children, maxWidth 
         onClick={onClose} 
       />
       <div 
-        className={`relative bg-surface w-full ${maxWidthClass} border border-border shadow-subtle rounded-lg flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200`}
+        className={`relative bg-surface w-full ${maxWidthClass} border border-border rounded-lg flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200`}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
             <h2 className="text-lg font-semibold text-foreground tracking-tight">{title}</h2>
-            {description && <p className="text-[13px] text-status-disabled mt-0.5">{description}</p>}
+            {description && <p className="text-[13px] text-text-muted mt-0.5">{description}</p>}
           </div>
           <button 
             type="button"
             onClick={onClose}
-            className="p-1.5 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors"
+            className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

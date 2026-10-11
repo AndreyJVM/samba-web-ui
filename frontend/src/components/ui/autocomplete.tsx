@@ -52,7 +52,7 @@ export function AutocompleteInput({ suggestions, value, onChange, className, ...
     <div className={`relative w-full ${className || ''}`} ref={wrapperRef}>
       <input
         {...props}
-        className="w-full bg-transparent outline-none text-foreground placeholder:text-status-disabled py-2.5 px-3.5"
+        className="w-full bg-transparent outline-none text-foreground placeholder:text-text-muted py-2.5 px-3.5"
         style={{ width: '100%' }}
         value={value}
         onChange={(e) => {
@@ -69,11 +69,11 @@ export function AutocompleteInput({ suggestions, value, onChange, className, ...
       />
       
       {isOpen && filtered.length > 0 && (
-        <ul className="absolute z-[100] w-full bg-surface border border-border mt-1 rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <ul className="absolute z-[100] w-full bg-surface border border-border mt-1 rounded-md max-h-60 overflow-y-auto">
           {filtered.map((suggestion, idx) => (
             <li
               key={suggestion}
-              className={'px-3 py-2 text-[13px] font-mono cursor-pointer transition-colors ' + (idx === activeIndex ? 'bg-surface-hover text-brand' : 'hover:bg-surface-hover text-foreground')}
+              className={'px-3 py-2 text-[13px] font-mono cursor-pointer transition-colors ' + (idx === activeIndex ? 'bg-surface-2 text-accent-text' : 'hover:bg-surface-2 text-foreground')}
               onClick={() => handleSelect(suggestion)}
             >
               {suggestion}

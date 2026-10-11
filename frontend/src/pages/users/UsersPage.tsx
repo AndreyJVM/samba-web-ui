@@ -95,7 +95,7 @@ export default function UsersPage() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
         <h1 className="text-2xl font-semibold text-foreground tracking-tight">{t("users.title")}</h1>
-        <button onClick={() => setIsCreating(true)} className="text-sm font-medium text-brand-text bg-brand px-4 py-2 rounded-md hover:bg-brand-hover shadow-sm transition-colors flex items-center gap-2">
+        <button onClick={() => setIsCreating(true)} className="text-sm font-medium text-on-accent bg-accent px-4 py-2 rounded-md hover:opacity-90 transition-colors flex items-center gap-2">
           <Plus className="w-4 h-4" /> {t("users.addUser")}
         </button>
       </div>
@@ -103,19 +103,19 @@ export default function UsersPage() {
       {loading ? (
         <div className="flex flex-col gap-3">
           {[1,2,3,4].map(i => (
-             <div key={i} className="h-16 bg-surface shadow-sm-subtle border border-border/50 rounded-lg animate-pulse" />
+             <div key={i} className="h-16 bg-surface border border-border rounded-lg animate-pulse" />
           ))}
         </div>
       ) : users.length === 0 ? (
-        <div className="text-center py-24 bg-surface rounded-lg border border-border border-dashed shadow-sm-subtle">
-          <UserIcon className="w-12 h-12 text-status-disabled mx-auto mb-4 opacity-50" />
+        <div className="text-center py-24 bg-surface rounded-lg border border-border border-dashed">
+          <UserIcon className="w-12 h-12 text-text-muted mx-auto mb-4 opacity-50" />
           <h3 className="text-base font-semibold text-foreground">{t("users.noUsers")}</h3>
-          <p className="text-sm text-status-disabled mt-1 mb-6">{t("users.noUsersDesc")}</p>
+          <p className="text-sm text-text-muted mt-1 mb-6">{t("users.noUsersDesc")}</p>
         </div>
       ) : (
-        <div className="bg-surface rounded-lg border border-border shadow-sm-subtle overflow-hidden overflow-x-auto">
+        <div className="bg-surface rounded-lg border border-border overflow-hidden overflow-x-auto">
           <table className="w-full text-left min-w-[700px] border-collapse">
-            <thead className="bg-surface-hover/50 text-[13px] font-semibold text-status-disabled uppercase tracking-wide">
+            <thead className="bg-surface-2 text-[13px] font-semibold text-text-muted uppercase tracking-wide">
               <tr>
                 <th className="py-4 px-6 w-[40%]">{t("users.username")}</th>
                 <th className="py-4 px-6 w-[40%]">{t("users.fullName")}</th>
@@ -124,24 +124,25 @@ export default function UsersPage() {
             </thead>
             <tbody className="divide-y divide-border text-sm">
               {users.map((user) => (
-                <tr key={user.username} className="hover:bg-surface-hover/50 transition-colors group">
+                <tr key={user.username} className="hover:bg-surface-2 transition-colors group">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
-                       <div className="bg-surface-hover border border-border/50 p-2 rounded-md">
+                       <div className="bg-surface-2 border border-border p-2 rounded-md">
                          <ShieldCheck className="w-4 h-4 text-foreground opacity-80" />
                        </div>
                        <span className="text-foreground font-semibold font-mono tracking-wide">@{user.username}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-6 text-status-disabled truncate max-w-[200px]">
+                  <td className="py-4 px-6 text-text-muted truncate max-w-[200px]">
                     {user.fullName || "—"}
                   </td>
                   <td className="py-4 px-6 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openPasswordModal(user.username)} className="p-2 text-status-disabled hover:text-foreground hover:bg-surface-hover rounded-md transition-colors border border-transparent hover:border-border" title={t("users.changePwd")}>
+                      <button onClick={() => openPasswordModal(user.username)} className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors border border-transparent hover:border-border" title={t("users.changePwd")}>
                         <Key className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDelete(user.username)} className="p-2 text-status-disabled hover:text-status-error hover:bg-surface-hover rounded-md transition-colors border border-transparent hover:border-border" title={t("common.delete")}>
+                      {/* TODO: status-error token fallback */}
+                      <button onClick={() => handleDelete(user.username)} className="p-2 text-text-muted hover:text-status-error hover:bg-surface-2 rounded-md transition-colors border border-transparent hover:border-border" title={t("common.delete")}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -166,7 +167,7 @@ export default function UsersPage() {
             <input 
               required 
               pattern="^[a-z_][a-z0-9_-]*[$]?$"
-              className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-sm font-mono rounded-lg shadow-sm-subtle"
+              className="w-full bg-surface border border-border-strong focus:border-accent focus:outline-none text-foreground transition-all py-2.5 px-3.5 text-sm font-mono rounded-lg"
               value={newUser.username} 
               onChange={(e) => setNewUser({...newUser, username: e.target.value})} 
               placeholder="john_doe"
@@ -175,7 +176,7 @@ export default function UsersPage() {
           <div className="space-y-1.5">
             <label className="text-[13px] font-medium text-foreground">{t("users.fullName")}</label>
             <input 
-              className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-sm rounded-lg shadow-sm-subtle"
+              className="w-full bg-surface border border-border-strong focus:border-accent focus:outline-none text-foreground transition-all py-2.5 px-3.5 text-sm rounded-lg"
               value={newUser.fullName} 
               onChange={(e) => setNewUser({...newUser, fullName: e.target.value})} 
               placeholder="John Doe"
@@ -186,17 +187,17 @@ export default function UsersPage() {
             <input 
               required 
               type="password"
-              className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-sm rounded-lg shadow-sm-subtle"
+              className="w-full bg-surface border border-border-strong focus:border-accent focus:outline-none text-foreground transition-all py-2.5 px-3.5 text-sm rounded-lg"
               value={newUser.password} 
               onChange={(e) => setNewUser({...newUser, password: e.target.value})} 
               placeholder="••••••••"
             />
           </div>
           <div className="pt-4 flex justify-end gap-3 border-t border-border mt-2">
-             <button type="button" onClick={() => setIsCreating(false)} className="text-sm font-medium text-foreground bg-surface border border-border px-5 py-2.5 rounded-md hover:bg-surface-hover shadow-sm-subtle transition-colors">
+             <button type="button" onClick={() => setIsCreating(false)} className="text-sm font-medium text-foreground bg-surface border border-border-strong px-5 py-2.5 rounded-md hover:bg-surface-2 transition-colors">
                {t("common.cancel")}
              </button>
-            <button type="submit" className="text-sm font-medium text-brand-text bg-brand px-6 py-2.5 rounded-md hover:bg-brand-hover shadow-sm transition-colors">
+            <button type="submit" className="text-sm font-medium text-on-accent bg-accent px-6 py-2.5 rounded-md hover:opacity-90 transition-colors">
                {t("common.create")}
             </button>
           </div>
@@ -216,17 +217,17 @@ export default function UsersPage() {
             <input 
               required 
               type="password"
-              className="w-full bg-surface border border-border focus:border-border-strong focus:outline-none focus:ring-4 focus:ring-ring text-foreground transition-all py-2.5 px-3.5 text-sm rounded-lg shadow-sm-subtle"
+              className="w-full bg-surface border border-border-strong focus:border-accent focus:outline-none text-foreground transition-all py-2.5 px-3.5 text-sm rounded-lg"
               value={newPassword} 
               onChange={(e) => setNewPassword(e.target.value)} 
               placeholder="••••••••"
             />
           </div>
           <div className="pt-4 flex justify-end gap-3 border-t border-border mt-2">
-             <button type="button" onClick={() => setPasswordModalOpen(false)} className="text-sm font-medium text-foreground bg-surface border border-border px-5 py-2.5 rounded-md hover:bg-surface-hover shadow-sm-subtle transition-colors">
+             <button type="button" onClick={() => setPasswordModalOpen(false)} className="text-sm font-medium text-foreground bg-surface border border-border-strong px-5 py-2.5 rounded-md hover:bg-surface-2 transition-colors">
                {t("common.cancel")}
              </button>
-            <button type="submit" className="text-sm font-medium text-brand-text bg-brand px-6 py-2.5 rounded-md hover:bg-brand-hover shadow-sm transition-colors">
+            <button type="submit" className="text-sm font-medium text-on-accent bg-accent px-6 py-2.5 rounded-md hover:opacity-90 transition-colors">
                {t("common.save")}
             </button>
           </div>
