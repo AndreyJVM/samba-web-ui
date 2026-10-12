@@ -1,5 +1,6 @@
 package mari.samba.filesystem;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -14,28 +15,42 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class FileSystemService {
+
+    private static final Logger log = LoggerFactory.getLogger(FileSystemService.class);
+    private static final Pattern SAFE_FILE_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
+
+    private final CommandExecutor commandExecutor;
+    private final List<String> allowedRoots;
+
+    public FileSystemService(CommandExecutor commandExecutor, SambaProperties properties) {
+        this.commandExecutor = commandExecutor;
+        this.allowedRoots = properties.security().allowedRoots();
+    }
+
     public void copyItem(@NonNull String sessionId, @NonNull String source, @NonNull String destination) {
-        requireAllowedPath(normalizePath(source));
-        requireAllowedPath(normalizePath(destination));
-        String command = String.format(
-                "sudo cp -r %s %s",
-                mari.samba.infra.LinuxCommands.escape(source), mari.samba.infra.LinuxCommands.escape(destination));
-        commandExecutor.execute(sessionId, command);
+        String safeSrc = normalizePath(source);
+        String safeDst = normalizePath(destination);
+        requireAllowedPath(safeSrc);
+        requireAllowedPath(safeDst);
+        commandExecutor.execute(sessionId, LinuxCommands.copyRecursive(safeSrc, safeDst));
+        log.info("Copied {} -> {}", safeSrc, safeDst);
     }
 
     public void moveItem(@NonNull String sessionId, @NonNull String source, @NonNull String destination) {
-        requireAllowedPath(normalizePath(source));
-        requireAllowedPath(normalizePath(destination));
-        String command = String.format(
-                "sudo mv %s %s",
-                mari.samba.infra.LinuxCommands.escape(source), mari.samba.infra.LinuxCommands.escape(destination));
-        commandExecutor.execute(sessionId, command);
+        String safeSrc = normalizePath(source);
+        String safeDst = normalizePath(destination);
+        requireAllowedPath(safeSrc);
+        requireAllowedPath(safeDst);
+        commandExecutor.execute(sessionId, LinuxCommands.move(safeSrc, safeDst));
+        log.info("Moved {} -> {}", safeSrc, safeDst);
     }
 
     public void deleteItem(@NonNull String sessionId, @NonNull String target) {
-        requireAllowedPath(normalizePath(target));
-        String command = String.format("sudo rm -rf %s", mari.samba.infra.LinuxCommands.escape(target));
-        commandExecutor.execute(sessionId, command);
+        String safeTarget = normalizePath(target);
+        requireAllowedPath(safeTarget);
+        requireNotAllowedRoot(safeTarget);
+        commandExecutor.execute(sessionId, LinuxCommands.removeRecursive(safeTarget));
+        log.info("Deleted {}", safeTarget);
     }
 
     public void uploadFile(
@@ -43,15 +58,19 @@ public class FileSystemService {
             @NonNull String directory,
             @NonNull String filename,
             @NonNull String base64Content) {
+        if (!SAFE_FILE_NAME_PATTERN.matcher(filename).matches()) {
+            throw new IllegalArgumentException(
+                    "Invalid file name. Only alphanumeric characters, dashes, underscores, and dots are allowed.");
+        }
+
         String safeParent = normalizePath(directory);
         requireAllowedPath(safeParent);
         String targetPath = safeParent.endsWith("/") ? safeParent + filename : safeParent + "/" + filename;
         requireAllowedPath(targetPath);
 
-        String command = String.format(
-                "echo '%s' | base64 -d | sudo tee %s > /dev/null",
-                base64Content, mari.samba.infra.LinuxCommands.escape(targetPath));
-        commandExecutor.execute(sessionId, command);
+        String command = LinuxCommands.uploadBase64Stdin(targetPath);
+        commandExecutor.execute(sessionId, command, base64Content);
+        log.info("Uploaded file {}", targetPath);
     }
 
     public byte[] downloadFile(@NonNull String sessionId, @NonNull String filePath) {
@@ -61,17 +80,6 @@ public class FileSystemService {
         String command = LinuxCommands.base64(safePath);
         String base64Output = commandExecutor.execute(sessionId, command);
         return Base64.getMimeDecoder().decode(base64Output.trim());
-    }
-
-    private static final Logger log = LoggerFactory.getLogger(FileSystemService.class);
-    private static final Pattern SAFE_DIR_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9._-]+$");
-
-    private final CommandExecutor commandExecutor;
-    private final List<String> allowedRoots;
-
-    public FileSystemService(CommandExecutor commandExecutor, SambaProperties properties) {
-        this.commandExecutor = commandExecutor;
-        this.allowedRoots = properties.security().allowedRoots();
     }
 
     /** Lists subdirectories within a requested path, returning normalized structure. */
@@ -92,20 +100,7 @@ public class FileSystemService {
         List<DirectoryItemDto> subDirs = Arrays.stream(rawOutput.split("\\r?\\n"))
                 .map(String::trim)
                 .filter(line -> !line.isEmpty())
-                .map(line -> {
-                    String[] parts = line.split("\\|", 3);
-                    if (parts.length < 3) return null;
-                    String typeCode = parts[0];
-                    long size = 0;
-                    try {
-                        size = Long.parseLong(parts[1]);
-                    } catch (Exception ignored) {
-                    }
-                    String fullPath = parts[2];
-                    String type = "d".equals(typeCode) ? "dir" : ("f".equals(typeCode) ? "file" : "link");
-                    String dirName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-                    return new DirectoryItemDto(dirName, fullPath, type, size);
-                })
+                .map(this::parseDirectoryLine)
                 .filter(item -> item != null)
                 .toList();
 
@@ -114,7 +109,7 @@ public class FileSystemService {
 
     /** Creates a directory under the given parent directory with secure permissions. */
     public void createDirectory(@NonNull String sessionId, @NonNull String parentPath, @NonNull String name) {
-        if (!SAFE_DIR_NAME_PATTERN.matcher(name).matches()) {
+        if (!SAFE_FILE_NAME_PATTERN.matcher(name).matches()) {
             throw new IllegalArgumentException(
                     "Invalid directory name. Only alphanumeric characters, dashes, underscores, and dots are"
                             + " allowed.");
@@ -170,17 +165,14 @@ public class FileSystemService {
         }
     }
 
-    private String normalizePath(String path) {
-        if (path == null || path.isBlank()) {
-            return "/";
-        }
-        String normalized = path.trim().replace('\\', '/');
-        while (normalized.endsWith("/") && normalized.length() > 1) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-        return normalized;
-    }
+    // ==========================================
+    // Path validation
+    // ==========================================
 
+    /**
+     * Validates that the given path falls within one of the configured allowed root directories.
+     * Public because it is also used by {@code SambaShareService} for share path validation.
+     */
     public void requireAllowedPath(String path) {
         if (path == null || "/".equals(path)) {
             return;
@@ -189,6 +181,53 @@ public class FileSystemService {
         if (!allowed) {
             throw new SecurityException("Access to path '" + path + "' is not permitted.");
         }
+    }
+
+    // ==========================================
+    // Private helpers
+    // ==========================================
+
+    /**
+     * Normalizes a path by resolving ".." segments and removing trailing slashes.
+     * Uses {@link Path#normalize()} to prevent path traversal attacks.
+     */
+    private String normalizePath(String path) {
+        if (path == null || path.isBlank()) {
+            return "/";
+        }
+        String cleaned = path.trim().replace('\\', '/');
+        String normalized = Path.of(cleaned).normalize().toString();
+        while (normalized.endsWith("/") && normalized.length() > 1) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
+    }
+
+    /**
+     * Prevents deletion of top-level allowed root directories themselves.
+     */
+    private void requireNotAllowedRoot(String path) {
+        if (allowedRoots.contains(path)) {
+            throw new SecurityException("Deletion of root directory '" + path + "' is not permitted.");
+        }
+    }
+
+    private DirectoryItemDto parseDirectoryLine(String line) {
+        String[] parts = line.split("\\|", 3);
+        if (parts.length < 3) {
+            return null;
+        }
+        String typeCode = parts[0];
+        long size = 0;
+        try {
+            size = Long.parseLong(parts[1]);
+        } catch (NumberFormatException e) {
+            log.debug("Failed to parse size from directory listing: '{}'", parts[1]);
+        }
+        String fullPath = parts[2];
+        String type = "d".equals(typeCode) ? "dir" : ("f".equals(typeCode) ? "file" : "link");
+        String name = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+        return new DirectoryItemDto(name, fullPath, type, size);
     }
 
     private String getParentPath(String path) {

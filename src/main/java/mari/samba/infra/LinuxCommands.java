@@ -93,6 +93,10 @@ public final class LinuxCommands {
         return String.format("cat > %s", escape(requireValidPath(targetPath)));
     }
 
+    public static String uploadBase64Stdin(String targetPath) {
+        return String.format("base64 -d | sudo tee -- %s > /dev/null", escape(requireValidPath(targetPath)));
+    }
+
     public static String du(String path) {
         return String.format("sudo du -sh -- %s 2>/dev/null", escape(requireValidPath(path)));
     }
@@ -130,9 +134,18 @@ public final class LinuxCommands {
                 "sudo cp -- %s %s", escape(requireValidPath(source)), escape(requireValidPath(destination)));
     }
 
+    public static String copyRecursive(String source, String destination) {
+        return String.format(
+                "sudo cp -r -- %s %s", escape(requireValidPath(source)), escape(requireValidPath(destination)));
+    }
+
     public static String move(String source, String destination) {
         return String.format(
                 "sudo mv -- %s %s", escape(requireValidPath(source)), escape(requireValidPath(destination)));
+    }
+
+    public static String removeRecursive(String path) {
+        return String.format("sudo rm -rf -- %s", escape(requireValidPath(path)));
     }
 
     public static String listBackupsDetailed(String backupDir) {
