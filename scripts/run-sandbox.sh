@@ -4,10 +4,11 @@
 # Samba Web UI - Docker Compose Sandbox Runner with Clean Teardown
 # ==============================================================================
 # Этот скрипт:
-# 1. Запускает окружение (docker compose up --build -d)
-# 2. Ожидает готовности сервисов (healthcheck samba-node и web)
-# 3. Предоставляет интерактивное меню команд (logs, status, restart, stop)
-# 4. При завершении (Enter, stop, q или Ctrl+C) полностью останавливает compose,
+# 1. Предлагает выбор режима развёртывания (с тестами / без тестов)
+# 2. Запускает окружение (docker compose up --build -d)
+# 3. Ожидает готовности сервисов (healthcheck samba-node и web)
+# 4. Предоставляет интерактивное меню команд (logs, status, restart, stop)
+# 5. При завершении (Enter, stop, q или Ctrl+C) полностью останавливает compose,
 #    удаляет контейнеры, сети, вольюмы (samba-shares, samba-config)
 #    и локальный образ web-приложения (samba-web-ui-web:latest),
 #    гарантируя чистое состояние перед следующим запуском.
@@ -48,6 +49,49 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
+# ==============================================================================
+# Выбор режима развёртывания
+# ==============================================================================
+echo "=========================================================="
+echo "         Samba Web UI - Запуск Docker Sandbox             "
+echo "=========================================================="
+echo ""
+echo "Выберите режим развёртывания:"
+echo ""
+echo "  1) Полный прогон (с чистого листа + тесты)"
+echo "     Полная сборка с запуском тестов Maven."
+echo "     Рекомендуется для CI и финального тестирования."
+echo ""
+echo "  2) Быстрый запуск (с чистого листа, без тестов)"
+echo "     Сборка без тестов (-DskipTests)."
+echo "     Быстрее для локальной разработки."
+echo ""
+
+while true; do
+    read -r -p "Ваш выбор [1/2] (по умолчанию: 2): " DEPLOY_MODE
+    DEPLOY_MODE="${DEPLOY_MODE:-2}"
+    case "$DEPLOY_MODE" in
+        1)
+            SKIP_TESTS=""
+            echo ""
+            echo ">>> Режим: ПОЛНЫЙ ПРОГОН (с тестами)"
+            break
+            ;;
+        2)
+            SKIP_TESTS="true"
+            echo ""
+            echo ">>> Режим: БЫСТРЫЙ ЗАПУСК (без тестов)"
+            break
+            ;;
+        *)
+            echo "Неверный выбор. Введите 1 или 2."
+            ;;
+    esac
+done
+
+echo "Рабочая директория: $PROJECT_ROOT"
+echo ""
+
 CLEANED_UP=0
 
 cleanup() {
@@ -80,11 +124,6 @@ cleanup() {
 # Перехватываем сигналы прерывания для гарантированной очистки
 trap cleanup EXIT INT TERM
 
-echo "=========================================================="
-echo "         Samba Web UI - Запуск Docker Sandbox             "
-echo "=========================================================="
-echo "Рабочая директория: $PROJECT_ROOT"
-
 # 1. Предварительная очистка от предыдущих незавершённых сессий (если были)
 echo ">>> Проверка и предварительная очистка старых контейнеров/вольюмов/образа web..."
 $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
@@ -92,8 +131,16 @@ docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 ||
 docker rmi -f samba-web-ui-web:latest samba-web-ui_web:latest >/dev/null 2>&1 || true
 
 # 2. Запуск контейнеров (samba-node скачивается с Docker Hub, web собирается заново)
-echo ">>> Запуск служб ($COMPOSE_CMD up --build -d)..."
-$COMPOSE_CMD up --build -d
+if [ "$SKIP_TESTS" = "true" ]; then
+    echo ">>> Сборка web-приложения БЕЗ тестов (--build-arg SKIP_TESTS=true)..."
+    $COMPOSE_CMD build --build-arg SKIP_TESTS=true web
+else
+    echo ">>> Сборка web-приложения С тестами..."
+    $COMPOSE_CMD build web
+fi
+
+echo ">>> Запуск служб ($COMPOSE_CMD up -d)..."
+$COMPOSE_CMD up -d
 
 # 3. Ожидание готовности контейнеров
 echo ">>> Ожидание готовности samba-node (проверка healthcheck)..."
@@ -115,6 +162,11 @@ echo ""
 echo "=========================================================="
 echo "  Docker Sandbox успешно запущен!                         "
 echo "=========================================================="
+if [ "$SKIP_TESTS" = "true" ]; then
+    echo "  Режим:          Быстрый запуск (тесты пропущены)      "
+else
+    echo "  Режим:          Полный прогон (тесты выполнены)        "
+fi
 echo "  - Web UI:       http://localhost:8080/ui                "
 echo "  ------------------------------------------------------  "
 echo "  Параметры для входа в Web UI:                           "

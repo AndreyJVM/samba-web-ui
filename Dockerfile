@@ -4,6 +4,9 @@
 FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /app
 
+# Build argument to skip tests (default: false)
+ARG SKIP_TESTS=false
+
 # Install Node.js & npm (required by frontend-maven-plugin fallback)
 RUN apt-get update && apt-get install -y curl && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
@@ -23,7 +26,13 @@ RUN ./mvnw dependency:go-offline -B -DskipTests
 # Copy source code and build the JAR
 COPY src ./src
 COPY frontend ./frontend
-RUN ./mvnw clean package -DskipTests
+RUN if [ "$SKIP_TESTS" = "true" ]; then \
+        echo ">>> Сборка БЕЗ тестов (-DskipTests)" && \
+        ./mvnw clean package -DskipTests; \
+    else \
+        echo ">>> Сборка С тестами" && \
+        ./mvnw clean package; \
+    fi
 
 # ==========================================
 # Stage 2: Production Container (Web UI Only)
