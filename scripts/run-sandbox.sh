@@ -5,10 +5,12 @@
 # ==============================================================================
 # Этот скрипт:
 # 1. Предлагает выбор режима развёртывания (с тестами / без тестов)
-# 2. Запускает окружение (docker compose up --build -d)
-# 3. Ожидает готовности сервисов (healthcheck samba-node и web)
-# 4. Предоставляет интерактивное меню команд (logs, status, restart, stop)
-# 5. При завершении (Enter, stop, q или Ctrl+C) полностью останавливает compose,
+# 2. Собирает frontend на хосте (если dist/ отсутствует или устарел)
+# 3. Собирает Docker образ web-приложения (--network host для надёжности)
+# 4. Запускает окружение (docker compose up -d)
+# 5. Ожидает готовности сервисов (healthcheck samba-node и web)
+# 6. Предоставляет интерактивное меню команд (logs, status, restart, stop)
+# 7. При завершении (Enter, stop, q или Ctrl+C) полностью останавливает compose,
 #    удаляет контейнеры, сети, вольюмы (samba-shares, samba-config)
 #    и локальный образ web-приложения (samba-web-ui-web:latest),
 #    гарантируя чистое состояние перед следующим запуском.
@@ -72,7 +74,7 @@ while true; do
     DEPLOY_MODE="${DEPLOY_MODE:-2}"
     case "$DEPLOY_MODE" in
         1)
-            SKIP_TESTS=""
+            SKIP_TESTS="false"
             echo ""
             echo ">>> Режим: ПОЛНЫЙ ПРОГОН (с тестами)"
             break
@@ -91,6 +93,19 @@ done
 
 echo "Рабочая директория: $PROJECT_ROOT"
 echo ""
+
+# Проверка наличия собранного фронтенда
+if [ ! -d "$PROJECT_ROOT/frontend/dist" ] || [ -z "$(ls -A "$PROJECT_ROOT/frontend/dist" 2>/dev/null)" ]; then
+    echo ">>> Сборка фронтенда на хосте (frontend/dist отсутствует)..."
+    if [ -x "$PROJECT_ROOT/frontend/node/npm" ]; then
+        (cd "$PROJECT_ROOT/frontend" && ./node/npm run build)
+    elif command -v npm >/dev/null 2>&1; then
+        (cd "$PROJECT_ROOT/frontend" && npm run build)
+    else
+        echo ">>> Запуск Maven для генерации фронтенда..."
+        ./mvnw generate-resources -DskipTests
+    fi
+fi
 
 CLEANED_UP=0
 
@@ -112,7 +127,7 @@ cleanup() {
     # Дополнительная явная очистка именованных вольюмов Samba Sandbox
     docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
 
-    # Дополнительное удаление образа веб-приложения по тегам/именам (на случай кастомного префикса проекта)
+    # Дополнительное удаление образа веб-приложения по тегам/именам
     docker rmi -f samba-web-ui-web:latest samba-web-ui_web:latest >/dev/null 2>&1 || true
 
     echo "=========================================================="
@@ -130,19 +145,17 @@ $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
 docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
 docker rmi -f samba-web-ui-web:latest samba-web-ui_web:latest >/dev/null 2>&1 || true
 
-# 2. Запуск контейнеров (samba-node скачивается с Docker Hub, web собирается заново)
-if [ "$SKIP_TESTS" = "true" ]; then
-    echo ">>> Сборка web-приложения БЕЗ тестов (--build-arg SKIP_TESTS=true)..."
-    $COMPOSE_CMD build --build-arg SKIP_TESTS=true web
-else
-    echo ">>> Сборка web-приложения С тестами..."
-    $COMPOSE_CMD build web
-fi
+# 2. Сборка Docker-образа web-приложения с использованием сети хоста
+echo ">>> Сборка образа web (network: host, SKIP_TESTS=$SKIP_TESTS)..."
+docker build --network host \
+    --build-arg SKIP_TESTS="$SKIP_TESTS" \
+    -t samba-web-ui-web:latest .
 
+# 3. Запуск служб
 echo ">>> Запуск служб ($COMPOSE_CMD up -d)..."
 $COMPOSE_CMD up -d
 
-# 3. Ожидание готовности контейнеров
+# 4. Ожидание готовности контейнеров
 echo ">>> Ожидание готовности samba-node (проверка healthcheck)..."
 MAX_WAIT=60
 WAIT_COUNT=0
@@ -181,7 +194,7 @@ echo "  - Samba (SMB):  \\\\localhost:1445\\public              "
 echo "=========================================================="
 echo ""
 
-# 4. Интерактивный цикл ожидания команды
+# 5. Интерактивный цикл ожидания команды
 print_help() {
     echo "Доступные команды:"
     echo "  stop, q, exit, Enter  - Остановить и полностью очистить (контейнеры, вольюмы, сети, образ web)"

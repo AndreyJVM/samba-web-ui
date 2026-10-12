@@ -1,16 +1,11 @@
 # ==========================================
-# Stage 1: Build the Application
+# Stage 1: Build Application JAR (Maven)
 # ==========================================
 FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /app
 
 # Build argument to skip tests (default: false)
 ARG SKIP_TESTS=false
-
-# Install Node.js & npm (required by frontend-maven-plugin fallback)
-RUN apt-get update && apt-get install -y curl && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs
 
 # Copy Maven wrapper & project config
 COPY mvnw ./
@@ -21,17 +16,19 @@ COPY pom.xml ./
 RUN chmod +x mvnw
 
 # Download dependencies (cache layer)
-RUN ./mvnw dependency:go-offline -B -DskipTests
+RUN ./mvnw dependency:go-offline -B -DskipTests -Dfrontend.skip=true
 
-# Copy source code and build the JAR
+# Copy source code and pre-built frontend assets
 COPY src ./src
 COPY frontend ./frontend
+
+# Build the JAR (uses pre-built frontend/dist via maven-resources-plugin)
 RUN if [ "$SKIP_TESTS" = "true" ]; then \
         echo ">>> Сборка БЕЗ тестов (-DskipTests)" && \
-        ./mvnw clean package -DskipTests; \
+        ./mvnw clean package -DskipTests -Dfrontend.skip=true; \
     else \
         echo ">>> Сборка С тестами" && \
-        ./mvnw clean package; \
+        ./mvnw clean package -Dfrontend.skip=true; \
     fi
 
 # ==========================================
@@ -39,9 +36,6 @@ RUN if [ "$SKIP_TESTS" = "true" ]; then \
 # ==========================================
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-
-# The Web UI container does not need internal Samba or SSH server.
-# It only serves the Spring Boot application (which connects to the target Samba node via SSH)
 
 # Copy Spring Boot App from Builder
 COPY --from=build /app/target/samba-web-ui-*.jar /app/samba-web-ui.jar

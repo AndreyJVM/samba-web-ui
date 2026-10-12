@@ -8,6 +8,7 @@
 
 services:
   web:
+    image: samba-web-ui-web:latest
     build:
       context: .
       dockerfile: Dockerfile

@@ -7,10 +7,9 @@
 !src
 !frontend
 
-# Внутри frontend всё это пересоздаётся при сборке в образе
+# Внутри frontend не копировать локальные артефакты
 frontend/node_modules
 frontend/node
-frontend/dist
 frontend/*.tsbuildinfo
 !docker
 !scripts
