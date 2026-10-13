@@ -93,4 +93,19 @@ class LinuxCommandsTest {
         assertThrows(SecurityException.class, () -> LinuxCommands.addUserToGroup("bad;user", "smb_developers"));
         assertThrows(SecurityException.class, () -> LinuxCommands.removeUserFromGroup("john", "bad;grp"));
     }
+
+    @Test
+    void testChownRecursive_ValidatesProfiles() {
+        assertEquals(
+                "sudo chown -R 'sambauser' -- '/mnt/share'", LinuxCommands.chownRecursive("sambauser", "/mnt/share"));
+        assertEquals(
+                "sudo chown -R 'sambauser:sambagroup' -- '/mnt/share'",
+                LinuxCommands.chownRecursive("sambauser:sambagroup", "/mnt/share"));
+        assertEquals(
+                "sudo chown -R ':sambagroup' -- '/mnt/share'",
+                LinuxCommands.chownRecursive(":sambagroup", "/mnt/share"));
+
+        assertThrows(SecurityException.class, () -> LinuxCommands.chownRecursive("bad user; rm -rf /", "/mnt/share"));
+        assertThrows(SecurityException.class, () -> LinuxCommands.chownRecursive("sambauser", "/mnt/../etc"));
+    }
 }

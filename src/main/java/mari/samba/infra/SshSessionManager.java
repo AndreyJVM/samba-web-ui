@@ -45,8 +45,20 @@ public class SshSessionManager implements CommandExecutor {
 
     public void createSession(String sessionId, ConnectionRequestDto request) throws Exception {
         JSch jsch = new JSch();
+        if (request.isKeyAuth()) {
+            if (request.getPrivateKey() != null && !request.getPrivateKey().isBlank()) {
+                byte[] prvkey = request.getPrivateKey().getBytes(StandardCharsets.UTF_8);
+                byte[] passphrase = (request.getPassphrase() != null
+                                && !request.getPassphrase().isBlank())
+                        ? request.getPassphrase().getBytes(StandardCharsets.UTF_8)
+                        : null;
+                jsch.addIdentity("key-" + sessionId, prvkey, null, passphrase);
+            }
+        }
         Session session = jsch.getSession(request.getUsername(), request.getHost(), request.getPort());
-        session.setPassword(request.getPassword());
+        if (!request.isKeyAuth()) {
+            session.setPassword(request.getPassword());
+        }
         session.setConfig("StrictHostKeyChecking", "no");
         session.connect((int) getConnectTimeout().toMillis());
         sessions.put(sessionId, session);
@@ -126,16 +138,7 @@ public class SshSessionManager implements CommandExecutor {
                 byte[] buffer = new byte[1024];
 
                 while (!channel.isClosed()) {
-                    while (stdout.available() > 0) {
-                        int read = stdout.read(buffer, 0, buffer.length);
-                        if (read < 0) break;
-                        stdoutStream.write(buffer, 0, read);
-                    }
-                    while (stderr.available() > 0) {
-                        int read = stderr.read(buffer, 0, buffer.length);
-                        if (read < 0) break;
-                        stderrStream.write(buffer, 0, read);
-                    }
+                    drainStreams(stdout, stderr, stdoutStream, stderrStream, buffer);
                     if (System.currentTimeMillis() > deadline) {
                         channel.disconnect();
                         throw new SambaCommandException(
@@ -144,16 +147,7 @@ public class SshSessionManager implements CommandExecutor {
                     Thread.sleep(50);
                 }
 
-                while (stdout.available() > 0) {
-                    int read = stdout.read(buffer, 0, buffer.length);
-                    if (read < 0) break;
-                    stdoutStream.write(buffer, 0, read);
-                }
-                while (stderr.available() > 0) {
-                    int read = stderr.read(buffer, 0, buffer.length);
-                    if (read < 0) break;
-                    stderrStream.write(buffer, 0, read);
-                }
+                drainStreams(stdout, stderr, stdoutStream, stderrStream, buffer);
             }
 
             int exitStatus = channel.getExitStatus();
@@ -175,6 +169,29 @@ public class SshSessionManager implements CommandExecutor {
             if (channel != null && channel.isConnected()) {
                 channel.disconnect();
             }
+        }
+    }
+
+    private void drainStreams(
+            InputStream stdout,
+            InputStream stderr,
+            ByteArrayOutputStream stdoutStream,
+            ByteArrayOutputStream stderrStream,
+            byte[] buffer)
+            throws Exception {
+        while (stdout.available() > 0) {
+            int read = stdout.read(buffer, 0, buffer.length);
+            if (read < 0) {
+                break;
+            }
+            stdoutStream.write(buffer, 0, read);
+        }
+        while (stderr.available() > 0) {
+            int read = stderr.read(buffer, 0, buffer.length);
+            if (read < 0) {
+                break;
+            }
+            stderrStream.write(buffer, 0, read);
         }
     }
 }

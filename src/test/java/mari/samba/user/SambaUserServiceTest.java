@@ -66,6 +66,18 @@ class SambaUserServiceTest {
     }
 
     @Test
+    void createUser_ShouldRejectBlankOrNewlinePassword() {
+        assertThrows(
+                IllegalArgumentException.class, () -> sambaUserService.createUser(SESSION_ID, "user1", "", "User One"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> sambaUserService.createUser(SESSION_ID, "user1", "pass\ninjection", "User One"));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> sambaUserService.createUser(SESSION_ID, "user1", "pass\rinjection", "User One"));
+    }
+
+    @Test
     void deleteUser_ShouldHandleExceptionsGracefullyForSambaAndKillSystemUser() throws Exception {
         String username = "olduser";
 
@@ -91,5 +103,13 @@ class SambaUserServiceTest {
                         eq(SESSION_ID),
                         eq(LinuxCommands.changeSambaPassword(username)),
                         eq("newpassword!\nnewpassword!\n"));
+    }
+
+    @Test
+    void changePassword_ShouldRejectBlankOrNewlinePassword() {
+        assertThrows(IllegalArgumentException.class, () -> sambaUserService.changePassword(SESSION_ID, "bob", "   "));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> sambaUserService.changePassword(SESSION_ID, "bob", "pass\nattack"));
     }
 }

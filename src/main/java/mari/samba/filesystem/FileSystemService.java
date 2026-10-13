@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import mari.samba.config.SambaProperties;
 import mari.samba.infra.CommandExecutor;
@@ -245,6 +246,6 @@ public class FileSystemService {
         if (bytes < 1024) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(1024));
         String pre = "KMGTPE".charAt(exp - 1) + "";
-        return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
+        return String.format(Locale.US, "%.1f %sB", bytes / Math.pow(1024, exp), pre);
     }
 }

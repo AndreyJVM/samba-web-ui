@@ -123,7 +123,7 @@ public final class LinuxCommands {
     }
 
     public static String chownRecursive(String owner, String path) {
-        if (!owner.matches("^[a-z_][a-z0-9_.-]*(:[a-z_][a-z0-9_.-]*)?$")) {
+        if (!owner.matches("^([a-z_][a-z0-9_.-]*(:[a-z_][a-z0-9_.-]*)?|:[a-z_][a-z0-9_.-]+)$")) {
             throw new SecurityException("Invalid chown owner profile.");
         }
         return String.format("sudo chown -R %s -- %s", escape(owner), escape(requireValidPath(path)));

@@ -122,6 +122,12 @@ public class SambaUserService {
      * @param fullName an optional full descriptive name (mapped to GECOS field)
      */
     public void createUser(String sessionId, String username, String password, String fullName) {
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("Password cannot be empty.");
+        }
+        if (password.contains("\n") || password.contains("\r")) {
+            throw new IllegalArgumentException("Password cannot contain newline characters.");
+        }
         requireNonSystemUser(username);
         String cleanUsername = username.trim();
         String cleanPassword = password.trim();
@@ -165,12 +171,22 @@ public class SambaUserService {
      * @param newPassword the new plaintext password to enforce
      */
     public void changePassword(String sessionId, String username, String newPassword) {
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("Password cannot be empty.");
+        }
+        if (newPassword.contains("\n") || newPassword.contains("\r")) {
+            throw new IllegalArgumentException("Password cannot contain newline characters.");
+        }
         requireNonSystemUser(username);
-        log.info("Rotating password for user '{}'", username);
-        commandExecutor.execute(sessionId, LinuxCommands.chpasswd(), username + ":" + newPassword + "\n");
+        String cleanUsername = username.trim();
+        String cleanPassword = newPassword.trim();
+        log.info("Rotating password for user '{}'", cleanUsername);
+        commandExecutor.execute(sessionId, LinuxCommands.chpasswd(), cleanUsername + ":" + cleanPassword + "\n");
         commandExecutor.execute(
-                sessionId, LinuxCommands.changeSambaPassword(username), newPassword + "\n" + newPassword + "\n");
-        log.info("Successfully rotated password for user '{}'", username);
+                sessionId,
+                LinuxCommands.changeSambaPassword(cleanUsername),
+                cleanPassword + "\n" + cleanPassword + "\n");
+        log.info("Successfully rotated password for user '{}'", cleanUsername);
     }
 
     /**

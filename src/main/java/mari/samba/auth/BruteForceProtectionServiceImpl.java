@@ -26,12 +26,10 @@ public class BruteForceProtectionServiceImpl implements BruteForceProtectionServ
 
     @Override
     public void registerFailedLogin(@NonNull String ipAddress, @NonNull String username) {
-        Integer ipAttempts = ipAttemptsCache.getIfPresent(ipAddress);
-        ipAttemptsCache.put(ipAddress, (ipAttempts != null ? ipAttempts : 0) + 1);
+        ipAttemptsCache.asMap().merge(ipAddress, 1, Integer::sum);
 
         if (username != null && !username.isBlank()) {
-            Integer userAttempts = userAttemptsCache.getIfPresent(username);
-            userAttemptsCache.put(username, (userAttempts != null ? userAttempts : 0) + 1);
+            userAttemptsCache.asMap().merge(username, 1, Integer::sum);
         }
     }
 
