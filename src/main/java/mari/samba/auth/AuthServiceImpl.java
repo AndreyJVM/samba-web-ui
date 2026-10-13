@@ -8,6 +8,7 @@ import mari.samba.infra.SshSessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,7 +22,8 @@ public class AuthServiceImpl implements AuthService {
     private final SshSessionManager sessionManager;
     private final BruteForceProtectionService bruteForceService;
 
-    public AuthServiceImpl(SshSessionManager sessionManager, BruteForceProtectionService bruteForceService) {
+    public AuthServiceImpl(
+            @NonNull SshSessionManager sessionManager, @NonNull BruteForceProtectionService bruteForceService) {
         this.sessionManager = sessionManager;
         this.bruteForceService = bruteForceService;
     }
@@ -38,6 +40,11 @@ public class AuthServiceImpl implements AuthService {
         if (!request.isKeyAuth()
                 && (request.getPassword() == null || request.getPassword().isBlank())) {
             throw new IllegalArgumentException("Password is required when not using key authentication.");
+        }
+
+        if (request.isKeyAuth()
+                && (request.getPrivateKey() == null || request.getPrivateKey().isBlank())) {
+            throw new IllegalArgumentException("Private key is required when using key authentication.");
         }
 
         try {
@@ -65,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(String sessionId) {
+    public void logout(@Nullable String sessionId) {
         if (sessionId != null) {
             sessionManager.disconnect(sessionId);
         }
@@ -73,7 +80,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Map<String, String> getCurrentUserInfo(String sambaHost, String sambaUser) {
+    @NonNull
+    public Map<String, String> getCurrentUserInfo(@Nullable String sambaHost, @Nullable String sambaUser) {
         Map<String, String> userInfo = new HashMap<>(2);
         userInfo.put("host", sambaHost != null ? sambaHost : "Not connected");
         userInfo.put("user", sambaUser != null ? sambaUser : "Unknown");

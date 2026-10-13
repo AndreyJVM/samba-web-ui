@@ -1,12 +1,16 @@
 package mari.samba.auth;
 
 import java.util.Map;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 public interface AuthService {
 
-    void login(String sessionId, ConnectionRequestDto request, String clientIp) throws Exception;
+    void login(@NonNull String sessionId, @NonNull ConnectionRequestDto request, @NonNull String clientIp)
+            throws Exception;
 
-    void logout(String sessionId);
+    void logout(@Nullable String sessionId);
 
-    Map<String, String> getCurrentUserInfo(String sambaHost, String sambaUser);
+    @NonNull
+    Map<String, String> getCurrentUserInfo(@Nullable String sambaHost, @Nullable String sambaUser);
 }

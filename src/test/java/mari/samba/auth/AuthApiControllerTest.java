@@ -74,6 +74,20 @@ class AuthApiControllerTest {
     }
 
     @Test
+    void testConnect_MissingPrivateKeyForKeyAuth_ShouldReturnBadRequest() throws Exception {
+        ConnectionRequestDto dto = new ConnectionRequestDto("192.168.1.100", 22, "root", "key", null, null, null);
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Private key is required when using key authentication."));
+
+        verifyNoInteractions(sessionManager);
+    }
+
+    @Test
     void testGetCurrentUser() throws Exception {
         mockMvc.perform(get("/api/auth/me")
                         .sessionAttr("sambaHost", "192.168.1.100")
