@@ -103,7 +103,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen flex text-foreground bg-background font-sans selection:bg-accent/20 selection:text-foreground">
+    <div className="min-h-screen flex text-foreground bg-bg font-sans selection:bg-accent selection:text-on-accent">
       <aside className="w-[250px] bg-surface flex-col hidden md:flex border-r border-border shrink-0 z-20">
         <div className="h-16 px-5 flex items-center justify-between border-b border-border shrink-0">
           <div className="flex items-center gap-2.5 font-semibold text-[16px] tracking-wide">
@@ -190,12 +190,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-sm py-2.5 px-3 font-medium border border-transparent hover:border-border"
           >
-            <LogOut className="w-[18px] h-[18px]" /> {t("sidebar.logout")}
+            <LogOut className="w-[18px] h-[18px] text-text-muted" /> {t("sidebar.logout")}
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 bg-background relative overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 bg-bg relative overflow-hidden">
         {/* Mobile Header */}
         <div className="h-16 border-b border-border bg-surface px-5 sm:px-6 flex items-center justify-between md:hidden shrink-0">
            <div className="font-semibold text-base flex items-center gap-2.5">

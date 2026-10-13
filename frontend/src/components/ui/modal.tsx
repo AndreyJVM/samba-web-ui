@@ -29,7 +29,7 @@ export function Modal({ isOpen, onClose, title, description, children, maxWidth 
       style={{ zIndex }}
     >
       <div 
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-bg/80 backdrop-blur-sm transition-opacity" 
         onClick={onClose} 
       />
       <div 

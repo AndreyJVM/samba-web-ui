@@ -148,7 +148,7 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
         {/* Content List */}
         <div className="flex-1 overflow-y-auto bg-surface relative custom-scrollbar min-h-[300px]">
            {loading ? (
-             <div className="absolute inset-0 flex justify-center items-center backdrop-blur-[1px] bg-background/20 z-10">
+             <div className="absolute inset-0 flex justify-center items-center backdrop-blur-[1px] bg-bg/20 z-10">
                <div className="w-5 h-5 border-2 border-border border-t-foreground rounded-full animate-spin"></div>
              </div>
            ) : null}
