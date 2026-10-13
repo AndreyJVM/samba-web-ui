@@ -23,7 +23,7 @@ public class AdApiController {
      *
      * @param adService the service responsible for Active Directory operations
      */
-    public AdApiController(AdIntegrationService adService) {
+    public AdApiController(@NonNull AdIntegrationService adService) {
         this.adService = adService;
     }
 
@@ -35,9 +35,7 @@ public class AdApiController {
      */
     @GetMapping("/status")
     public ApiResponse<AdStatusDto> getStatus(@NonNull HttpSession session) {
-        String sessionId = session.getId();
-        AdStatusDto status = adService.getStatus(sessionId);
-        return ApiResponse.ok(status);
+        return ApiResponse.ok(adService.getStatus(session.getId()));
     }
 
     /**
@@ -49,9 +47,8 @@ public class AdApiController {
      */
     @PostMapping("/join")
     public ApiResponse<AdStatusDto> joinDomain(
-            @NonNull HttpSession session, @Valid @RequestBody AdJoinRequestDto request) {
-        String sessionId = session.getId();
-        AdStatusDto status = adService.joinDomain(sessionId, request);
+            @NonNull HttpSession session, @NonNull @Valid @RequestBody AdJoinRequestDto request) {
+        AdStatusDto status = adService.joinDomain(session.getId(), request);
         return ApiResponse.ok("Successfully joined domain", status);
     }
 
@@ -64,9 +61,8 @@ public class AdApiController {
      */
     @PostMapping("/leave")
     public ApiResponse<AdStatusDto> leaveDomain(
-            @NonNull HttpSession session, @Valid @RequestBody AdJoinRequestDto request) {
-        String sessionId = session.getId();
-        AdStatusDto status = adService.leaveDomain(sessionId, request);
+            @NonNull HttpSession session, @NonNull @Valid @RequestBody AdJoinRequestDto request) {
+        AdStatusDto status = adService.leaveDomain(session.getId(), request);
         return ApiResponse.ok("Successfully left domain", status);
     }
 }
