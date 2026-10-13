@@ -9,14 +9,17 @@
 # 3. Собирает Docker образ web-приложения (--network host для надёжности)
 # 4. Запускает окружение (docker compose up -d)
 # 5. Ожидает готовности сервисов (healthcheck samba-node и web)
-# 6. Предоставляет интерактивное меню команд (logs, status, restart, stop)
+# 6. Предоставляет интерактивное меню команд:
+#    - b / build / fast : быстрая частичная пересборка (обновление кода/кнопки без сброса данных)
+#    - bf / build-full  : полная пересборка с нуля (удаление контейнеров, томов и --no-cache)
+#    - restart / logs / status / stop
 # 7. При завершении (Enter, stop, q или Ctrl+C) полностью останавливает compose,
 #    удаляет контейнеры, сети, вольюмы (samba-shares, samba-config)
 #    и локальный образ web-приложения (samba-web-ui-web:latest),
 #    гарантируя чистое состояние перед следующим запуском.
 # ==============================================================================
 
-set -e pipefail
+set -eo pipefail
 
 # Определение директории проекта (где лежит docker-compose.yml)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -94,18 +97,131 @@ done
 echo "Рабочая директория: $PROJECT_ROOT"
 echo ""
 
-# Проверка наличия собранного фронтенда
-if [ ! -d "$PROJECT_ROOT/frontend/dist" ] || [ -z "$(ls -A "$PROJECT_ROOT/frontend/dist" 2>/dev/null)" ]; then
-    echo ">>> Сборка фронтенда на хосте (frontend/dist отсутствует)..."
+# Сборка фронтенда на хосте
+build_frontend() {
+    echo ">>> Сборка фронтенда на хосте..."
+    local ok=0
     if [ -x "$PROJECT_ROOT/frontend/node/npm" ]; then
-        (cd "$PROJECT_ROOT/frontend" && ./node/npm run build)
+        (cd "$PROJECT_ROOT/frontend" && ./node/npm run build) && ok=1
     elif command -v npm >/dev/null 2>&1; then
-        (cd "$PROJECT_ROOT/frontend" && npm run build)
+        (cd "$PROJECT_ROOT/frontend" && npm run build) && ok=1
     else
         echo ">>> Запуск Maven для генерации фронтенда..."
-        ./mvnw generate-resources -DskipTests
+        ./mvnw generate-resources -DskipTests && ok=1
     fi
-fi
+    if [ "$ok" -ne 1 ]; then
+        echo "Ошибка: не удалось собрать frontend!" >&2
+        return 1
+    fi
+    return 0
+}
+
+# Ожидание готовности samba-node
+wait_for_node() {
+    echo ">>> Ожидание готовности samba-node (проверка healthcheck)..."
+    local MAX_WAIT=60
+    local WAIT_COUNT=0
+    while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
+        NODE_STATUS=$(docker inspect --format='{{json .State.Health.Status}}' samba-node-sandbox 2>/dev/null || echo "\"starting\"")
+        if [ "$NODE_STATUS" = "\"healthy\"" ]; then
+            echo ""
+            echo ">>> samba-node-sandbox успешно запущен и готов к работе!"
+            return 0
+        fi
+        sleep 2
+        WAIT_COUNT=$((WAIT_COUNT + 2))
+        printf "."
+    done
+    echo ""
+    echo "Предупреждение: samba-node-sandbox не перешел в статус healthy за $MAX_WAIT сек."
+    return 0
+}
+
+# Информационный баннер подключения
+print_banner() {
+    echo ""
+    echo "=========================================================="
+    echo "  Docker Sandbox успешно запущен!                         "
+    echo "=========================================================="
+    if [ "$SKIP_TESTS" = "true" ]; then
+        echo "  Режим:          Быстрый запуск (тесты пропущены)      "
+    else
+        echo "  Режим:          Полный прогон (тесты выполнены)        "
+    fi
+    echo "  - Web UI:       http://localhost:8080/ui                "
+    echo "  ------------------------------------------------------  "
+    echo "  Параметры для входа в Web UI:                           "
+    echo "  - Host (IP):    samba-node                              "
+    echo "  - SSH Port:     22                                      "
+    echo "  - Username:     admin                                   "
+    echo "  - Password:     admin                                   "
+    echo "  ------------------------------------------------------  "
+    echo "  Прямой доступ с локального хоста (Windows/Mac/Linux):   "
+    echo "  - SSH:          ssh admin@localhost -p 2222             "
+    echo "  - Samba (SMB):  \\\\localhost:1445\\public              "
+    echo "=========================================================="
+    echo ""
+}
+
+# Быстрая / частичная пересборка (обновление кода/кнопки без потери данных)
+rebuild_fast() {
+    echo ""
+    echo "=========================================================="
+    echo "  [БЫСТРАЯ ПЕРЕСБОРКА] Обновление изменений проекта...   "
+    echo "=========================================================="
+    if ! build_frontend; then
+        echo ">>> Ошибка при сборке фронтенда. Пересборка отменена."
+        return 1
+    fi
+
+    echo ">>> Сборка Docker-образа web (используя кэш слоев, без тестов)..."
+    if ! docker build --network host \
+        --build-arg SKIP_TESTS="true" \
+        -t samba-web-ui-web:latest .; then
+        echo ">>> Ошибка при сборке Docker-образа! Контейнер не обновлен."
+        return 1
+    fi
+
+    echo ">>> Пересоздание контейнера web (samba-node и тома сохраняются)..."
+    $COMPOSE_CMD up -d --no-deps web
+
+    echo ""
+    echo ">>> [ГОТОВО] Контейнер web успешно обновлен и запущен!"
+    echo ">>> Web UI доступен: http://localhost:8080/ui"
+    echo ""
+}
+
+# Полная пересборка с удалением всего
+rebuild_full() {
+    echo ""
+    echo "=========================================================="
+    echo "  [ПОЛНАЯ ПЕРЕСБОРКА] Очистка всех ресурсов и пересборка "
+    echo "=========================================================="
+    echo ">>> Остановка сервисов, удаление контейнеров, сетей, вольюмов и образов..."
+    $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
+    docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
+    docker rmi -f samba-web-ui-web:latest samba-web-ui_web:latest >/dev/null 2>&1 || true
+    rm -rf "$PROJECT_ROOT/frontend/dist"
+
+    if ! build_frontend; then
+        echo ">>> Ошибка при сборке фронтенда. Полная пересборка прервана."
+        return 1
+    fi
+
+    echo ">>> Сборка Docker-образа web с чистого листа (--no-cache, SKIP_TESTS=$SKIP_TESTS)..."
+    if ! docker build --no-cache --network host \
+        --build-arg SKIP_TESTS="$SKIP_TESTS" \
+        -t samba-web-ui-web:latest .; then
+        echo ">>> Ошибка при сборке Docker-образа!"
+        return 1
+    fi
+
+    echo ">>> Запуск всех служб ($COMPOSE_CMD up -d)..."
+    $COMPOSE_CMD up -d
+
+    wait_for_node
+    print_banner
+}
 
 CLEANED_UP=0
 
@@ -122,7 +238,7 @@ cleanup() {
     echo "=========================================================="
 
     # Останавливаем сервисы, удаляем контейнеры, сети, вольюмы и локально собранный образ web
-    $COMPOSE_CMD down -v --rmi local --remove-orphans
+    $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
 
     # Дополнительная явная очистка именованных вольюмов Samba Sandbox
     docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
@@ -145,7 +261,12 @@ $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
 docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
 docker rmi -f samba-web-ui-web:latest samba-web-ui_web:latest >/dev/null 2>&1 || true
 
-# 2. Сборка Docker-образа web-приложения с использованием сети хоста
+# Проверка наличия собранного фронтенда
+if [ ! -d "$PROJECT_ROOT/frontend/dist" ] || [ -z "$(ls -A "$PROJECT_ROOT/frontend/dist" 2>/dev/null)" ]; then
+    build_frontend
+fi
+
+# 2. Первоначальная сборка Docker-образа web
 echo ">>> Сборка образа web (network: host, SKIP_TESTS=$SKIP_TESTS)..."
 docker build --network host \
     --build-arg SKIP_TESTS="$SKIP_TESTS" \
@@ -156,52 +277,19 @@ echo ">>> Запуск служб ($COMPOSE_CMD up -d)..."
 $COMPOSE_CMD up -d
 
 # 4. Ожидание готовности контейнеров
-echo ">>> Ожидание готовности samba-node (проверка healthcheck)..."
-MAX_WAIT=60
-WAIT_COUNT=0
-while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
-    NODE_STATUS=$(docker inspect --format='{{json .State.Health.Status}}' samba-node-sandbox 2>/dev/null || echo "\"starting\"")
-    if [ "$NODE_STATUS" = "\"healthy\"" ]; then
-        echo ">>> samba-node-sandbox успешно запущен и готов к работе!"
-        break
-    fi
-    sleep 2
-    WAIT_COUNT=$((WAIT_COUNT + 2))
-    printf "."
-done
-echo ""
-
-echo ""
-echo "=========================================================="
-echo "  Docker Sandbox успешно запущен!                         "
-echo "=========================================================="
-if [ "$SKIP_TESTS" = "true" ]; then
-    echo "  Режим:          Быстрый запуск (тесты пропущены)      "
-else
-    echo "  Режим:          Полный прогон (тесты выполнены)        "
-fi
-echo "  - Web UI:       http://localhost:8080/ui                "
-echo "  ------------------------------------------------------  "
-echo "  Параметры для входа в Web UI:                           "
-echo "  - Host (IP):    samba-node                              "
-echo "  - SSH Port:     22                                      "
-echo "  - Username:     admin                                   "
-echo "  - Password:     admin                                   "
-echo "  ------------------------------------------------------  "
-echo "  Прямой доступ с локального хоста (Windows/Mac/Linux):   "
-echo "  - SSH:          ssh admin@localhost -p 2222             "
-echo "  - Samba (SMB):  \\\\localhost:1445\\public              "
-echo "=========================================================="
-echo ""
+wait_for_node
+print_banner
 
 # 5. Интерактивный цикл ожидания команды
 print_help() {
     echo "Доступные команды:"
-    echo "  stop, q, exit, Enter  - Остановить и полностью очистить (контейнеры, вольюмы, сети, образ web)"
+    echo "  build, b, fast        - Быстрая/частичная пересборка (обновить frontend/код без сброса samba-node и томов)"
+    echo "  build-full, bf        - Полная пересборка с нуля (удаление всех контейнеров, томов и сборка с --no-cache)"
+    echo "  restart, r            - Перезапустить контейнеры без пересборки"
     echo "  logs, l               - Просмотр логов в реальном времени (выйти из логов: Ctrl+C)"
     echo "  status, s, ps         - Показать статус контейнеров"
-    echo "  restart, r            - Перезапустить контейнеры"
     echo "  help, h               - Показать эту справку"
+    echo "  stop, q, exit, Enter  - Остановить и полностью очистить (контейнеры, вольюмы, сети, образ web)"
 }
 
 print_help
@@ -213,6 +301,12 @@ while true; do
         stop|q|quit|exit|"")
             echo "Получена команда на остановку..."
             break
+            ;;
+        build|b|fast|rebuild)
+            rebuild_fast || true
+            ;;
+        build-full|bf|clean-build|rebuild-full)
+            rebuild_full || true
             ;;
         logs|l)
             echo "Подключение к логам (для возврата в меню нажмите Ctrl+C)..."
@@ -234,7 +328,7 @@ while true; do
             print_help
             ;;
         *)
-            echo "Неизвестная команда: '$cmd'. Нажмите Enter или введите 'stop' для выхода."
+            echo "Неизвестная команда: '$cmd'. Введите 'help' для списка доступных команд."
             ;;
     esac
 done
