@@ -73,6 +73,20 @@ class FileSystemApiControllerTest {
     }
 
     @Test
+    void testMakeDirectoryBodyWithNameAlias_ShouldReturnSuccess() throws Exception {
+        String jsonPayload = "{\"parentPath\":\"/srv/samba\",\"name\":\"aliasfolder\"}";
+
+        mockMvc.perform(post("/api/fs/mkdir")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").isNotEmpty());
+
+        verify(fileSystemService).createDirectory(anyString(), eq("/srv/samba"), eq("aliasfolder"));
+    }
+
+    @Test
     void testGetDiskUsage_ShouldReturnUsage() throws Exception {
         DiskUsageDto dto = new DiskUsageDto("/", "100G", "50G", "50G", 50, "/");
         when(fileSystemService.getDiskUsage(anyString(), anyString())).thenReturn(dto);

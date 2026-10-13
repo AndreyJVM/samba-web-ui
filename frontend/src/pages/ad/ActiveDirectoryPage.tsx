@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useToast } from '../../components/ui/toast';
 import { useConfirm } from '../../components/ui/confirm';
@@ -207,13 +208,25 @@ export default function ActiveDirectoryPage() {
       </div>
       
       {/* ID Mapping Visualization */}
-      <div className="bg-surface border border-border rounded-lg p-5 border-l-4 border-l-accent">
-         <h2 className="text-lg font-semibold flex items-center gap-2 mb-2">
-            <Users className="w-5 h-5 text-accent-text" /> {t('ad.idmapTitle')}
-         </h2>
-         <p className="text-sm text-text-muted flex items-center gap-1.5">
-           {t('ad.idmapDesc')} <span className="text-foreground font-semibold px-2 py-0.5 bg-surface-2 border border-border rounded">{t('ad.idmapTab')}</span> tab. Samba will automatically allocate Unix UIDs for AD Users based on those configured IDMAP rules.
-         </p>
+      <div className="bg-surface border border-border rounded-lg p-5 border-l-4 border-l-accent flex items-start gap-4">
+        <div className="p-2.5 rounded-lg bg-surface-2 border border-border shrink-0 text-accent-text">
+          <Users className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-base font-semibold mb-1 text-foreground">
+            {t('ad.idmapTitle')}
+          </h2>
+          <p className="text-sm text-text-muted leading-relaxed">
+            {t('ad.idmapDesc')}{' '}
+            <Link
+              to="/config"
+              className="inline-flex items-center text-foreground font-semibold px-2 py-0.5 bg-surface-2 hover:bg-surface-tint border border-border hover:border-accent/40 rounded text-xs transition-colors align-middle mx-1"
+            >
+              {t('ad.idmapTab')}
+            </Link>
+            {t('ad.idmapDescPart2').startsWith('.') ? t('ad.idmapDescPart2') : ' ' + t('ad.idmapDescPart2')}
+          </p>
+        </div>
       </div>
 
     </div>

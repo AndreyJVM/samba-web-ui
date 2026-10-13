@@ -62,7 +62,7 @@ export function FileManager() {
 
   const createDir = async (name: string, path: string, side: 'left' | 'right') => {
     try {
-      await api.post("/api/fs/mkdir", { parentPath: path, name });
+      await api.post("/api/fs/mkdir", { parentPath: path, name, dirName: name });
       fetchPane(path, side);
     } catch (err: any) {
       toastError("Error", err.message);

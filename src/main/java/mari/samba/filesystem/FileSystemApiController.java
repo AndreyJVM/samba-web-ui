@@ -111,6 +111,7 @@ public class FileSystemApiController {
      * @param parentPathParam the parent folder where the new folder will reside (RequestParam
      *     fallback)
      * @param nameParam the exact localized name of the new folder (RequestParam fallback)
+     * @param dirNameParam optional alias for localized directory name
      * @param bodyDto the structured request body payload containing creation info
      * @return an {@link ApiResponse} representing operation success
      * @throws IllegalArgumentException if both payload mechanisms failed to define path and name
@@ -120,10 +121,11 @@ public class FileSystemApiController {
             @NonNull HttpSession session,
             @RequestParam(value = "parentPath", required = false) String parentPathParam,
             @RequestParam(value = "name", required = false) String nameParam,
+            @RequestParam(value = "dirName", required = false) String dirNameParam,
             @Valid @RequestBody(required = false) CreateDirectoryDto bodyDto) {
         String sessionId = session.getId();
         String parent = bodyDto != null ? bodyDto.parentPath() : parentPathParam;
-        String name = bodyDto != null ? bodyDto.dirName() : nameParam;
+        String name = bodyDto != null ? bodyDto.dirName() : (nameParam != null ? nameParam : dirNameParam);
 
         if (parent == null || name == null) {
             throw new IllegalArgumentException("Parent path and directory name are required.");
