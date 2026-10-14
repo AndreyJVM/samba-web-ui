@@ -1,4 +1,4 @@
-site_name: Samba Web UI
+site_name: ShareGuard
 site_description: Современный веб-интерфейс для управления сервером Samba на Spring Boot и Linux
 site_author: Andrey Vorobev
 repo_url: https://github.com/andreyvorobevaqa/samba-web-ui
@@ -10,14 +10,14 @@ theme:
   palette:
     # Переключатель светлая/тёмная тема
     - scheme: default
-      primary: deep purple
-      accent: indigo
+      primary: black
+      accent: light green
       toggle:
         icon: material/brightness-7
-        name: Включить темную тему
+        name: Включить тёмную тему
     - scheme: slate
-      primary: deep purple
-      accent: indigo
+      primary: black
+      accent: light green
       toggle:
         icon: material/brightness-4
         name: Включить светлую тему

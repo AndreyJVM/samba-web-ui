@@ -30,6 +30,6 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: samba-web-ui-jar
-        path: target/samba-web-ui-*.jar
+        name: shareguard-jar
+        path: target/shareguard-*.jar
         retention-days: 7

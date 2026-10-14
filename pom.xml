@@ -11,8 +11,8 @@
     <groupId>mari</groupId>
     <artifactId>samba</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>samba-web-ui</name>
-    <description>Samba Web UI</description>
+    <name>ShareGuard</name>
+    <description>ShareGuard</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -86,7 +86,7 @@
     </dependencies>
 
     <build>
-        <finalName>samba-web-ui-${project.version}</finalName>
+        <finalName>shareguard-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

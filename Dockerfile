@@ -38,9 +38,9 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Copy Spring Boot App from Builder
-COPY --from=build /app/target/samba-web-ui-*.jar /app/samba-web-ui.jar
+COPY --from=build /app/target/shareguard-*.jar /app/shareguard.jar
 
 # Expose Web Interface port
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/app/samba-web-ui.jar"]
+ENTRYPOINT ["java", "-jar", "/app/shareguard.jar"]

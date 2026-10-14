@@ -45,9 +45,9 @@ export default {
         'on-accent': 'var(--on-accent)',
         inverse: 'var(--inverse)',
         brand: {
-          DEFAULT: 'var(--accent)',
-          hover: 'var(--accent)',
-          text: 'var(--on-accent)',
+          DEFAULT: 'var(--brand)',
+          hover: 'var(--brand-hover)',
+          text: 'var(--brand-text)',
         },
         status: {
           active: 'var(--status-active)',

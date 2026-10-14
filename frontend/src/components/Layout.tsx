@@ -106,11 +106,13 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     <div className="min-h-screen flex text-foreground bg-bg font-sans selection:bg-accent selection:text-on-accent">
       <aside className="w-[250px] bg-surface flex-col hidden md:flex border-r border-border shrink-0 z-20">
         <div className="h-16 px-5 flex items-center justify-between border-b border-border shrink-0">
-          <div className="flex items-center gap-2.5 font-semibold text-[16px] tracking-wide">
-            <div className="bg-accent text-on-accent p-1.5 rounded-md">
-              <Server className="w-5 h-5" />
-            </div>
-            <span>SAMBA<span className="opacity-50 font-bold ml-1 text-xs uppercase tracking-widest leading-none align-middle">ADM</span></span>
+          <div className="flex items-center gap-2.5 text-[16px] tracking-wide">
+            <img 
+              src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
+              alt="ShareGuard" 
+              className="h-7 w-auto shrink-0" 
+            />
+            <span className="font-normal text-foreground">Share<span className="font-bold">Guard</span></span>
           </div>
           <div className="flex items-center gap-1">
             <button onClick={toggleLang} className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-xs font-bold uppercase tracking-widest hidden sm:flex items-center gap-1">
@@ -198,9 +200,13 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       <main className="flex-1 flex flex-col min-w-0 bg-bg relative overflow-hidden">
         {/* Mobile Header */}
         <div className="h-16 border-b border-border bg-surface px-5 sm:px-6 flex items-center justify-between md:hidden shrink-0">
-           <div className="font-semibold text-base flex items-center gap-2.5">
-             <div className="bg-accent text-on-accent p-1.5 rounded-sm"><Server className="w-4 h-4" /></div>
-             SAMBA<span className="text-text-muted ml-1 text-xs uppercase font-bold">ADM</span>
+           <div className="text-base flex items-center gap-2.5">
+             <img 
+               src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
+               alt="ShareGuard" 
+               className="h-6 w-auto shrink-0" 
+             />
+             <span className="font-normal text-foreground">Share<span className="font-bold">Guard</span></span>
            </div>
            <button onClick={toggleLang} className="text-sm font-bold uppercase">{lang}</button>
         </div>

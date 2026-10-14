@@ -1,4 +1,8 @@
-# Samba Web UI
+# ShareGuard
+
+<p>
+  <img src="frontend/public/shareguard/logo-full-light.svg" alt="ShareGuard" height="64">
+</p>
 
 <p>
   <img src="https://img.shields.io/badge/Java-21-orange.svg" alt="Java 21">
@@ -8,7 +12,7 @@
   <img src="https://img.shields.io/badge/Docs-MkDocs%20Material-purple.svg" alt="Documentation">
 </p>
 
-**Samba Web UI** — это современная веб-панель управления файловыми серверами Samba на Linux. 
+**ShareGuard** — это современная веб-панель управления файловыми серверами Samba на Linux. 
 Позволяет системным администраторам централизованно управлять каталогами, учетными записями,
 правами доступа и глобальными параметрами `smb.conf` без установки агентов на сервер (Zero-Agent via SSH).
 

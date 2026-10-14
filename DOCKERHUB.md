@@ -1,6 +1,6 @@
-# Samba Web UI
+# ShareGuard
 
-Samba Web UI is a lightweight and modern web interface for managing Samba file shares, built with Java 21, Spring Boot, and Vue 3.
+ShareGuard is a lightweight and modern web interface for managing Samba file shares, built with Java 21, Spring Boot, and React.
 
 ## Quick Start
 

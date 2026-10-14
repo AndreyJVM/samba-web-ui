@@ -1,4 +1,4 @@
-# Docker Sandbox for Samba Web UI 🐳
+# Docker Sandbox for ShareGuard 🐳
 
 Эта директория содержит конфигурацию для запуска тестового окружения (Sandbox), чтобы разработчики могли проверять функциональность без установки Samba и SSH на свой рабочий компьютер (например, на Windows/Mac).
 
@@ -35,7 +35,7 @@ docker compose up --build -d
 
 ---
 
-## Авторизация в Samba Web UI
+## Авторизация в ShareGuard
 
 Откройте интерфейс в браузере: **`http://localhost:8080/ui`**
 

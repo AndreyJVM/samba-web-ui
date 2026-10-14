@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Server, Lock, Key, ArrowRight, AlertTriangle } from "lucide-react";
+import { Lock, Key, ArrowRight, AlertTriangle } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { api } from "../lib/api";
 
@@ -38,15 +38,19 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg px-4 py-12 relative overflow-hidden font-sans">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-accent/5 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-accent/5 blur-[120px] pointer-events-none"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#86efac]/10 blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#86efac]/10 blur-[120px] pointer-events-none"></div>
       
       <div className="w-full max-w-[440px] relative z-10">
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-accent rounded-2xl flex items-center justify-center mb-6 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
-            <Server className="w-8 h-8 text-on-accent" />
+          <div className="flex justify-center mb-6">
+            <img 
+              src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
+              alt="ShareGuard" 
+              className="h-16 w-auto" 
+            />
           </div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Samba Web UI</h1>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">ShareGuard</h1>
           <p className="text-text-muted mt-2 text-[15px]">Войдите для управления сервером</p>
         </div>
 
@@ -146,7 +150,7 @@ export default function LoginPage() {
             <button 
               disabled={loading} 
               type="submit" 
-              className="w-full bg-accent hover:opacity-90 text-on-accent font-semibold flex items-center justify-center gap-2 h-14 rounded-xl text-[15px] mt-6 transition-all disabled:opacity-70 group"
+              className="w-full bg-[#0a0a0a] hover:bg-black/85 text-white font-semibold flex items-center justify-center gap-2 h-14 rounded-xl text-[15px] mt-6 transition-all disabled:opacity-70 group border border-transparent dark:border-border"
             >
               {loading ? "Подключение..." : "Войти в систему"} {!loading && <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />}
             </button>
@@ -154,7 +158,7 @@ export default function LoginPage() {
         </div>
         
         <p className="text-center text-text-muted text-sm mt-8">
-          Samba Web UI &copy; {new Date().getFullYear()}
+          ShareGuard &copy; {new Date().getFullYear()}
         </p>
       </div>
     </div>

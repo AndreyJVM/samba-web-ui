@@ -24,12 +24,13 @@
     --background: var(--bg);
     --foreground: var(--text);
     --surface-hover: var(--surface-2);
-    --brand: var(--accent);
-    --brand-hover: var(--accent);
-    --brand-text: var(--on-accent);
 
-    /* TODO: status tokens are not defined in theme palette, keeping fallback functional colors */
-    --status-active: #10b981;
+    /* Brand tokens */
+    --brand: #0a0a0a;
+    --brand-hover: #262626;
+    --brand-text: #ffffff;
+
+    --status-active: #16a34a;
     --status-warning: #f59e0b;
     --status-error: #ef4444;
     --status-disabled: var(--text-muted);
@@ -56,12 +57,13 @@
     --background: var(--bg);
     --foreground: var(--text);
     --surface-hover: var(--surface-2);
-    --brand: var(--accent);
-    --brand-hover: var(--accent);
-    --brand-text: var(--on-accent);
 
-    /* TODO: status tokens are not defined in theme palette, keeping fallback functional colors */
-    --status-active: #10b981;
+    /* Brand tokens */
+    --brand: #86efac;
+    --brand-hover: #a7f3d0;
+    --brand-text: #0a0a0a;
+
+    --status-active: #86efac;
     --status-warning: #f59e0b;
     --status-error: #ef4444;
     --status-disabled: var(--text-muted);

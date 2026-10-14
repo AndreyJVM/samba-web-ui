@@ -84,7 +84,7 @@ chmod 0777 /srv/samba/public
 # --- Генерация тестовых документов ---
 
 # 1. Public Share
-echo "Welcome to Samba Web UI Public Storage. All users have access here." > /srv/samba/public/welcome_readme.txt
+echo "Welcome to ShareGuard Public Storage. All users have access here." > /srv/samba/public/welcome_readme.txt
 echo "Corporate Policy Guidelines 2026. Confidential and proprietary." > /srv/samba/public/company_policy_2026.pdf
 echo "Quarterly All-Hands Presentation slides." > /srv/samba/public/quarterly_presentation.pptx
 echo "Department,Shift,Manager\nIT,Day,Alex\nQA,Day,Elena" > /srv/samba/public/general_schedule.xlsx
