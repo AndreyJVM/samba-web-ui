@@ -98,7 +98,9 @@ public final class LinuxCommands {
     }
 
     public static String du(String path) {
-        return String.format("sudo du -sh -- %s 2>/dev/null", escape(requireValidPath(path)));
+        String safePath = escape(requireValidPath(path));
+        return String.format(
+                "if [ -e %s ]; then sudo du -sh -- %s 2>/dev/null || echo 0; else echo 0; fi", safePath, safePath);
     }
 
     public static String df(String path) {

@@ -25,13 +25,17 @@ export const translations = {
       shares: "Shares",
       users: "Users",
       groups: "Groups",
-      settings: "Settings",
+      ad: "Active Directory",
+      settings: "Global Settings",
       logout: "Sign Out",
       server: "Server",
       user: "User",
       running: "Running",
       stopped: "Stopped",
-      wait: "Wait..."
+      wait: "Wait...",
+      collapse: "Collapse",
+      expand: "Expand",
+      restart: "Restart"
     },
     dashboard: {
       title: "System Overview",
@@ -139,7 +143,7 @@ export const translations = {
       leaveConfirmMsg: "Are you sure you want to leave the domain? Users will lose access to domain shares."
     },
     config: {
-      title: "Global Configuration",
+      title: "Global Settings",
       general: "General",
       network: "Network",
       security: "Security",
@@ -190,13 +194,17 @@ export const translations = {
       shares: "Папки",
       users: "Пользователи",
       groups: "Группы",
-      settings: "Настройки",
+      ad: "Active Directory",
+      settings: "Глобальные настройки",
       logout: "Выход",
       server: "Сервер",
       user: "Пользователь",
       running: "Работает",
       stopped: "Остановлен",
-      wait: "Ожидание..."
+      wait: "Ожидание...",
+      collapse: "Свернуть",
+      expand: "Развернуть",
+      restart: "Перезапустить"
     },
     dashboard: {
       title: "Панель управления",
@@ -302,7 +310,7 @@ export const translations = {
       leaveConfirmMsg: "Уверены, что хотите покинуть домен? Доступ к файлам по доменным учеткам пропадет."
     },
     config: {
-      title: "Глобальная конфигурация",
+      title: "Глобальные настройки",
       general: "Общие",
       network: "Сеть",
       security: "Безопасность",

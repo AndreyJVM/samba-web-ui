@@ -137,12 +137,11 @@ export default function UsersPage() {
                     {user.fullName || "—"}
                   </td>
                   <td className="py-4 px-6 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openPasswordModal(user.username)} className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors border border-transparent hover:border-border" title={t("users.changePwd")}>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => openPasswordModal(user.username)} className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors border border-border/60 hover:border-border" title={t("users.changePwd")}>
                         <Key className="w-4 h-4" />
                       </button>
-                      {/* TODO: status-error token fallback */}
-                      <button onClick={() => handleDelete(user.username)} className="p-2 text-text-muted hover:text-status-error hover:bg-surface-2 rounded-md transition-colors border border-transparent hover:border-border" title={t("common.delete")}>
+                      <button onClick={() => handleDelete(user.username)} className="p-2 text-text-muted hover:text-status-error hover:bg-status-error/10 rounded-md transition-colors border border-border/60 hover:border-border" title={t("common.delete")}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

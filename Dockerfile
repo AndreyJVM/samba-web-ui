@@ -4,9 +4,6 @@
 FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /app
 
-# Build argument to skip tests (default: false)
-ARG SKIP_TESTS=false
-
 # Copy Maven wrapper & project config
 COPY mvnw ./
 COPY .mvn .mvn
@@ -22,13 +19,16 @@ RUN ./mvnw dependency:go-offline -B -DskipTests -Dfrontend.skip=true
 COPY src ./src
 COPY frontend ./frontend
 
+# Build argument to skip tests (default: false)
+ARG SKIP_TESTS=false
+
 # Build the JAR (uses pre-built frontend/dist via maven-resources-plugin)
 RUN if [ "$SKIP_TESTS" = "true" ]; then \
         echo ">>> Сборка БЕЗ тестов (-DskipTests)" && \
-        ./mvnw clean package -DskipTests -Dfrontend.skip=true; \
+        ./mvnw package -DskipTests -Dmaven.test.skip=true -Dfrontend.skip=true; \
     else \
         echo ">>> Сборка С тестами" && \
-        ./mvnw clean package -Dfrontend.skip=true; \
+        ./mvnw package -Dfrontend.skip=true; \
     fi
 
 # ==========================================

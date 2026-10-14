@@ -80,14 +80,19 @@ class SambaShareService {
         if (path == null || path.isBlank()) {
             return "N/A";
         }
-        String output = commandExecutor.execute(sessionId, LinuxCommands.du(path));
-        if (output != null && !output.isBlank()) {
-            String[] parts = output.trim().split("\\s+");
-            if (parts.length > 0) {
-                return parts[0];
+        try {
+            String output = commandExecutor.execute(sessionId, LinuxCommands.du(path));
+            if (output != null && !output.isBlank()) {
+                String[] parts = output.trim().split("\\s+");
+                if (parts.length > 0) {
+                    return parts[0];
+                }
             }
+        } catch (Exception e) {
+            log.warn("Failed to calculate size for share {} at path {}: {}", name, path, e.getMessage());
+            return "0 B";
         }
-        return "0";
+        return "0 B";
     }
 
     void deleteShare(String sessionId, String name) {

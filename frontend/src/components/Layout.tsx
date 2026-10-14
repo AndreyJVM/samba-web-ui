@@ -1,6 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { Server, FolderKanban, Users, Settings, LogOut, Play, Square, RefreshCw, Moon, Sun, Shield } from "lucide-react";
+import {
+  Server,
+  FolderKanban,
+  Users,
+  Settings,
+  LogOut,
+  Play,
+  Square,
+  RefreshCw,
+  Moon,
+  Sun,
+  Shield,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Github,
+  CircleDot
+} from "lucide-react";
 import { api } from "../lib/api";
 import { useToast } from "./ui/toast";
 import { useTranslation } from "../lib/i18n";
@@ -10,6 +26,13 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const [userInfo, setUserInfo] = useState({ host: "", user: "" });
   const [serverStatus, setServerStatus] = useState<boolean | null>(null);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sidebar_collapsed") === "true";
+    }
+    return false;
+  });
   const [isDark, setIsDark] = useState(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
     if (saved === "dark") return true;
@@ -51,12 +74,25 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
   const handleServiceControl = async (action: string) => {
     try {
+      if (action === "restart") setIsRestarting(true);
       await api.post(`/api/monitoring/control?action=${action}`);
       toast("info", "Command Sent", `Action: ${action}`);
       setTimeout(fetchStatus, 1000);
     } catch (err: any) {
       toast("error", "Error", err.message);
+    } finally {
+      if (action === "restart") {
+        setTimeout(() => setIsRestarting(false), 1200);
+      }
     }
+  };
+
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem("sidebar_collapsed", String(next));
+      return next;
+    });
   };
 
   const toggleDark = () => {
@@ -98,75 +134,192 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     { name: t("sidebar.shares"), path: "/shares", icon: FolderKanban },
     { name: t("sidebar.users"), path: "/users", icon: Users },
     { name: t("sidebar.groups"), path: "/groups", icon: Users },
-    { name: "Active Directory", path: "/ad", icon: Shield },
+    { name: t("sidebar.ad"), path: "/ad", icon: Shield },
     { name: t("sidebar.settings"), path: "/config", icon: Settings },
   ];
 
+  const userInitial = (userInfo.user || "U").slice(0, 2).toUpperCase();
+
   return (
     <div className="min-h-screen flex text-foreground bg-bg font-sans selection:bg-accent selection:text-on-accent">
-      <aside className="w-[250px] bg-surface flex-col hidden md:flex border-r border-border shrink-0 z-20">
-        <div className="h-16 px-5 flex items-center justify-between border-b border-border shrink-0">
-          <div className="flex items-center gap-2.5 text-[16px] tracking-wide">
-            <img 
-              src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
-              alt="ShareGuard" 
-              className="h-7 w-auto shrink-0" 
-            />
-            <span className="font-normal text-foreground">Share<span className="font-bold">Guard</span></span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button onClick={toggleLang} className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-xs font-bold uppercase tracking-widest hidden sm:flex items-center gap-1">
-              {lang}
-            </button>
-            <button onClick={toggleDark} className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors hidden sm:block">
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
-
-        {userInfo.host && (
-          <div className="p-5 border-b border-border space-y-4">
-            <div className="text-xs font-mono flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-text-muted font-sans font-medium">{t("sidebar.server")}</span>
-                <span className="truncate max-w-[130px] bg-surface-2 px-2 py-0.5 rounded-sm border border-border" title={userInfo.host}>{userInfo.host}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-text-muted font-sans font-medium">{t("sidebar.user")}</span>
-                <span className="text-foreground font-medium truncate max-w-[130px] bg-surface-2 px-2 py-0.5 rounded-sm border border-border" title={userInfo.user}>{userInfo.user}</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between bg-surface-2 p-3 rounded-md border border-border">
-              <div className="flex items-center gap-2.5">
-                <div className="relative flex h-3 w-3">
-                  {serverStatus === true && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-active opacity-40"></span>}
-                  <span className={`relative inline-flex rounded-full h-3 w-3 ${serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'}`}></span>
-                </div>
-                <span className="text-xs font-semibold text-foreground">
-                  {serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}
-                </span>
-              </div>
-              <div className="flex gap-1">
-                {serverStatus === false && (
-                  <button onClick={() => handleServiceControl("start")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md transition-all" title="Start">
-                    <Play className="w-4 h-4" />
-                  </button>
-                )}
-                {serverStatus === true && (
-                  <button onClick={() => handleServiceControl("stop")} className="p-1.5 text-status-error hover:bg-surface border border-transparent hover:border-border rounded-md transition-all" title="Stop">
-                    <Square className="w-4 h-4" />
-                  </button>
-                )}
-                <button onClick={() => handleServiceControl("restart")} className="p-1.5 text-foreground hover:bg-surface border border-transparent hover:border-border rounded-md transition-all" title="Restart">
-                  <RefreshCw className="w-4 h-4" />
+      <aside className={`bg-surface flex-col hidden md:flex border-r border-border shrink-0 z-20 transition-[width] duration-200 ease-in-out ${
+        isCollapsed ? "w-[68px]" : "w-[260px]"
+      }`}>
+        {/* Header */}
+        <div className={`h-16 border-b border-border flex items-center shrink-0 transition-all ${
+          isCollapsed ? "justify-center px-2" : "justify-between px-4"
+        }`}>
+          {!isCollapsed ? (
+            <>
+              <Link to="/shares" className="flex items-center gap-2.5 text-[16px] tracking-wide group">
+                <img 
+                  src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
+                  alt="ShareGuard" 
+                  className="h-7 w-auto shrink-0 transition-transform group-hover:scale-105" 
+                />
+                <span className="font-normal text-foreground">Share<span className="font-bold">Guard</span></span>
+              </Link>
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={toggleLang}
+                  className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-xs font-bold uppercase tracking-wider"
+                  title={lang === "ru" ? "Switch to English" : "Переключить на Русский"}
+                >
+                  {lang}
+                </button>
+                <button
+                  onClick={toggleDark}
+                  className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
+                  title={isDark ? "Light mode" : "Dark mode"}
+                >
+                  {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={toggleCollapse}
+                  className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
+                  title={t("sidebar.collapse")}
+                >
+                  <PanelLeftClose className="w-4 h-4" />
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+            </>
+          ) : (
+            <button
+              onClick={toggleCollapse}
+              className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors group relative"
+              title={t("sidebar.expand")}
+            >
+              <img 
+                src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
+                alt="ShareGuard" 
+                className="h-7 w-auto shrink-0 group-hover:hidden transition-all" 
+              />
+              <PanelLeftOpen className="w-6 h-6 hidden group-hover:block text-foreground" />
+            </button>
+          )}
+        </div>
 
-        <nav className="flex-1 px-4 py-5 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar">
+        {/* Modern User Profile, Server Info, Logout & Status Card */}
+        {userInfo.host ? (
+          !isCollapsed ? (
+            <div className="p-3 border-b border-border shrink-0">
+              <div className="bg-surface-2/60 hover:bg-surface-2/80 transition-colors border border-border/80 rounded-xl p-3 space-y-2.5 shadow-2xs">
+                {/* User Row with integrated Logout button */}
+                <div className="flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="relative shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-accent/20 border border-accent/40 text-accent-text flex items-center justify-center font-bold text-xs uppercase tracking-wider select-none">
+                        {userInitial}
+                      </div>
+                      <span 
+                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-surface ${
+                          serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'
+                        }`}
+                        title={serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold text-foreground truncate leading-tight" title={userInfo.user}>
+                        {userInfo.user || t("sidebar.user")}
+                      </div>
+                      <div className="text-xs text-text-muted truncate flex items-center gap-1 mt-0.5 leading-tight font-mono" title={userInfo.host}>
+                        <Server className="w-3 h-3 shrink-0 opacity-60" />
+                        <span className="truncate">{userInfo.host}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Logout Button directly next to user */}
+                  <button
+                    onClick={handleLogout}
+                    className="p-1.5 text-text-muted hover:text-status-error hover:bg-status-error/10 rounded-lg transition-colors shrink-0"
+                    title={t("sidebar.logout")}
+                    aria-label={t("sidebar.logout")}
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Status indicator & service controls */}
+                <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="relative flex h-2 w-2 shrink-0">
+                      {serverStatus === true && (
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-active opacity-40"></span>
+                      )}
+                      <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                        serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'
+                      }`}></span>
+                    </div>
+                    <span className="text-[11px] font-medium text-text-muted truncate">
+                      {serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {serverStatus === false && (
+                      <button
+                        onClick={() => handleServiceControl("start")}
+                        className="p-1 text-foreground hover:text-status-active hover:bg-surface rounded transition-colors"
+                        title={t("dashboard.startService")}
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      </button>
+                    )}
+                    {serverStatus === true && (
+                      <button
+                        onClick={() => handleServiceControl("stop")}
+                        className="p-1 text-text-muted hover:text-status-error hover:bg-surface rounded transition-colors"
+                        title={t("dashboard.stop")}
+                      >
+                        <Square className="w-3.5 h-3.5 fill-current" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleServiceControl("restart")}
+                      className={`p-1 text-text-muted hover:text-foreground hover:bg-surface rounded transition-colors ${
+                        isRestarting ? "animate-spin text-foreground" : ""
+                      }`}
+                      title={t("sidebar.restart")}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="py-3 px-2 border-b border-border flex flex-col items-center gap-2 shrink-0">
+              <div 
+                className="relative cursor-default" 
+                title={`${userInfo.user} @ ${userInfo.host} • ${serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}`}
+              >
+                <div className="w-9 h-9 rounded-full bg-accent/20 border border-accent/40 text-accent-text flex items-center justify-center font-bold text-xs uppercase tracking-wider select-none">
+                  {userInitial}
+                </div>
+                <span
+                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-surface ${
+                    serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'
+                  }`}
+                />
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="p-2 text-text-muted hover:text-status-error hover:bg-status-error/10 rounded-lg transition-colors"
+                title={`${t("sidebar.logout")} (${userInfo.user})`}
+                aria-label={t("sidebar.logout")}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )
+        ) : null}
+
+        {/* Navigation items */}
+        <nav className={`flex-1 py-4 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar ${
+          isCollapsed ? "px-2 items-center" : "px-3"
+        }`}>
           {navItems.map((item) => {
             const isActive = location.pathname.includes(item.path);
             const Icon = item.icon;
@@ -174,26 +327,64 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-all text-sm font-medium ${
+                title={isCollapsed ? item.name : undefined}
+                className={`flex items-center rounded-lg transition-all text-sm font-medium ${
+                  isCollapsed 
+                    ? "justify-center w-10 h-10 p-0" 
+                    : "gap-3 px-3 py-2.5 w-full"
+                } ${
                   isActive
-                    ? "bg-accent text-on-accent"
+                    ? "bg-accent text-on-accent shadow-xs"
                     : "text-foreground hover:bg-surface-2"
                 }`}
               >
                 <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'opacity-100' : 'opacity-70'}`} />
-                {item.name}
+                {!isCollapsed && <span className="truncate">{item.name}</span>}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-border shrink-0">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-sm py-2.5 px-3 font-medium border border-transparent hover:border-border"
-          >
-            <LogOut className="w-[18px] h-[18px] text-text-muted" /> {t("sidebar.logout")}
-          </button>
+        {/* Footer */}
+        <div className={`border-t border-border shrink-0 transition-all ${
+          isCollapsed ? "p-2 flex flex-col items-center gap-1.5" : "p-3 flex items-center justify-between"
+        }`}>
+          {!isCollapsed ? (
+            <button
+              onClick={toggleCollapse}
+              className="w-full flex items-center justify-between text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors text-xs py-2 px-2.5 font-medium"
+              title={t("sidebar.collapse")}
+            >
+              <span className="flex items-center gap-2">
+                <PanelLeftClose className="w-4 h-4 shrink-0" />
+                <span>{t("sidebar.collapse")}</span>
+              </span>
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={toggleDark}
+                className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors"
+                title={isDark ? "Light mode" : "Dark mode"}
+              >
+                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={toggleLang}
+                className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors text-xs font-bold uppercase"
+                title={lang === "ru" ? "Switch to English" : "Переключить на Русский"}
+              >
+                {lang}
+              </button>
+              <button
+                onClick={toggleCollapse}
+                className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors"
+                title={t("sidebar.expand")}
+              >
+                <PanelLeftOpen className="w-4 h-4 shrink-0" />
+              </button>
+            </>
+          )}
         </div>
       </aside>
 
@@ -208,7 +399,45 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
              />
              <span className="font-normal text-foreground">Share<span className="font-bold">Guard</span></span>
            </div>
-           <button onClick={toggleLang} className="text-sm font-bold uppercase">{lang}</button>
+           <div className="flex items-center gap-1.5">
+             <a
+               href="https://github.com/AndreyJVM/samba-web-ui"
+               target="_blank"
+               rel="noreferrer"
+               className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
+               title="GitHub"
+             >
+               <Github className="w-4 h-4" />
+             </a>
+             <a
+               href="https://github.com/AndreyJVM/samba-web-ui/issues"
+               target="_blank"
+               rel="noreferrer"
+               className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
+               title="Issues"
+             >
+               <CircleDot className="w-4 h-4 text-accent-text" />
+             </a>
+             <button 
+               onClick={toggleLang} 
+               className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-xs font-bold uppercase"
+             >
+               {lang}
+             </button>
+             <button 
+               onClick={toggleDark} 
+               className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
+             >
+               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+             </button>
+             <button 
+               onClick={handleLogout} 
+               className="p-1.5 text-text-muted hover:text-status-error hover:bg-surface-2 rounded-md transition-colors"
+               title={t("sidebar.logout")}
+             >
+               <LogOut className="w-4 h-4" />
+             </button>
+           </div>
         </div>
 
         {/* Desktop Header */}
@@ -216,8 +445,27 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
            <div className="flex-1 flex items-center">
               <GlobalSearch />
            </div>
-           <div className="flex items-center gap-4">
-              {/* Optional secondary actions can go here */}
+           <div className="flex items-center gap-2.5">
+              <a
+                href="https://github.com/AndreyJVM/samba-web-ui"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg border border-border/80 transition-all hover:border-border group"
+                title="GitHub Repository"
+              >
+                <Github className="w-4 h-4 transition-transform group-hover:scale-110" />
+                <span>GitHub</span>
+              </a>
+              <a
+                href="https://github.com/AndreyJVM/samba-web-ui/issues"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg border border-border/80 transition-all hover:border-border group"
+                title="Issues / Bug Reports"
+              >
+                <CircleDot className="w-4 h-4 text-accent-text transition-transform group-hover:scale-110" />
+                <span>Issues</span>
+              </a>
            </div>
         </div>
         <div className="flex-1 p-5 sm:p-8 lg:p-10 overflow-y-auto custom-scrollbar">

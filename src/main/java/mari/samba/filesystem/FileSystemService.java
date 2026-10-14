@@ -92,7 +92,7 @@ public class FileSystemService {
             List<DirectoryItemDto> rootDirs = allowedRoots.stream()
                     .map(root -> new DirectoryItemDto(root.replaceFirst("^/", ""), root, "dir", 0))
                     .toList();
-            return new DirectoryBrowseResultDto("/", "/", rootDirs);
+            return new DirectoryBrowseResultDto("/", null, rootDirs);
         }
 
         String parentPath = getParentPath(safePath);

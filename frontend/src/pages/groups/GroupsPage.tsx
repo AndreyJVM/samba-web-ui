@@ -162,7 +162,7 @@ export default function GroupsPage() {
                         <span className="text-xs font-semibold uppercase tracking-wider text-text-muted">{group.members?.length || 0} {t("common.members")} </span>
                         <button 
                           onClick={() => openAddUser(group.name)}
-                          className="text-accent-text hover:opacity-80 text-xs font-bold uppercase flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity bg-transparent"
+                          className="text-accent-text hover:opacity-80 text-xs font-bold uppercase flex items-center gap-1 bg-surface-2 hover:bg-surface px-2 py-0.5 rounded border border-border/60 transition-colors"
                         >
                           <Plus className="w-3 h-3" /> {t("common.add")}
                         </button>
@@ -179,7 +179,7 @@ export default function GroupsPage() {
                               <button 
                                 title={t("common.remove")} 
                                 onClick={() => handleRemoveUser(group.name, member)}
-                                className="text-text-muted hover:text-status-error transition-colors opacity-0 group-hover/mem:opacity-100"
+                                className="text-text-muted hover:text-status-error transition-colors ml-0.5 p-0.5 rounded hover:bg-surface"
                               >
                                 <UserMinus className="w-3.5 h-3.5" />
                               </button>
@@ -190,9 +190,8 @@ export default function GroupsPage() {
                     </div>
                   </td>
                   <td className="py-4 px-6 text-right align-top">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                      {/* TODO: status-error token fallback */}
-                      <button onClick={() => handleDeleteGroup(group.name)} className="p-2 text-text-muted hover:text-status-error hover:bg-surface-2 rounded-md transition-colors border border-transparent hover:border-border" title={t("common.delete")}>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => handleDeleteGroup(group.name)} className="p-2 text-text-muted hover:text-status-error hover:bg-status-error/10 rounded-md transition-colors border border-border/60 hover:border-border" title={t("common.delete")}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

@@ -238,12 +238,11 @@ export default function SharesPage() {
                     </div>
                   </td>
                   <td className="py-4 px-5 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEditor(share)} className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors border border-transparent hover:border-border" title={t("shares.configure")}>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => openEditor(share)} className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors border border-border/60 hover:border-border" title={t("shares.configure")}>
                         <Settings2 className="w-4 h-4" />
                       </button>
-                      {/* TODO: status-error token fallback */}
-                      <button onClick={() => handleDelete(share.name)} className="p-2 text-text-muted hover:text-status-error hover:bg-surface-2 rounded-md transition-colors border border-transparent hover:border-border" title={t("common.delete")}>
+                      <button onClick={() => handleDelete(share.name)} className="p-2 text-text-muted hover:text-status-error hover:bg-status-error/10 rounded-md transition-colors border border-border/60 hover:border-border" title={t("common.delete")}>
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

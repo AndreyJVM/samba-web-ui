@@ -34,6 +34,9 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
       setCurrentPath(res.currentPath);
     } catch (err: any) {
       toastError("Error", err.message);
+      if (path !== "/") {
+        fetchFiles("/");
+      }
     } finally {
       setLoading(false);
     }
@@ -47,7 +50,10 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
     }
   }, [isOpen, initialPath]);
 
-  const navigateTo = (path: string) => setCurrentPath(path);
+  const navigateTo = (path: string) => {
+    setCurrentPath(path);
+    fetchFiles(path);
+  };
 
   const handleCreateDirectory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,7 +160,7 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
            ) : null}
            
            <div className="flex flex-col divide-y divide-border">
-             {browseData?.parentPath && (
+             {browseData?.parentPath && browseData.parentPath !== browseData.currentPath && (
                <button 
                  type="button"
                  onClick={() => navigateTo(browseData.parentPath!)}
@@ -170,11 +176,11 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
                const canSelect = pickerType === 'any' || (pickerType === 'folder' && isFolder) || (pickerType === 'file' && !isFolder);
                
                return (
-                 <div key={item.fullPath} className="flex items-center justify-between hover:bg-surface-2 transition-colors group px-2">
+                 <div key={item.fullPath} className="flex items-center justify-between hover:bg-surface-2 transition-colors group px-3 py-1">
                    <button 
                      type="button"
                      onClick={() => isFolder ? navigateTo(item.fullPath) : (canSelect ? onSelect(item.fullPath) : null)}
-                     className={`flex-1 flex items-center gap-3 py-2.5 px-2 text-left ${isFolder ? 'cursor-pointer' : (canSelect ? 'cursor-pointer' : 'cursor-default')}`}
+                     className={`flex-1 flex items-center gap-3 py-2 text-left ${isFolder ? 'cursor-pointer' : (canSelect ? 'cursor-pointer' : 'cursor-default')}`}
                    >
                      {isFolder ? <Folder className="w-4 h-4 text-accent-text shrink-0" /> : <FileText className="w-4 h-4 text-text-muted shrink-0" />}
                      <span className="text-[13px] font-mono font-medium text-foreground truncate">{item.name}</span>
@@ -182,8 +188,18 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
                         <span className="text-[11px] text-text-muted font-mono ml-auto mr-4">{item.size} B</span>
                      )}
                    </button>
+                   {canSelect && (
+                     <button
+                       type="button"
+                       onClick={() => onSelect(item.fullPath)}
+                       className="text-xs px-2.5 py-1 rounded bg-surface border border-border text-text-muted hover:text-foreground hover:bg-surface-2 transition-colors ml-2 shrink-0 font-medium"
+                       title={t("common.select")}
+                     >
+                       {t("common.select")}
+                     </button>
+                   )}
                  </div>
-               )
+               );
              })}
              
              {(!browseData?.directories || browseData.directories.length === 0) && !loading && (
