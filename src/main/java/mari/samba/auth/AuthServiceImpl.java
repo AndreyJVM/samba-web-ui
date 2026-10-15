@@ -80,8 +80,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @NonNull
-    public Map<String, String> getCurrentUserInfo(@Nullable String sambaHost, @Nullable String sambaUser) {
+    @NonNull public Map<String, String> getCurrentUserInfo(@Nullable String sambaHost, @Nullable String sambaUser) {
         Map<String, String> userInfo = new HashMap<>(2);
         userInfo.put("host", sambaHost != null ? sambaHost : "Not connected");
         userInfo.put("user", sambaUser != null ? sambaUser : "Unknown");

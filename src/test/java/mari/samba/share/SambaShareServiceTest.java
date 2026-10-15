@@ -1,5 +1,6 @@
 package mari.samba.share;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -81,5 +82,39 @@ class SambaShareServiceTest {
                 .hasMessageContaining("Share already exists");
 
         verify(commandExecutor, never()).execute(anyString(), anyString());
+    }
+
+    @Test
+    void getShareSize_ShouldReturnFormattedSize() throws Exception {
+        SambaShare share =
+                SambaShare.builder().name("dev").path("/srv/samba/dev").build();
+        when(configService.getSmbConfContent(SESSION_ID)).thenReturn("");
+        when(configService.parseShares("")).thenReturn(Collections.singletonList(share));
+        when(commandExecutor.execute(eq(SESSION_ID), anyString())).thenReturn("24K\t/srv/samba/dev\n");
+
+        String size = shareService.getShareSize(SESSION_ID, "dev");
+        assertThat(size).isEqualTo("24 KB");
+    }
+
+    @Test
+    void getShareSize_ShouldReturnZeroBytes_WhenDuReturnsZero() throws Exception {
+        SambaShare share =
+                SambaShare.builder().name("empty").path("/srv/samba/empty").build();
+        when(configService.getSmbConfContent(SESSION_ID)).thenReturn("");
+        when(configService.parseShares("")).thenReturn(Collections.singletonList(share));
+        when(commandExecutor.execute(eq(SESSION_ID), anyString())).thenReturn("0\n");
+
+        String size = shareService.getShareSize(SESSION_ID, "empty");
+        assertThat(size).isEqualTo("0 B");
+    }
+
+    @Test
+    void getShareSize_ShouldReturnNA_WhenPathIsBlank() {
+        SambaShare share = SambaShare.builder().name("nopath").path("").build();
+        when(configService.getSmbConfContent(SESSION_ID)).thenReturn("");
+        when(configService.parseShares("")).thenReturn(Collections.singletonList(share));
+
+        String size = shareService.getShareSize(SESSION_ID, "nopath");
+        assertThat(size).isEqualTo("N/A");
     }
 }

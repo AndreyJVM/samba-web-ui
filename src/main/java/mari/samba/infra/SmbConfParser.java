@@ -1,7 +1,10 @@
 package mari.samba.infra;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import mari.samba.share.SambaShare;
 import mari.samba.share.SambaShareCreateDto;
 import mari.samba.smbconfig.SambaGlobalConfigDto;
@@ -9,6 +12,46 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SmbConfParser {
+
+    /**
+     * Parses the effective Samba configuration dump (e.g. from {@code testparm -sv})
+     * into a map of section names to key-value maps. Keys are normalized to lowercase
+     * with collapsed whitespaces.
+     *
+     * @param content the raw output of testparm -sv
+     * @return map of section names to key-value pairs
+     */
+    public Map<String, Map<String, String>> parseEffectiveConfig(String content) {
+        Map<String, Map<String, String>> sections = new LinkedHashMap<>();
+        if (content == null || content.isBlank()) {
+            return sections;
+        }
+
+        String[] lines = content.split("\\r?\\n");
+        Map<String, String> currentMap = null;
+
+        for (String line : lines) {
+            String trimmed = line.trim();
+
+            if (trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith(";")) {
+                continue;
+            }
+
+            if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+                String section = trimmed.substring(1, trimmed.length() - 1).trim();
+                currentMap = sections.computeIfAbsent(section, k -> new LinkedHashMap<>());
+                continue;
+            }
+
+            if (currentMap != null && trimmed.contains("=")) {
+                String[] parts = trimmed.split("=", 2);
+                String key = parts[0].trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+                String val = parts[1].trim();
+                currentMap.put(key, val);
+            }
+        }
+        return sections;
+    }
 
     public SambaGlobalConfigDto parseGlobalConfig(String content) {
         if (content == null || content.isBlank()) {
@@ -126,6 +169,8 @@ public class SmbConfParser {
             sb.append("   idmap config * : backend = ")
                     .append(dto.idmapDefaultBackend().trim())
                     .append("\n");
+        }
+        if (dto.idmapDefaultRange() != null && !dto.idmapDefaultRange().isBlank()) {
             sb.append("   idmap config * : range = ")
                     .append(dto.idmapDefaultRange().trim())
                     .append("\n");

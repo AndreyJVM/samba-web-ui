@@ -6,14 +6,15 @@
 # Этот скрипт:
 # 1. Предлагает выбор режима развёртывания (с тестами / без тестов)
 # 2. Собирает frontend на хосте (если dist/ отсутствует или устарел)
-# 3. Собирает Docker образ web-приложения (--network host для надёжности)
-# 4. Запускает окружение (docker compose up -d)
-# 5. Ожидает готовности сервисов (healthcheck samba-node и web)
-# 6. Предоставляет интерактивное меню команд:
+# 3. Собирает backend JAR на хосте (используя локальный Maven-кэш без долгих загрузок)
+# 4. Собирает Docker образ web-приложения (--target local для мгновенной сборки)
+# 5. Запускает окружение (docker compose up -d)
+# 6. Ожидает готовности сервисов (healthcheck samba-node и web)
+# 7. Предоставляет интерактивное меню команд:
 #    - b / build / fast : быстрая частичная пересборка (обновление кода/кнопки без сброса данных)
-#    - bf / build-full  : полная пересборка с нуля (удаление контейнеров, томов и --no-cache)
+#    - bf / build-full  : полная пересборка с нуля (удаление контейнеров, томов и сборка)
 #    - restart / logs / status / stop
-# 7. При завершении (Enter, stop, q или Ctrl+C) полностью останавливает compose,
+# 8. При завершении (Enter, stop, q или Ctrl+C) полностью останавливает compose,
 #    удаляет контейнеры, сети, вольюмы (samba-shares, samba-config)
 #    и локальный образ web-приложения (samba-web-ui-web:latest),
 #    гарантируя чистое состояние перед следующим запуском.
@@ -36,6 +37,15 @@ else
 fi
 
 cd "$PROJECT_ROOT"
+
+# Автоопределение Java 21 на хосте (если установлена и не переопределена)
+if [ -z "$JAVA_HOME" ]; then
+    if [ -d "/usr/lib/jvm/java-21-openjdk-amd64" ]; then
+        export JAVA_HOME="/usr/lib/jvm/java-21-openjdk-amd64"
+    elif [ -d "/usr/lib/jvm/java-1.21.0-openjdk-amd64" ]; then
+        export JAVA_HOME="/usr/lib/jvm/java-1.21.0-openjdk-amd64"
+    fi
+fi
 
 # Определение команды docker compose / docker-compose
 if docker compose version >/dev/null 2>&1; then
@@ -116,6 +126,32 @@ build_frontend() {
     return 0
 }
 
+# Сборка бэкенда (JAR) на хосте с использованием локального кэша Maven
+build_backend() {
+    echo ">>> Сборка backend JAR на хосте (быстро с локальным кэшем .m2)..."
+    local ok=0
+    if [ "$SKIP_TESTS" = "true" ]; then
+        ./mvnw package -DskipTests -Dmaven.test.skip=true -Dfrontend.skip=true && ok=1
+    else
+        ./mvnw package -Dfrontend.skip=true && ok=1
+    fi
+    if [ "$ok" -ne 1 ]; then
+        echo "Ошибка: не удалось собрать backend JAR!" >&2
+        return 1
+    fi
+    return 0
+}
+
+# Сборка Docker-образа web
+build_docker_image() {
+    echo ">>> Сборка Docker-образа web (перенос JAR в alpine JRE)..."
+    if ! docker build --target local --network host -t samba-web-ui-web:latest .; then
+        echo "Ошибка: не удалось собрать Docker-образ web!" >&2
+        return 1
+    fi
+    return 0
+}
+
 # Ожидание готовности samba-node
 wait_for_node() {
     echo ">>> Ожидание готовности samba-node (проверка healthcheck)..."
@@ -173,11 +209,11 @@ rebuild_fast() {
         echo ">>> Ошибка при сборке фронтенда. Пересборка отменена."
         return 1
     fi
-
-    echo ">>> Сборка Docker-образа web (используя кэш слоев, без тестов)..."
-    if ! docker build --network host \
-        --build-arg SKIP_TESTS="true" \
-        -t samba-web-ui-web:latest .; then
+    if ! build_backend; then
+        echo ">>> Ошибка при сборке бэкенда. Пересборка отменена."
+        return 1
+    fi
+    if ! build_docker_image; then
         echo ">>> Ошибка при сборке Docker-образа! Контейнер не обновлен."
         return 1
     fi
@@ -207,11 +243,11 @@ rebuild_full() {
         echo ">>> Ошибка при сборке фронтенда. Полная пересборка прервана."
         return 1
     fi
-
-    echo ">>> Сборка Docker-образа web с чистого листа (--no-cache, SKIP_TESTS=$SKIP_TESTS)..."
-    if ! docker build --no-cache --network host \
-        --build-arg SKIP_TESTS="$SKIP_TESTS" \
-        -t samba-web-ui-web:latest .; then
+    if ! build_backend; then
+        echo ">>> Ошибка при сборке бэкенда. Полная пересборка прервана."
+        return 1
+    fi
+    if ! build_docker_image; then
         echo ">>> Ошибка при сборке Docker-образа!"
         return 1
     fi
@@ -256,7 +292,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # 1. Предварительная очистка от предыдущих незавершённых сессий (если были)
-echo ">>> Проверка и предварительная очистка старых контейнеров/вольюмов/образа web..."
+echo ">>> Проверка и предварительная очистка старых контейнеров/волюмов/образа web..."
 $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
 docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
 docker rmi -f samba-web-ui-web:latest samba-web-ui_web:latest >/dev/null 2>&1 || true
@@ -266,11 +302,11 @@ if [ ! -d "$PROJECT_ROOT/frontend/dist" ] || [ -z "$(ls -A "$PROJECT_ROOT/fronte
     build_frontend
 fi
 
-# 2. Первоначальная сборка Docker-образа web
-echo ">>> Сборка образа web (network: host, SKIP_TESTS=$SKIP_TESTS)..."
-docker build --network host \
-    --build-arg SKIP_TESTS="$SKIP_TESTS" \
-    -t samba-web-ui-web:latest .
+# Сборка backend JAR на хосте
+build_backend
+
+# 2. Сборка Docker-образа web
+build_docker_image
 
 # 3. Запуск служб
 echo ">>> Запуск служб ($COMPOSE_CMD up -d)..."

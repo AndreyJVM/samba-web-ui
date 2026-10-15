@@ -12,6 +12,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: local
     container_name: samba-web-ui
     restart: unless-stopped
     ports:

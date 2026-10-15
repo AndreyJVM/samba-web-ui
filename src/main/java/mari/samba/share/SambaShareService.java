@@ -85,7 +85,7 @@ class SambaShareService {
             if (output != null && !output.isBlank()) {
                 String[] parts = output.trim().split("\\s+");
                 if (parts.length > 0) {
-                    return parts[0];
+                    return formatDuSize(parts[0]);
                 }
             }
         } catch (Exception e) {
@@ -93,6 +93,29 @@ class SambaShareService {
             return "0 B";
         }
         return "0 B";
+    }
+
+    private String formatDuSize(String raw) {
+        if (raw == null || raw.isBlank() || "0".equals(raw) || "0 B".equalsIgnoreCase(raw)) {
+            return "0 B";
+        }
+        String trimmed = raw.trim();
+        if (trimmed.endsWith("K")) {
+            return trimmed.substring(0, trimmed.length() - 1) + " KB";
+        }
+        if (trimmed.endsWith("M")) {
+            return trimmed.substring(0, trimmed.length() - 1) + " MB";
+        }
+        if (trimmed.endsWith("G")) {
+            return trimmed.substring(0, trimmed.length() - 1) + " GB";
+        }
+        if (trimmed.endsWith("T")) {
+            return trimmed.substring(0, trimmed.length() - 1) + " TB";
+        }
+        if (trimmed.matches("\\d+")) {
+            return trimmed + " B";
+        }
+        return trimmed;
     }
 
     void deleteShare(String sessionId, String name) {

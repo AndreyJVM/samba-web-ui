@@ -108,4 +108,17 @@ class LinuxCommandsTest {
         assertThrows(SecurityException.class, () -> LinuxCommands.chownRecursive("bad user; rm -rf /", "/mnt/share"));
         assertThrows(SecurityException.class, () -> LinuxCommands.chownRecursive("sambauser", "/mnt/../etc"));
     }
+
+    @Test
+    void testTestparmDump() {
+        assertEquals("testparm -sv 2>/dev/null", LinuxCommands.testparmDump());
+    }
+
+    @Test
+    void testDuCommand() {
+        String cmd = LinuxCommands.du("/srv/samba/share");
+        assertEquals(
+                "if [ -e '/srv/samba/share' ]; then du -sh -- '/srv/samba/share' 2>/dev/null || sudo -n du -sh -- '/srv/samba/share' 2>/dev/null || echo '0 B'; else echo '0 B'; fi",
+                cmd);
+    }
 }

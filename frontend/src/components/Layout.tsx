@@ -12,10 +12,10 @@ import {
   Moon,
   Sun,
   Shield,
+  ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
-  Github,
-  CircleDot
+  Github
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useToast } from "./ui/toast";
@@ -135,6 +135,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
     { name: t("sidebar.users"), path: "/users", icon: Users },
     { name: t("sidebar.groups"), path: "/groups", icon: Users },
     { name: t("sidebar.ad"), path: "/ad", icon: Shield },
+    { name: t("sidebar.fstec"), path: "/fstec", icon: ShieldCheck },
     { name: t("sidebar.settings"), path: "/config", icon: Settings },
   ];
 
@@ -297,7 +298,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                 <div className="w-9 h-9 rounded-full bg-accent/20 border border-accent/40 text-accent-text flex items-center justify-center font-bold text-xs uppercase tracking-wider select-none">
                   {userInitial}
                 </div>
-                <span
+                <span 
                   className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-surface ${
                     serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'
                   }`}
@@ -371,109 +372,44 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               </button>
               <button
                 onClick={toggleLang}
-                className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors text-xs font-bold uppercase"
+                className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors text-xs font-bold uppercase tracking-wider"
                 title={lang === "ru" ? "Switch to English" : "Переключить на Русский"}
               >
                 {lang}
-              </button>
-              <button
-                onClick={toggleCollapse}
-                className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors"
-                title={t("sidebar.expand")}
-              >
-                <PanelLeftOpen className="w-4 h-4 shrink-0" />
               </button>
             </>
           )}
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 bg-bg relative overflow-hidden">
-        {/* Mobile Header */}
-        <div className="h-16 border-b border-border bg-surface px-5 sm:px-6 flex items-center justify-between md:hidden shrink-0">
-           <div className="text-base flex items-center gap-2.5">
-             <img 
-               src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
-               alt="ShareGuard" 
-               className="h-6 w-auto shrink-0" 
-             />
-             <span className="font-normal text-foreground">Share<span className="font-bold">Guard</span></span>
-           </div>
-           <div className="flex items-center gap-1.5">
-             <a
-               href="https://github.com/AndreyJVM/samba-web-ui"
-               target="_blank"
-               rel="noreferrer"
-               className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
-               title="GitHub"
-             >
-               <Github className="w-4 h-4" />
-             </a>
-             <a
-               href="https://github.com/AndreyJVM/samba-web-ui/issues"
-               target="_blank"
-               rel="noreferrer"
-               className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
-               title="Issues"
-             >
-               <CircleDot className="w-4 h-4 text-accent-text" />
-             </a>
-             <button 
-               onClick={toggleLang} 
-               className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-xs font-bold uppercase"
-             >
-               {lang}
-             </button>
-             <button 
-               onClick={toggleDark} 
-               className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
-             >
-               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-             </button>
-             <button 
-               onClick={handleLogout} 
-               className="p-1.5 text-text-muted hover:text-status-error hover:bg-surface-2 rounded-md transition-colors"
-               title={t("sidebar.logout")}
-             >
-               <LogOut className="w-4 h-4" />
-             </button>
-           </div>
-        </div>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="h-16 border-b border-border bg-surface px-6 flex items-center justify-between gap-4 shrink-0">
+          <div className="flex-1 max-w-xl">
+            <GlobalSearch />
+          </div>
 
-        {/* Desktop Header */}
-        <div className="hidden md:flex h-16 border-b border-border bg-surface px-8 items-center justify-between shrink-0">
-           <div className="flex-1 flex items-center">
-              <GlobalSearch />
-           </div>
-           <div className="flex items-center gap-2.5">
-              <a
-                href="https://github.com/AndreyJVM/samba-web-ui"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg border border-border/80 transition-all hover:border-border group"
-                title="GitHub Repository"
-              >
-                <Github className="w-4 h-4 transition-transform group-hover:scale-110" />
-                <span>GitHub</span>
-              </a>
-              <a
-                href="https://github.com/AndreyJVM/samba-web-ui/issues"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg border border-border/80 transition-all hover:border-border group"
-                title="Issues / Bug Reports"
-              >
-                <CircleDot className="w-4 h-4 text-accent-text transition-transform group-hover:scale-110" />
-                <span>Issues</span>
-              </a>
-           </div>
-        </div>
-        <div className="flex-1 p-5 sm:p-8 lg:p-10 overflow-y-auto custom-scrollbar">
-          <div className="max-w-[1100px] w-full mx-auto pb-10">
+          <div className="flex items-center gap-3 shrink-0">
+            {/* GitHub Project & Issues Link */}
+            <a
+              href="https://github.com/vladimirmukhin/samba-web-ui"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg border border-border transition-colors shadow-2xs group"
+              title="GitHub repository & issues"
+            >
+              <Github className="w-4 h-4 text-foreground/80 group-hover:text-foreground transition-colors shrink-0" />
+              <span>GitHub</span>
+            </a>
+          </div>
+        </header>
+
+        <main className="flex-1 p-6 overflow-y-auto">
+          <div className="max-w-7xl mx-auto">
             {children || <Outlet />}
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

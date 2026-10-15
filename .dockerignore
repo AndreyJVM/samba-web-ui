@@ -6,6 +6,7 @@
 !pom.xml
 !src
 !frontend
+!target/*.jar
 
 # Внутри frontend не копировать локальные артефакты
 frontend/node_modules

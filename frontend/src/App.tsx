@@ -7,6 +7,7 @@ import UsersPage from "./pages/users/UsersPage";
 import ConfigPage from "./pages/config/ConfigPage";
 import ActiveDirectoryPage from "./pages/ad/ActiveDirectoryPage";
 import GroupsPage from "./pages/groups/GroupsPage";
+import FstecPage from "./pages/fstec/FstecPage";
 import { ToastProvider } from "./components/ui/toast";
 import { ConfirmProvider } from "./components/ui/confirm";
 
@@ -27,6 +28,7 @@ function App() {
               <Route path="/users" element={<UsersPage />} />
               <Route path="/config" element={<ConfigPage />} />
               <Route path="/ad" element={<ActiveDirectoryPage />} />
+              <Route path="/fstec" element={<FstecPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

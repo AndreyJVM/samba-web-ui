@@ -1,0 +1,279 @@
+- id: "2.1-share-guest-ok"
+  section: "2.1"
+  title: "Запрет гостевого доступа к сетевым ресурсам (guest ok = no)"
+  severity: "HIGH"
+  scope: "SHARE"
+  key: "guest ok"
+  operator: "EQUALS"
+  expected: "no"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секциях сетевых ресурсов smb.conf укажите:
+       guest ok = no
+  consequences: "Пользователи без учетных записей не смогут подключаться к общим папкам."
+
+- id: "2.1-global-map-to-guest"
+  section: "2.1"
+  title: "Запрет сопоставления неизвестных пользователей с гостем (map to guest != Bad User)"
+  severity: "HIGH"
+  scope: "GLOBAL"
+  key: "map to guest"
+  operator: "NOT_EQUALS"
+  expected: "Bad User"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] файла smb.conf укажите:
+       map to guest = Never
+  consequences: "Запросы с неверными учетными данными будут отклоняться, а не перенаправляться в гостевой сеанс."
+
+- id: "2.2-hosts-allow"
+  section: "2.2"
+  title: "Ограничение доступа по сетевым адресам (hosts allow)"
+  severity: "HIGH"
+  scope: "GLOBAL"
+  key: "hosts allow"
+  operator: "NOT_EQUALS"
+  expected: ""
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf задайте доверенные подсети, например:
+       hosts allow = 192.168.1.0/24 127.0.0.1
+  consequences: "Клиенты из неразрешенных IP-диапазонов потеряют доступ к серверу."
+
+- id: "2.2-hosts-deny"
+  section: "2.2"
+  title: "Явный запрет неразрешенных сетевых адресов (hosts deny)"
+  severity: "MEDIUM"
+  scope: "GLOBAL"
+  key: "hosts deny"
+  operator: "NOT_EQUALS"
+  expected: ""
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       hosts deny = ALL
+  consequences: "Все подключения, кроме явно разрешенных в hosts allow, будут блокироваться."
+
+- id: "2.3-share-create-mask"
+  section: "2.3"
+  title: "Маска создания файлов (create mask <= 0640)"
+  severity: "HIGH"
+  scope: "SHARE"
+  key: "create mask"
+  operator: "EQUALS_OR_STRICTER_MASK"
+  expected: "0640"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секциях ресурсов smb.conf укажите:
+       create mask = 0640
+  consequences: "Новые файлы не будут доступны для чтения или изменения прочим пользователям (others)."
+
+- id: "2.3-share-directory-mask"
+  section: "2.3"
+  title: "Маска создания каталогов (directory mask <= 0750)"
+  severity: "HIGH"
+  scope: "SHARE"
+  key: "directory mask"
+  operator: "EQUALS_OR_STRICTER_MASK"
+  expected: "0750"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секциях ресурсов smb.conf укажите:
+       directory mask = 0750
+  consequences: "Новые каталоги будут закрыты для просмотра прочими пользователями (others)."
+
+- id: "2.4-disable-netbios"
+  section: "2.4"
+  title: "Отключение протокола NetBIOS (disable netbios = yes)"
+  severity: "MEDIUM"
+  scope: "GLOBAL"
+  key: "disable netbios"
+  operator: "EQUALS"
+  expected: "yes"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       disable netbios = yes
+  consequences: "Сетевое обнаружение NetBIOS/WINS отключится; старые клиенты (до Windows 2000) не смогут подключиться."
+
+- id: "2.4-smb-ports"
+  section: "2.4"
+  title: "Использование прямого TCP-порта SMB (smb ports = 445)"
+  severity: "MEDIUM"
+  scope: "GLOBAL"
+  key: "smb ports"
+  operator: "EQUALS"
+  expected: "445"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       smb ports = 445
+  consequences: "Порты NetBIOS-over-TCP (137, 138, 139) не будут открываться."
+
+- id: "2.5-server-min-protocol"
+  section: "2.5"
+  title: "Минимальная версия протокола SMB (server min protocol >= SMB2)"
+  severity: "HIGH"
+  scope: "GLOBAL"
+  key: "server min protocol"
+  operator: "AT_LEAST_PROTOCOL"
+  expected: "SMB2"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       server min protocol = SMB2
+  consequences: "Клиенты с поддержкой только SMB1 (NT1 и старше) не смогут подключиться к серверу."
+
+- id: "2.5-server-max-protocol"
+  section: "2.5"
+  title: "Максимальная версия протокола SMB (server max protocol >= SMB3)"
+  severity: "HIGH"
+  scope: "GLOBAL"
+  key: "server max protocol"
+  operator: "AT_LEAST_PROTOCOL"
+  expected: "SMB3"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       server max protocol = SMB3
+  consequences: "Ограничивает согласование протокола современными версиями SMB3 с поддержкой шифрования."
+
+- id: "3.1-vfs-objects"
+  section: "3.1"
+  title: "Включение модуля аудита full_audit (vfs objects contains full_audit)"
+  severity: "HIGH"
+  scope: "GLOBAL"
+  key: "vfs objects"
+  operator: "CONTAINS_ALL"
+  expected: "full_audit"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       vfs objects = full_audit
+  consequences: "Включает VFS-модуль протоколирования файловых операций в syslog."
+
+- id: "3.1-full-audit-success"
+  section: "3.1"
+  title: "Аудит успешных событий (full_audit:success)"
+  severity: "MEDIUM"
+  scope: "GLOBAL"
+  key: "full_audit:success"
+  operator: "CONTAINS_ALL"
+  expected: "connect, open, mkdir, rmdir, unlink, write, rename, lock, pwrite, renameat, unlinkat"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       full_audit:success = connect open mkdir rmdir unlink write rename lock pwrite renameat unlinkat
+  consequences: "Увеличит объем логов в syslog при активной записи и чтении файлов."
+
+- id: "3.1-full-audit-failure"
+  section: "3.1"
+  title: "Аудит событий с ошибками (full_audit:failure)"
+  severity: "HIGH"
+  scope: "GLOBAL"
+  key: "full_audit:failure"
+  operator: "CONTAINS_ALL"
+  expected: "connect, open, mkdir, rmdir, unlink, write, rename"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       full_audit:failure = connect open mkdir rmdir unlink write rename
+  consequences: "Позволит фиксировать попытки несанкционированного доступа к файлам и каталогам."
+
+- id: "3.1-full-audit-facility"
+  section: "3.1"
+  title: "Канал syslog для аудита (full_audit:facility = local5)"
+  severity: "LOW"
+  scope: "GLOBAL"
+  key: "full_audit:facility"
+  operator: "EQUALS"
+  expected: "local5"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       full_audit:facility = local5
+  consequences: "События аудита направляются в отдельный канал syslog local5."
+
+- id: "3.1-full-audit-priority"
+  section: "3.1"
+  title: "Приоритет сообщений аудита (full_audit:priority = notice)"
+  severity: "LOW"
+  scope: "GLOBAL"
+  key: "full_audit:priority"
+  operator: "EQUALS"
+  expected: "notice"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       full_audit:priority = notice
+  consequences: "Задает уровень важности событий notice для фильтрации в syslog."
+
+- id: "3.1-log-level"
+  section: "3.1"
+  title: "Уровень детализации журнала VFS (log level contains vfs:3)"
+  severity: "MEDIUM"
+  scope: "GLOBAL"
+  key: "log level"
+  operator: "CONTAINS_ALL"
+  expected: "vfs:3"
+  appliesTo: "ALWAYS"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       log level = 1 vfs:3
+  consequences: "Потребуется для вывода сообщений модуля full_audit уровня notice/info."
+
+- id: "4.1-ldap-strong-auth"
+  section: "4.1"
+  title: "Требование обязательной строгой аутентификации LDAP (ldap server require strong auth = yes)"
+  severity: "HIGH"
+  scope: "GLOBAL"
+  key: "ldap server require strong auth"
+  operator: "EQUALS"
+  expected: "yes"
+  appliesTo: "AD_DC"
+  howToFix: |
+    В секции [global] smb.conf укажите:
+       ldap server require strong auth = yes
+  consequences: "Запретит клиентам LDAP аутентификацию открытым текстом без TLS/SASL."
+
+- id: "4.4-ad-backup"
+  section: "4.4"
+  title: "Регулярное резервное копирование Active Directory (не реже раз в 90 дней)"
+  severity: "HIGH"
+  scope: "MANUAL"
+  key: null
+  operator: null
+  expected: "Выполняется регламент бэкапа"
+  appliesTo: "AD_DC"
+  howToFix: |
+    Выполните резервное копирование базы Samba AD DC командой:
+       sudo samba-tool domain backup offline --target-dir=/var/backups/samba
+  consequences: "При отсутствии свежих бэкапов (старше tombstone lifetime) восстановление контроллера домена невозможно."
+
+- id: "4.5-domain-admins"
+  section: "4.5"
+  title: "Контроль состава привилегированной группы Domain Admins"
+  severity: "HIGH"
+  scope: "MANUAL"
+  key: null
+  operator: null
+  expected: "Только авторизованные администраторы"
+  appliesTo: "AD_DC"
+  howToFix: |
+    Проверьте состав группы Domain Admins командой:
+       sudo samba-tool group listmembers "Domain Admins"
+  consequences: "Учетные записи с избыточными правами создают угрозу полной компрометации домена."
+
+- id: "4.6-gpo-check"
+  section: "4.6"
+  title: "Проверка целостности и политик безопасности GPO"
+  severity: "MEDIUM"
+  scope: "MANUAL"
+  key: null
+  operator: null
+  expected: "Политики GPO согласованы и проверены"
+  appliesTo: "AD_DC"
+  howToFix: |
+    Просмотрите список и статус групповых политик командой:
+       sudo samba-tool gpo listall
+  consequences: "Некорректные или модифицированные GPO могут ослабить безопасность доменных рабочих станций."

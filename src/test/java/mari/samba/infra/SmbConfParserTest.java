@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Map;
 import mari.samba.share.SambaShare;
 import mari.samba.share.SambaShareCreateDto;
 import mari.samba.smbconfig.SambaGlobalConfigDto;
@@ -155,5 +156,79 @@ class SmbConfParserTest {
         assertThat(updatedConfig).doesNotContain("workgroup = TESTGROUP");
         assertThat(updatedConfig).contains("[public]");
         assertThat(updatedConfig).contains("[private]");
+    }
+
+    @Test
+    @DisplayName("Should parse effective configuration from testparm dump")
+    void shouldParseEffectiveConfig() {
+        String testparmDump =
+                """
+                # Load smb config files from /etc/samba/smb.conf
+                # Loaded services file OK.
+                ; Server role: ROLE_STANDALONE
+
+                [global]
+                \tbind interfaces only = No
+                \tdisable netbios = Yes
+                \tguest ok = No
+                \thosts allow = 192.168.1.0/24
+                \thosts deny = ALL
+                \tmap to guest = Bad User
+                \tSERVER   MIN   PROTOCOL = SMB2_02
+                \tserver max protocol = SMB3
+                \tvfs objects = full_audit
+                \tldap server require strong auth = yes
+
+                [public]
+                \tcomment = Public share
+                \tpath = /srv/samba/public
+                \tread only = No
+                \tguest ok = Yes
+                \tcreate mask = 0744
+                \tdirectory mask = 0755
+
+                [developers_shared]
+                \tcomment = Devs
+                \tpath = /srv/samba/devs
+                \tcreate mask = 0640
+                \tdirectory mask = 0750
+                """;
+
+        Map<String, Map<String, String>> effective = parser.parseEffectiveConfig(testparmDump);
+
+        assertThat(effective).containsOnlyKeys("global", "public", "developers_shared");
+
+        Map<String, String> global = effective.get("global");
+        assertThat(global)
+                .containsEntry("bind interfaces only", "No")
+                .containsEntry("disable netbios", "Yes")
+                .containsEntry("guest ok", "No")
+                .containsEntry("hosts allow", "192.168.1.0/24")
+                .containsEntry("hosts deny", "ALL")
+                .containsEntry("map to guest", "Bad User")
+                .containsEntry("server min protocol", "SMB2_02")
+                .containsEntry("server max protocol", "SMB3")
+                .containsEntry("vfs objects", "full_audit")
+                .containsEntry("ldap server require strong auth", "yes");
+
+        Map<String, String> publicShare = effective.get("public");
+        assertThat(publicShare)
+                .containsEntry("comment", "Public share")
+                .containsEntry("path", "/srv/samba/public")
+                .containsEntry("read only", "No")
+                .containsEntry("guest ok", "Yes")
+                .containsEntry("create mask", "0744")
+                .containsEntry("directory mask", "0755");
+
+        Map<String, String> devShare = effective.get("developers_shared");
+        assertThat(devShare).containsEntry("create mask", "0640").containsEntry("directory mask", "0750");
+    }
+
+    @Test
+    @DisplayName("Should return empty map on null or empty input")
+    void shouldReturnEmptyMapOnNullOrEmptyInput() {
+        assertThat(parser.parseEffectiveConfig(null)).isEmpty();
+        assertThat(parser.parseEffectiveConfig("")).isEmpty();
+        assertThat(parser.parseEffectiveConfig("   \n\t  \n")).isEmpty();
     }
 }

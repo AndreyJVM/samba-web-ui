@@ -100,7 +100,8 @@ public final class LinuxCommands {
     public static String du(String path) {
         String safePath = escape(requireValidPath(path));
         return String.format(
-                "if [ -e %s ]; then sudo du -sh -- %s 2>/dev/null || echo 0; else echo 0; fi", safePath, safePath);
+                "if [ -e %s ]; then du -sh -- %s 2>/dev/null || sudo -n du -sh -- %s 2>/dev/null || echo '0 B'; else echo '0 B'; fi",
+                safePath, safePath, safePath);
     }
 
     public static String df(String path) {
@@ -174,6 +175,10 @@ public final class LinuxCommands {
 
     public static String testparmSilent(String filePath) {
         return String.format("testparm -s -- %s > /dev/null", escape(requireValidPath(filePath)));
+    }
+
+    public static String testparmDump() {
+        return "testparm -sv 2>/dev/null";
     }
 
     // ==========================================

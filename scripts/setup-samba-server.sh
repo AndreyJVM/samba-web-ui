@@ -1,72 +1,72 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Скрипт первоначальной настройки Samba сервера для Samba Web UI
-# Запускать от имени root (sudo)
+# ==============================================================================
+# Samba Web UI - Host Server Setup & Dynamic Sudo Configuration
+# ==============================================================================
+# Этот скрипт подготавливает хост-машину (Ubuntu/Debian) для безопасного
+# управления через веб-интерфейс Samba Web UI:
+# 1. Проверяет права root.
+# 2. Создаёт отдельного системного пользователя-администратора (по умолчанию: admin).
+# 3. Устанавливает Samba, Winbind, Kerberos и необходимые утилиты.
+# 4. Динамически разрешает в /etc/sudoers.d/ ТОЛЬКО необходимые бинарники без пароля,
+#    используя абсолютные пути из вашей системы (защита от взлома PATH).
+# ==============================================================================
 
-set -e
+set -euo pipefail
 
-echo "========================================================"
-echo "       Samba Web UI - Initial Server Setup Script       "
-echo "========================================================"
+# Цвета для красивого вывода
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
 
-# Проверка, что скрипт запущен от root
+log_info() {
+    echo -e "${GREEN}[ИНФО]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[ВНИМАНИЕ]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ОШИБКА]${NC} $1" >&2
+}
+
+# 1. Проверка root-прав
 if [ "$EUID" -ne 0 ]; then
-  echo "Ошибка: Данный скрипт необходимо запускать от имени root."
-  echo "Использование: sudo ./setup-samba-server.sh"
-  exit 1
+    log_error "Скрипт должен быть запущен с правами суперпользователя (root) через sudo."
+    exit 1
 fi
 
-# Поддержка автоматической (неинтерактивной) установки через переменные окружения
-if [ -n "$AUTO_ADMIN_USER" ] && [ -n "$AUTO_ADMIN_PASS" ]; then
-    ADMIN_USER="$AUTO_ADMIN_USER"
-    ADMIN_PASS="$AUTO_ADMIN_PASS"
-    INTERACTIVE=0
-    echo "Запуск в неинтерактивном режиме (CI/Docker). Пользователь: $ADMIN_USER"
-else
-    INTERACTIVE=1
-    # Ввод имени пользователя
-    read -r -p "Введите имя администратора Samba [по умолчанию: samba-admin]: " ADMIN_USER
-    ADMIN_USER=${ADMIN_USER:-samba-admin}
+ADMIN_USER="${1:-admin}"
+
+# Validate: username must only contain safe characters (alphanumeric, dash, underscore, dot)
+if ! echo "$ADMIN_USER" | grep -qE '^[a-z_][a-z0-9_.-]{0,31}$'; then
+    log_error "Invalid username: '$ADMIN_USER'. Must match ^[a-z_][a-z0-9_.-]{0,31}$"
+    exit 1
 fi
 
-# 1. Установка Samba
-echo ">>> [1/4] Установка пакета Samba..."
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y samba
+SUDOERS_FILE="/etc/sudoers.d/samba-web-ui-${ADMIN_USER}"
 
-# 2. Создание системного пользователя
-echo ">>> [2/4] Подготовка системного пользователя '$ADMIN_USER'..."
-if id "$ADMIN_USER" &>/dev/null; then
-    echo "Пользователь $ADMIN_USER уже существует."
+echo "========================================================"
+echo "    Настройка сервера для работы с Samba Web UI         "
+echo "========================================================"
+log_info "Административный пользователь: $ADMIN_USER"
+
+# 2. Создание пользователя, если он не существует
+if id "$ADMIN_USER" >/dev/null 2>&1; then
+    log_info "Пользователь $ADMIN_USER уже существует."
 else
-    # Создаем без добавления в глобальную группу sudo/wheel
+    log_info "Создание пользователя $ADMIN_USER..."
     useradd -m -s /bin/bash "$ADMIN_USER"
-    
-    if [ "$INTERACTIVE" -eq 1 ]; then
-        echo "Пожалуйста, задайте системный пароль (Linux) для '$ADMIN_USER':"
-        passwd "$ADMIN_USER"
-    else
-        echo "$ADMIN_USER:$ADMIN_PASS" | chpasswd
-    fi
+    echo "Задайте пароль для пользователя $ADMIN_USER:"
+    passwd "$ADMIN_USER"
 fi
 
-# 3. Настройка Samba пароля
-echo ">>> [3/4] Добавление '$ADMIN_USER' в базу пользователей Samba..."
-if [ "$INTERACTIVE" -eq 1 ]; then
-    echo "Пожалуйста, задайте пароль Samba для '$ADMIN_USER' (с ним будет происходить вход в Web UI):"
-    smbpasswd -a "$ADMIN_USER"
-    smbpasswd -e "$ADMIN_USER"
-else
-    (echo "$ADMIN_PASS"; echo "$ADMIN_PASS") | smbpasswd -s -a "$ADMIN_USER"
-    smbpasswd -e "$ADMIN_USER"
-fi
-
-# 4. Настройка Sudoers (беспарольный доступ для Web UI)
-echo ">>> [4/4] Настройка прав sudoers для '$ADMIN_USER'..."
-
-SUDOERS_FILE="/etc/sudoers.d/samba-web-ui"
-SUDO_ENTRIES=()
+# 3. Обновление пакетов и установка Samba
+log_info "Проверка и установка необходимых пакетов..."
+apt-get update -y
+apt-get install -y samba smbclient winbind krb5-user libpam-winbind libnss-winbind sudo
 
 # Вспомогательная функция для безопасного поиска абсолютного пути к бинарнику.
 resolve_cmd() {
@@ -79,13 +79,14 @@ resolve_cmd() {
 # так как бэкенд Java использует разные динамические флаги (например, --)
 # ==================================================================
 DYNAMIC_COMMANDS=(
-  systemctl pdbedit net tee
+  systemctl pdbedit net tee testparm
   useradd userdel chpasswd smbpasswd
   groupadd groupdel gpasswd
-  smbstatus df tail kill find
+  smbstatus df du tail kill find
   cat mv mkdir cp rm chmod chown
 )
 
+SUDO_ENTRIES=()
 for cmd in "${DYNAMIC_COMMANDS[@]}"; do
     bin_path=$(resolve_cmd "$cmd")
     if [ -n "$bin_path" ]; then

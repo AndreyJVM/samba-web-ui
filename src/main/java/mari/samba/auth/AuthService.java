@@ -11,6 +11,5 @@ public interface AuthService {
 
     void logout(@Nullable String sessionId);
 
-    @NonNull
-    Map<String, String> getCurrentUserInfo(@Nullable String sambaHost, @Nullable String sambaUser);
+    @NonNull Map<String, String> getCurrentUserInfo(@Nullable String sambaHost, @Nullable String sambaUser);
 }
