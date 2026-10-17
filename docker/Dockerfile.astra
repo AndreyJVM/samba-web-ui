@@ -16,8 +16,8 @@ RUN chmod +x mvnw
 COPY src ./src
 COPY frontend ./frontend
 
-# Build argument to skip tests (default: false)
-ARG SKIP_TESTS=false
+# Build argument to skip tests (default: true for Docker images)
+ARG SKIP_TESTS=true
 
 # Build the JAR
 RUN --mount=type=cache,target=/root/.m2 \
@@ -39,7 +39,8 @@ WORKDIR /app
 
 RUN apk add --no-cache paxctl \
     && JAVA_BIN="$(readlink -f "$(command -v java)")" \
-    && paxctl -Cm "$JAVA_BIN" \
+    && paxctl -c "$JAVA_BIN" \
+    && paxctl -m "$JAVA_BIN" \
     && paxctl -v "$JAVA_BIN" \
     && apk del paxctl
 

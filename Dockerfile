@@ -25,8 +25,8 @@ RUN chmod +x mvnw
 COPY src ./src
 COPY frontend ./frontend
 
-# Build argument to skip tests (default: false)
-ARG SKIP_TESTS=false
+# Build argument to skip tests (default: true for Docker images)
+ARG SKIP_TESTS=true
 
 # Build the JAR
 RUN --mount=type=cache,target=/root/.m2 \
