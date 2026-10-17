@@ -1,35 +1,142 @@
-name: Java CI with Maven
+name: CI/CD Pipeline (Build, Test & Release)
 
 on:
   push:
     branches: [ "master", "main" ]
+    tags:
+      - 'v*.*.*'
   pull_request:
     branches: [ "master", "main" ]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
 jobs:
-  build:
+  build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up JDK 21
-      uses: actions/setup-java@v3
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: maven
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
 
-    - name: Verify Code Formatting (Spotless)
-      run: mvn spotless:check
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
 
-    - name: Build and Test with Maven
-      run: mvn -B package --file pom.xml
+      - name: Verify Code Formatting (Spotless)
+        run: ./mvnw spotless:check
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: shareguard-jar
-        path: target/shareguard-*.jar
-        retention-days: 7
+      - name: Build and Test with Maven
+        run: ./mvnw -B clean package
+
+      - name: Upload Built JAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shareguard-jar
+          path: target/*.jar
+          retention-days: 7
+
+  github-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download Built JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: shareguard-jar
+          path: release-artifacts
+
+      - name: Generate Changelog & Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          files: release-artifacts/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-publish:
+    name: Build & Publish Docker Images
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract Standard Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: andreyvorobevaqa/samba-web-ui
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=true
+
+      - name: Build and push Standard Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract Astra Docker metadata
+        id: meta-astra
+        uses: docker/metadata-action@v5
+        with:
+          images: andreyvorobevaqa/samba-web-ui
+          tags: |
+            type=semver,pattern={{version}},prefix=astra-
+            type=semver,pattern={{major}}.{{minor}},prefix=astra-
+            type=raw,value=astra-latest,enable=true
+
+      - name: Build and push Astra-compatible Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile.astra
+          push: true
+          tags: ${{ steps.meta-astra.outputs.tags }}
+          labels: ${{ steps.meta-astra.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: andreyvorobevaqa/samba-web-ui
+          readme-filepath: ./DOCKERHUB.md
