@@ -20,7 +20,7 @@
 
 ### Способ 1: Интерактивный Bash-скрипт (с чистой автоочисткой)
 ```bash
-./scripts/run-sandbox.sh
+./scripts/sandbox/run-sandbox.sh
 ```
 Скрипт:
 1. Запускает контейнеры (`docker compose up --build -d`).

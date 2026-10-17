@@ -42,10 +42,56 @@ docker run -d \
 
 **Linux / macOS:**
 ```bash
-./scripts/run-sandbox.sh
+./scripts/sandbox/run-sandbox.sh
 ```
 
 **Windows (Git Bash / WSL):**
 ```bash
-bash scripts/run-sandbox.sh
+bash scripts/sandbox/run-sandbox.sh
 ```
+
+---
+
+### Что под капотом песочницы:
+1. **Сборка фронтенда и бэкенда** прямо на хосте (быстро с локальным Maven кэшем `.m2` без долгого скачивания библиотек).
+2. **Docker Compose** поднимает:
+   - `samba-node`: Узел Ubuntu с реальным Samba-сервером и SSH (порт `2222` и SMB `1445`, `1139`).
+   - `web`: Локальный контейнер Web UI на `http://localhost:8080/ui`.
+3. **Автоматическая очистка**: при завершении скрипта (Ctrl+C или Enter) скрипт вычищает все временные контейнеры и тома.
+
+Подробнее о песочнице и параметрах читайте в [docker/README.md](docker/README.md).
+
+## Разработка
+
+### Требования
+- Java 21 (JDK)
+- Node.js 20+ и npm 10+
+- Docker и Docker Compose (для запуска Sandbox)
+
+### Сборка проекта
+```bash
+# Сборка без тестов
+./mvnw clean package -DskipTests
+
+# Запуск тестов
+./mvnw test
+
+# Проверка стиля кода (Spotless)
+./mvnw spotless:check
+
+# Автоматическое форматирование
+./mvnw spotless:apply
+```
+
+### Запуск бэкенда из IDE
+Основной класс: `mari.samba.ShareGuardApplication`  
+Перед запуском из IDE убедитесь, что фронтенд собран (`cd frontend && npm run build`), либо запустите Vite dev-сервер:
+```bash
+cd frontend
+npm run dev
+```
+Vite dev-сервер доступен на `http://localhost:5173/ui/` с автопроксированием API-запросов на `http://localhost:8080`.
+
+## Лицензия
+
+Распространяется под лицензией MIT. Подробнее см. в файле [LICENSE](LICENSE).

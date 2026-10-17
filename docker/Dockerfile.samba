@@ -17,11 +17,11 @@ RUN mkdir /var/run/sshd && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
 # Копируем конфигурационные файлы и скрипты в образ
-COPY docker/scripts/systemctl-stub.sh /usr/bin/systemctl
-COPY docker/scripts/entrypoint.sh /entrypoint.sh
+COPY scripts/sandbox/systemctl-stub.sh /usr/bin/systemctl
+COPY scripts/sandbox/entrypoint.sh /entrypoint.sh
 COPY docker/config/smb-base.conf /tmp/smb-base.conf
 COPY scripts/setup-samba-server.sh /setup-samba-server.sh
-COPY docker/scripts/setup-test-data.sh /setup-test-data.sh
+COPY scripts/sandbox/setup-test-data.sh /setup-test-data.sh
 
 # Настраиваем права доступа для скриптов
 RUN chmod +x /usr/bin/systemctl /entrypoint.sh /setup-samba-server.sh /setup-test-data.sh

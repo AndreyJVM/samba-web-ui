@@ -1,6 +1,6 @@
 # ==========================================
 # Fast Local / Sandbox Stage (using pre-built JAR)
-# Used by scripts/run-sandbox.sh for instant builds
+# Used by scripts/sandbox/run-sandbox.sh for instant builds
 # ==========================================
 FROM eclipse-temurin:21-jre-alpine AS local
 WORKDIR /app

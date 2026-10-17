@@ -40,7 +40,7 @@ jobs:
 
   docker-publish:
     runs-on: ubuntu-latest
-    needs: build-and-release # Запускаем только если GitHub Release прошел успешно
+    needs: build-and-release
 
     steps:
       - name: Checkout repository
@@ -69,6 +69,25 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Extract Astra Docker metadata
+        id: meta-astra
+        uses: docker/metadata-action@v5
+        with:
+          images: andreyvorobevaqa/samba-web-ui
+          tags: |
+            type=semver,pattern={{version}},prefix=astra-
+            type=semver,pattern={{major}}.{{minor}},prefix=astra-
+            type=raw,value=astra-latest,enable=true
+
+      - name: Build and push Astra-compatible Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile.astra
+          push: true
+          tags: ${{ steps.meta-astra.outputs.tags }}
+          labels: ${{ steps.meta-astra.outputs.labels }}
 
       - name: Update Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
