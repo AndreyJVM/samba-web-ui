@@ -19,7 +19,7 @@ RUN mkdir /var/run/sshd && \
 # Копируем конфигурационные файлы и скрипты в образ
 COPY scripts/sandbox/systemctl-stub.sh /usr/bin/systemctl
 COPY scripts/sandbox/entrypoint.sh /entrypoint.sh
-COPY docker/config/smb-base.conf /tmp/smb-base.conf
+COPY config/smb-base.conf /tmp/smb-base.conf
 COPY scripts/setup-samba-server.sh /setup-samba-server.sh
 COPY scripts/sandbox/setup-test-data.sh /setup-test-data.sh
 

@@ -1,4 +1,4 @@
-# Запретить всё, разрешить только то, что копирует Dockerfile
+# Prohibit everything, allow only what copies the Dockerfile
 *
 
 !mvnw
@@ -8,11 +8,12 @@
 !frontend
 !target/*.jar
 
-# Внутри frontend не копировать локальные артефакты
+# Do not copy local artifacts inside frontend
 frontend/node_modules
 frontend/node
 frontend/*.tsbuildinfo
 !docker
 !scripts
-
 !scripts/
+!config
+!config/
