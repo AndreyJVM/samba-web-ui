@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../lib/errors";
 import { useEffect, useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import {
@@ -78,8 +79,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       await api.post(`/api/monitoring/control?action=${action}`);
       toast("info", "Command Sent", `Action: ${action}`);
       setTimeout(fetchStatus, 1000);
-    } catch (err: any) {
-      toast("error", "Error", err.message);
+    } catch (err) {
+      toast("error", "Error", getErrorMessage(err));
     } finally {
       if (action === "restart") {
         setTimeout(() => setIsRestarting(false), 1200);

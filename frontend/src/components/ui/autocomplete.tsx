@@ -1,10 +1,11 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-interface AutocompleteInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface AutocompleteInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange"> {
   suggestions: string[];
+  onValueChange?: (value: string) => void;
 }
 
-export function AutocompleteInput({ suggestions, value, onChange, className, ...props }: AutocompleteInputProps) {
+export function AutocompleteInput({ suggestions, value, onValueChange, className, ...props }: AutocompleteInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -25,9 +26,7 @@ export function AutocompleteInput({ suggestions, value, onChange, className, ...
   }, []);
 
   const handleSelect = (suggestion: string) => {
-    if (onChange) {
-      onChange({ target: { value: suggestion } } as any);
-    }
+    onValueChange?.(suggestion);
     setIsOpen(false);
     setActiveIndex(-1);
   };
@@ -56,7 +55,7 @@ export function AutocompleteInput({ suggestions, value, onChange, className, ...
         style={{ width: '100%' }}
         value={value}
         onChange={(e) => {
-          onChange && onChange(e);
+          onValueChange?.(e.target.value);
           setIsOpen(true);
           setActiveIndex(-1);
         }}

@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from "react";
+import { getErrorMessage } from "../lib/errors";
+import React, { useState, useEffect, useCallback } from "react";
 import { FilePane, BrowseResult } from "./ui/file-pane";
 import { api } from "../lib/api";
 import { useToast } from "./ui/toast";
@@ -18,7 +19,7 @@ export function FileManager() {
 
   const { error: toastError, success } = useToast();
 
-  const fetchPane = async (path: string, side: 'left' | 'right') => {
+  const fetchPane = useCallback(async (path: string, side: 'left' | 'right') => {
     side === 'left' ? setLeftLoading(true) : setRightLoading(true);
     try {
       const res = await api.get<BrowseResult>(`/api/fs/browse?path=${encodeURIComponent(path)}`);
@@ -29,15 +30,15 @@ export function FileManager() {
         setRightData(res);
         setRightSelected(new Set());
       }
-    } catch (err: any) {
-      toastError("FS Error", err.message);
+    } catch (err) {
+      toastError("FS Error", getErrorMessage(err));
     } finally {
       side === 'left' ? setLeftLoading(false) : setRightLoading(false);
     }
-  };
+  }, [toastError]);
 
-  useEffect(() => { fetchPane(leftPath, 'left'); }, [leftPath]);
-  useEffect(() => { fetchPane(rightPath, 'right'); }, [rightPath]);
+  useEffect(() => { fetchPane(leftPath, 'left'); }, [leftPath, fetchPane]);
+  useEffect(() => { fetchPane(rightPath, 'right'); }, [rightPath, fetchPane]);
 
   const toggleSelect = (path: string, side: 'left' | 'right') => {
     const setFn = side === 'left' ? setLeftSelected : setRightSelected;
@@ -64,8 +65,8 @@ export function FileManager() {
     try {
       await api.post("/api/fs/mkdir", { parentPath: path, name, dirName: name });
       fetchPane(path, side);
-    } catch (err: any) {
-      toastError("Error", err.message);
+    } catch (err) {
+      toastError("Error", getErrorMessage(err));
     }
   };
 
@@ -92,8 +93,8 @@ export function FileManager() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (err: any) {
-      toastError("Download Error", err.message);
+    } catch (err) {
+      toastError("Download Error", getErrorMessage(err));
     }
   };
 
@@ -135,8 +136,8 @@ export function FileManager() {
       success("Success", `Items ${action}d successfully`);
       fetchPane(leftPath, 'left');
       fetchPane(rightPath, 'right');
-    } catch (err: any) {
-      toastError("Error", err.message);
+    } catch (err) {
+      toastError("Error", getErrorMessage(err));
     }
   };
 
@@ -154,8 +155,8 @@ export function FileManager() {
       if (!res.ok) throw new Error(await res.text());
       success("Success", "File uploaded");
       fetchPane(path, side);
-    } catch (err: any) {
-      toastError("Upload Error", err.message);
+    } catch (err) {
+      toastError("Upload Error", getErrorMessage(err));
     }
   };
 

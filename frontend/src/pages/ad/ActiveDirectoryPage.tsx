@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { getErrorMessage } from "../../lib/errors";
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useToast } from '../../components/ui/toast';
@@ -28,21 +29,21 @@ export default function ActiveDirectoryPage() {
   const [password, setPassword] = useState('');
   const [isJoining, setIsJoining] = useState(false);
 
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get<AdStatus>('/api/ad/status');
       setStatus(res);
-    } catch (err: any) {
-      toast('error', 'Status Error', err.message);
+    } catch (err) {
+      toast('error', 'Status Error', getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchStatus();
-  }, []);
+  }, [fetchStatus]);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,8 +67,8 @@ export default function ActiveDirectoryPage() {
       setStatus(res);
       toast('success', 'Joined', 'Successfully joined the domain');
       setPassword(''); // clear password
-    } catch (err: any) {
-      toast('error', 'Join Failed', err.message);
+    } catch (err) {
+      toast('error', 'Join Failed', getErrorMessage(err));
     } finally {
       setIsJoining(false);
     }
@@ -94,8 +95,8 @@ export default function ActiveDirectoryPage() {
       setStatus(res);
       toast('success', 'Left Domain', 'Successfully disconnected from AD');
       setPassword('');
-    } catch (err: any) {
-      toast('error', 'Leave Failed', err.message);
+    } catch (err) {
+      toast('error', 'Leave Failed', getErrorMessage(err));
     } finally {
       setIsJoining(false);
     }

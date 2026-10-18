@@ -1,19 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, FolderKanban, Users, Shield } from "lucide-react";
+import { Search, FolderKanban, Users, Shield, type LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useTranslation } from "../../lib/i18n";
+
+interface SearchShare { name: string; path: string; }
+interface SearchUser { username: string; fullName?: string; }
+interface SearchGroup { name: string; members?: string[]; }
 
 export function GlobalSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [results, setResults] = useState<{ type: string; title: string; subtitle?: string; path: string; icon: any }[]>([]);
+  const [results, setResults] = useState<{ type: string; title: string; subtitle?: string; path: string; icon: LucideIcon }[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const [cache, setCache] = useState<{shares: any[], users: any[], groups: any[]} | null>(null);
+  const [cache, setCache] = useState<{shares: SearchShare[], users: SearchUser[], groups: SearchGroup[]} | null>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -30,12 +34,14 @@ export function GlobalSearch() {
     if (cache) return;
     try {
       const [sh, us, gr] = await Promise.all([
-        api.get<any[]>("/api/shares").catch(() => []),
-        api.get<any[]>("/api/users").catch(() => []),
-        api.get<any[]>("/api/groups").catch(() => [])
+        api.get<SearchShare[]>("/api/shares").catch(() => []),
+        api.get<SearchUser[]>("/api/users").catch(() => []),
+        api.get<SearchGroup[]>("/api/groups").catch(() => [])
       ]);
       setCache({ shares: sh || [], users: us || [], groups: gr || [] });
-    } catch {}
+    } catch {
+      // Individual endpoint failures already fall back to empty results.
+    }
   };
 
   useEffect(() => {

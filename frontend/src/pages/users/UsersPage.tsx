@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { getErrorMessage } from "../../lib/errors";
+import { useEffect, useState, useCallback } from "react";
 import { Plus, Trash2, Key, UserIcon, ShieldCheck } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/ui/toast";
@@ -26,21 +27,21 @@ export default function UsersPage() {
   const { confirm } = useConfirm();
   const { t } = useTranslation();
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get<User[]>("/api/users");
       setUsers(res);
-    } catch (err: any) {
-      toastError("API Error", err.message);
+    } catch (err) {
+      toastError("API Error", getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toastError]);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleDelete = async (username: string) => {
     const ok = await confirm({
@@ -55,8 +56,8 @@ export default function UsersPage() {
       await api.delete(`/api/users/${username}`);
       success(t("common.delete"), `User ${username} removed`);
       fetchUsers();
-    } catch (err: any) {
-      toastError("Delete Error", err.message);
+    } catch (err) {
+      toastError("Delete Error", getErrorMessage(err));
     }
   };
 
@@ -68,8 +69,8 @@ export default function UsersPage() {
       setIsCreating(false);
       setNewUser({ username: "", fullName: "", password: "" });
       fetchUsers();
-    } catch (err: any) {
-      toastError("Creation Error", err.message);
+    } catch (err) {
+      toastError("Creation Error", getErrorMessage(err));
     }
   };
 
@@ -80,8 +81,8 @@ export default function UsersPage() {
       success("Updated", `Password for ${passwordTarget} changed`);
       setPasswordModalOpen(false);
       setNewPassword("");
-    } catch (err: any) {
-      toastError("Password Error", err.message);
+    } catch (err) {
+      toastError("Password Error", getErrorMessage(err));
     }
   };
 

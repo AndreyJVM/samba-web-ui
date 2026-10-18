@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../lib/errors";
 import { useState } from "react";
 import { Lock, Key, ArrowRight, AlertTriangle } from "lucide-react";
 import { Input } from "../components/ui/input";
@@ -29,8 +30,8 @@ export default function LoginPage() {
       });
       // Simple redirect since auth state isn't managed globally here
       window.location.href = "/ui/";
-    } catch (err: any) {
-      setError(err.message || "Ошибка авторизации");
+    } catch (err) {
+      setError(getErrorMessage(err) || "Ошибка авторизации");
     } finally {
       setLoading(false);
     }

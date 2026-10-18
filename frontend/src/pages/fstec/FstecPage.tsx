@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { getErrorMessage } from "../../lib/errors";
+import { useEffect, useState, useCallback } from "react";
 import {
   ShieldCheck,
   RefreshCw,
@@ -59,21 +60,21 @@ export default function FstecPage() {
   const { error: toastError, success: toastSuccess } = useToast();
   const { t } = useTranslation();
 
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get<FstecReportDto>("/api/fstec/check");
       setReport(res);
-    } catch (err: any) {
-      toastError("FSTEC Check Error", err.message);
+    } catch (err) {
+      toastError("FSTEC Check Error", getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toastError]);
 
   useEffect(() => {
     fetchReport();
-  }, []);
+  }, [fetchReport]);
 
   const toggleExpand = (id: string) => {
     setExpandedRules(prev => ({ ...prev, [id]: !prev[id] }));

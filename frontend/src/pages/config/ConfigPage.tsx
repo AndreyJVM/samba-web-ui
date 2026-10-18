@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { getErrorMessage } from "../../lib/errors";
+import { useEffect, useState, useCallback } from "react";
 import { Save, RotateCcw, Clock, ArrowLeft } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/ui/toast";
@@ -45,7 +46,7 @@ export default function ConfigPage() {
   const { confirm } = useConfirm();
   const { t } = useTranslation();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [resConfig, resBackups] = await Promise.all([
@@ -54,14 +55,14 @@ export default function ConfigPage() {
       ]);
       setConfig(resConfig);
       setBackups(resBackups || []);
-    } catch (err: any) {
-      toastError("API Error", err.message);
+    } catch (err) {
+      toastError("API Error", getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toastError]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,8 +74,8 @@ export default function ConfigPage() {
       success("Saved", "Configuration applied. Restart service to apply fully.");
       // Refetch to pull latest backups
       fetchData();
-    } catch (err: any) {
-      toastError("Save Error", err.message);
+    } catch (err) {
+      toastError("Save Error", getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -128,8 +129,8 @@ export default function ConfigPage() {
       await api.post(`/api/config/backups/${filename}/restore`);
       success("Restored", `Backup ${filename} restored successfully. Restart service applied.`);
       fetchData(); // reload UI config values
-    } catch (err: any) {
-      toastError("Restore Error", err.message);
+    } catch (err) {
+      toastError("Restore Error", getErrorMessage(err));
     }
   };
 

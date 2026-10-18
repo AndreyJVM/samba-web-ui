@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { getErrorMessage } from "../../lib/errors";
+import { useEffect, useState, useCallback } from "react";
 import { Users, Plus, Trash2, UserPlus, UserMinus } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/ui/toast";
@@ -25,7 +26,7 @@ export default function GroupsPage() {
   const { confirm } = useConfirm();
   const { t } = useTranslation();
 
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
       setLoading(true);
       const [res, usersRes] = await Promise.all([
@@ -34,14 +35,14 @@ export default function GroupsPage() {
       ]);
       setGroups(res);
       setUsers(usersRes || []);
-    } catch (err: any) {
-      toastError("API Error", err.message);
+    } catch (err) {
+      toastError("API Error", getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toastError]);
 
-  useEffect(() => { fetchGroups(); }, []);
+  useEffect(() => { fetchGroups(); }, [fetchGroups]);
 
   const handleDeleteGroup = async (groupName: string) => {
     const ok = await confirm({
@@ -56,8 +57,8 @@ export default function GroupsPage() {
       await api.delete(`/api/groups/${groupName}`);
       success(t("common.delete"), `Group ${groupName} removed`);
       fetchGroups();
-    } catch (err: any) {
-      toastError("Delete Error", err.message);
+    } catch (err) {
+      toastError("Delete Error", getErrorMessage(err));
     }
   };
 
@@ -69,8 +70,8 @@ export default function GroupsPage() {
       setIsCreating(false);
       setNewGroupName("");
       fetchGroups();
-    } catch (err: any) {
-      toastError("Creation Error", err.message);
+    } catch (err) {
+      toastError("Creation Error", getErrorMessage(err));
     }
   };
 
@@ -83,8 +84,8 @@ export default function GroupsPage() {
       setIsAddingUser(false);
       setUsernameToAdd("");
       fetchGroups();
-    } catch (err: any) {
-      toastError("Add Error", err.message);
+    } catch (err) {
+      toastError("Add Error", getErrorMessage(err));
     }
   };
 
@@ -101,8 +102,8 @@ export default function GroupsPage() {
       await api.delete(`/api/groups/${groupName}/users/${username}`);
       success(t("common.remove"), `User ${username} removed from ${groupName}`);
       fetchGroups();
-    } catch (err: any) {
-      toastError("Remove Error", err.message);
+    } catch (err) {
+      toastError("Remove Error", getErrorMessage(err));
     }
   };
 

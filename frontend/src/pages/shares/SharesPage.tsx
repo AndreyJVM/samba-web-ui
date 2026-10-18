@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { getErrorMessage } from "../../lib/errors";
+import { useEffect, useState, useCallback } from "react";
 import { FolderKanban, HardDrive, Plus, Trash2, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { api } from "../../lib/api";
 import { useToast } from "../../components/ui/toast";
@@ -29,6 +30,14 @@ interface Share {
   isNew?: boolean;
 }
 
+type AdvancedShareField = {
+  l: string;
+  k: "writeList" | "maxConnections" | "createMask" | "directoryMask" | "forceUser" | "forceGroup" | "hostsAllow" | "hostsDeny";
+  p: string;
+  mult?: boolean;
+  sug?: string[];
+};
+
 interface User { username: string; }
 interface Group { name: string; }
 
@@ -47,8 +56,8 @@ export default function SharesPage() {
     try {
       const res = await api.get<string>(`/api/shares/${sharename}/size`);
       setSizes(prev => ({ ...prev, [sharename]: res as string }));
-    } catch (err: any) {
-      toastError("Size Error", err.message);
+    } catch (err) {
+      toastError("Size Error", getErrorMessage(err));
     } finally {
       setLoadingSizes(prev => ({ ...prev, [sharename]: false }));
     }
@@ -63,7 +72,18 @@ export default function SharesPage() {
   const { confirm } = useConfirm();
   const { t } = useTranslation();
 
-  const fetchAll = async () => {
+  const advancedFields: AdvancedShareField[] = [
+    { l: t("shares.writeList"), k: "writeList", p: "@admins, user1", mult: true, sug: [...users.map(u => u.username), ...groups.map(g => '@' + g.name)] },
+    { l: t("shares.maxConn"), k: "maxConnections", p: "0" },
+    { l: t("shares.createMask"), k: "createMask", p: "0644" },
+    { l: t("shares.dirMask"), k: "directoryMask", p: "0755" },
+    { l: t("shares.forceUser"), k: "forceUser", p: "user1", mult: false, sug: users.map(u => u.username) },
+    { l: t("shares.forceGroup"), k: "forceGroup", p: "users", mult: false, sug: groups.map(g => g.name) },
+    { l: t("shares.hostsAllow"), k: "hostsAllow", p: "192.168.1." },
+    { l: t("shares.hostsDeny"), k: "hostsDeny", p: "ALL" },
+  ];
+
+  const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
       const [shRes, usRes, grRes] = await Promise.all([
@@ -74,16 +94,16 @@ export default function SharesPage() {
       setShares(shRes || []);
       setUsers(usRes || []);
       setGroups(grRes || []);
-    } catch (err: any) {
-      toastError("API Error", err.message);
+    } catch (err) {
+      toastError("API Error", getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toastError]);
 
   useEffect(() => {
     fetchAll();
-  }, []);
+  }, [fetchAll]);
 
   const handleDelete = async (name: string) => {
     const ok = await confirm({
@@ -98,8 +118,8 @@ export default function SharesPage() {
       await api.delete(`/api/shares/${name}`);
       success(t("common.delete"), `Share ${name} removed`);
       fetchAll();
-    } catch (err: any) {
-      toastError("Delete Error", err.message);
+    } catch (err) {
+      toastError("Delete Error", getErrorMessage(err));
     }
   };
 
@@ -138,8 +158,8 @@ export default function SharesPage() {
       success(isNew ? t("common.create") : t("common.save"), "Configuration saved");
       setIsEditing(false);
       fetchAll();
-    } catch (err: any) {
-      toastError("Save Error", err.message);
+    } catch (err) {
+      toastError("Save Error", getErrorMessage(err));
     }
   };
 
@@ -339,23 +359,14 @@ export default function SharesPage() {
               
               {showAdvanced && (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 animate-in slide-in-from-top-2 duration-300">
-                    {[
-                        { l: t("shares.writeList"), k: "writeList", p: "@admins, user1", mult: true, sug: [...users.map(u => u.username), ...groups.map(g => '@' + g.name)] },
-                        { l: t("shares.maxConn"), k: "maxConnections", p: "0" },
-                        { l: t("shares.createMask"), k: "createMask", p: "0644" },
-                        { l: t("shares.dirMask"), k: "directoryMask", p: "0755" },
-                        { l: t("shares.forceUser"), k: "forceUser", p: "user1", mult: false, sug: users.map(u => u.username) },
-                        { l: t("shares.forceGroup"), k: "forceGroup", p: "users", mult: false, sug: groups.map(g => g.name) },
-                        { l: t("shares.hostsAllow"), k: "hostsAllow", p: "192.168.1." },
-                        { l: t("shares.hostsDeny"), k: "hostsDeny", p: "ALL" },
-                      ].map(field => (
+                    {advancedFields.map(field => (
                         <div key={field.k} className="flex flex-col gap-1.5 overflow-visible">
                           <label className="text-[11px] font-semibold text-text-muted uppercase" title={field.l}>{field.l}</label>
                           {field.sug ? (
                             field.mult ? (
                               <MultiSelect 
                                 options={field.sug}
-                                value={(currentShare as any)[field.k] || ""} 
+                                value={currentShare[field.k] || ""}
                                 onChange={(val: string) => setCurrentShare({ ...currentShare, [field.k]: val })} 
                                 placeholder={field.p}
                               />
@@ -363,8 +374,8 @@ export default function SharesPage() {
                               <div className="w-full bg-surface border border-border-strong rounded-md flex items-center">
                                 <AutocompleteInput 
                                   suggestions={field.sug}
-                                  value={(currentShare as any)[field.k] || ""} 
-                                  onChange={(e: any) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
+                                  value={currentShare[field.k] || ""}
+                                  onValueChange={(value) => setCurrentShare({ ...currentShare, [field.k]: value })}
                                   className="w-full text-[12px] font-mono rounded-md !py-1.5 !px-2.5 text-foreground"
                                   placeholder={field.p}
                                 />
@@ -372,7 +383,7 @@ export default function SharesPage() {
                             )
                           ) : (
                             <input 
-                              value={(currentShare as any)[field.k] || ""} 
+                              value={currentShare[field.k] || ""}
                               onChange={(e) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
                               className="w-full bg-surface border border-border-strong focus:border-accent focus:outline-none transition-all py-1.5 px-2.5 text-[12px] font-mono rounded-md text-foreground"
                               placeholder={field.p}

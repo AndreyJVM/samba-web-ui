@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export type Language = "ru" | "en";
 
@@ -412,12 +412,12 @@ export const useTranslation = () => {
     };
   }, []);
 
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     const keys = key.split(".");
-    let result: any = translations[lang];
+    let result: unknown = translations[lang];
     for (const k of keys) {
       if (result && typeof result === "object" && k in result) {
-        result = result[k];
+        result = (result as Record<string, unknown>)[k];
       } else {
         result = undefined;
         break;
@@ -427,14 +427,14 @@ export const useTranslation = () => {
       result = translations["en"];
       for (const k of keys) {
         if (result && typeof result === "object" && k in result) {
-          result = result[k];
+          result = (result as Record<string, unknown>)[k];
         } else {
           return key;
         }
       }
     }
     return typeof result === "string" ? result : key;
-  };
+  }, [lang]);
 
   return { t, lang, setLanguage };
 };

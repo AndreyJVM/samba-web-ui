@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { getErrorMessage } from "../lib/errors";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { FileStack, Power } from "lucide-react";
 import { api } from "../lib/api";
 import { useToast } from "../components/ui/toast";
@@ -8,8 +9,8 @@ import { FileManager } from "../components/FileManager";
 interface DashboardData {
   isRunning: boolean;
   diskUsage: string[];
-  connections: any[];
-  openFiles: any[];
+  connections: Record<string, string>[];
+  openFiles: (Record<string, string> | string)[];
 }
 
 interface DiskUsage { total: string; used: string; available: string; usePercent: number; mountPoint: string; }
@@ -17,6 +18,7 @@ interface DiskUsage { total: string; used: string; available: string; usePercent
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [dashLoading, setDashLoading] = useState(true);
+  const hasDashboardData = useRef(false);
 
   const [diskUsage, setDiskUsage] = useState<DiskUsage | null>(null);
 
@@ -26,19 +28,21 @@ export default function DashboardPage() {
   const fetchDashboard = useCallback(async () => {
     try {
       const res = await api.get<DashboardData>("/api/monitoring/dashboard");
+      hasDashboardData.current = true;
       setData(res);
-    } catch (err: any) {
-      if (!data) toastError("Error", err.message);
+    } catch (err) {
+      if (!hasDashboardData.current) toastError("Error", getErrorMessage(err));
     } finally {
       setDashLoading(false);
     }
-  }, [data, toastError]);
+  }, [toastError]);
 
   const fetchFiles = async () => {
     try {
       const diskRes = await api.get<DiskUsage>(`/api/fs/disk-usage?path=/`).catch(() => null);
       if (diskRes) setDiskUsage(diskRes);
-    } catch (err: any) {
+    } catch {
+      // Disk usage is optional; retain the last successfully loaded value.
     }
   };
 
@@ -57,8 +61,8 @@ export default function DashboardPage() {
       await api.post(`/api/monitoring/control?action=${action}`);
       info("Command Sent", `Action: ${action} initiated`);
       setTimeout(fetchDashboard, 1500);
-    } catch (err: any) {
-      toastError("Control Error", err.message);
+    } catch (err) {
+      toastError("Control Error", getErrorMessage(err));
     }
   };
 
@@ -128,7 +132,7 @@ export default function DashboardPage() {
               <span className="text-sm text-text-muted mb-1.5 font-medium">{t("dashboard.locked")}</span>
             </div>
             <div className="h-[44px] mt-2 overflow-y-auto custom-scrollbar flex flex-col gap-1.5">
-               {data.openFiles?.length > 0 ? data.openFiles.slice(0, 2).map((f: any, idx: number) => (
+               {data.openFiles?.length > 0 ? data.openFiles.slice(0, 2).map((f, idx) => (
                  <div key={idx} className="flex justify-between items-center text-[11px] font-mono bg-surface-2 px-2 py-1 rounded-sm border border-border">
                    <span className="truncate max-w-[70%]">{typeof f === 'object' ? f.path : f.toString()}</span>
                    <span className="text-foreground font-semibold">{typeof f === 'object' ? f.user : '-'}</span>

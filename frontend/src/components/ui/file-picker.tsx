@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { getErrorMessage } from "../../lib/errors";
+import { useEffect, useState, useCallback } from "react";
 import { Folder, ArrowUp, FolderPlus, ChevronRight, FileText } from "lucide-react";
 import { api } from "../../lib/api";
 import { useTranslation } from "../../lib/i18n";
@@ -26,21 +27,21 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
   const { error: toastError, success } = useToast();
   const { t } = useTranslation();
 
-  const fetchFiles = async (path: string) => {
+  const fetchFiles = useCallback(async (path: string) => {
     setLoading(true);
     try {
       const res = await api.get<BrowseResult>(`/api/fs/browse?path=${encodeURIComponent(path)}`);
       setBrowseData(res);
       setCurrentPath(res.currentPath);
-    } catch (err: any) {
-      toastError("Error", err.message);
+    } catch (err) {
+      toastError("Error", getErrorMessage(err));
       if (path !== "/") {
         fetchFiles("/");
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [toastError]);
 
   useEffect(() => {
     if (isOpen) {
@@ -48,7 +49,7 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
       setCurrentPath(target);
       fetchFiles(target);
     }
-  }, [isOpen, initialPath]);
+  }, [isOpen, initialPath, fetchFiles]);
 
   const navigateTo = (path: string) => {
     setCurrentPath(path);
@@ -65,8 +66,8 @@ export function FilePickerModal({ isOpen, onClose, onSelect, initialPath = "/", 
       setIsCreatingDir(false);
       setNewDirName("");
       fetchFiles(currentPath);
-    } catch (err: any) {
-      toastError("Creation Error", err.message);
+    } catch (err) {
+      toastError("Creation Error", getErrorMessage(err));
     }
   };
 
