@@ -84,7 +84,8 @@ bash scripts/sandbox/run-sandbox.sh
 ```
 
 ### Запуск бэкенда из IDE
-Основной класс: `mari.samba.ShareGuardApplication`  
+Основной класс: `mari.samba.SambaWebUiApplication`
+
 Перед запуском из IDE убедитесь, что фронтенд собран (`cd frontend && npm run build`), либо запустите Vite dev-сервер:
 ```bash
 cd frontend

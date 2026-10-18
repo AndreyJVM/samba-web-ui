@@ -1,81 +1,89 @@
-# Архитектура и Устройство
+# Архитектура ShareGuard
 
-Приложение построено по классической слоистой архитектуре (Layered Architecture) в связке с паттерном Фасад для удаленного управления (SSH/JSch), позволяющим избежать установки агента.
-
----
+ShareGuard — веб-интерфейс для управления Samba на Linux через SSH. Backend предоставляет REST API, frontend работает как React SPA. Установка отдельного агента ShareGuard на управляемый сервер не требуется; необходимые серверные команды выполняются через SSH.
 
 ## Стек технологий
 
-* **Ядро бэкенда**: Spring Boot 3.4 (Java 21)
-* **Безопасность**: Spring Security, HttpSession (заменило кастомные перехватчики)
-* **Шаблонизатор**: Thymeleaf (с использованием фрагментов)
-* **Фронтенд**: Bootstrap 5.3, FontAwesome 6, кастомный CSS (`style.css`)
-* **SSH-клиент**: JSch (`com.github.mwiede:jsch`) через обёртку `CommandExecutor`
-* **Контейнеризация**: Многоэтапный Dockerfile
-* **CI/CD & Docs**: GitHub Actions, Docker Hub, MkDocs Material (GitHub Pages)
+| Компонент | Реализация |
+| --- | --- |
+| Backend | Java 21, Spring Boot 3.4.0, Spring Web и Bean Validation |
+| Безопасность HTTP | Spring Security, серверная сессия, CSRF-токен для SPA |
+| Frontend | React 18, TypeScript, Vite, React Router, Tailwind CSS |
+| SSH | JSch через CommandExecutor и SshSessionManager |
+| Проверки backend | JUnit, Spring Boot Test, Spring Security Test, Mockito |
+| Сборка и документация | Maven Wrapper, Spotless, GitHub Actions, MkDocs Material |
 
----
+Версии и зависимости определены в pom.xml и frontend/package.json. Thymeleaf и Bootstrap не используются в текущем интерфейсе.
 
-## Структура директорий и пакетов
+## Структура проекта
 
-```shell
+```text
 samba-web-ui/
-├── .github/
-│   └── workflows/
-│       ├── ci-cd.yml             # Сборка JAR, прогон тестов, публикация в Docker Hub
-│       └── docs.yml              # Автоматическая сборка MkDocs на GitHub Pages
-├── docs/                         # Документация в Markdown
-├── src/
-│   ├── main/
-│   │   ├── java/mari/samba/
-│   │   │   ├── SambaWebUiApplication.java   # Точка входа Spring Boot
-│   │   │   │
-│   │   │   ├── config/                      # Конфигурации Spring
-│   │   │   │   └── SecurityConfig.java      # Настройки авторизации и защиты от CSRF 
-│   │   │   │
-│   │   │   ├── controller/web/              # Веб-контроллеры
-│   │   │   │   ├── AuthController.java      # Вход, авторизация и выход
-│   │   │   │   ├── ShareController.java     # Управление общими папками
-│   │   │   │   ├── UserController.java      # Управление пользователями
-│   │   │   │   ├── GroupController.java     # Управление группами
-│   │   │   │   ├── ConfigController.java    # Логика работы с smb.conf и бэкапами
-│   │   │   │   ├── MonitoringController.java# Мониторинг smbd и smbstatus
-│   │   │   │   └── WebRoutes.java           # Константы всех эндпоинтов (Anti-Magic Strings)
-│   │   │   │
-│   │   │   ├── dto/                         # Data Transfer Objects
-│   │   │   │   ├── SambaShareCreateDto.java # Создание папки
-│   │   │   │   ├── SambaUserCreateDto.java  # Форма пользователя
-│   │   │   │   ├── SambaGroupCreateDto.java # Форма группы
-│   │   │   │   └── SambaGlobalConfigDto.java# Настройки секции [global]
-│   │   │   │
-│   │   │   ├── model/                       # Доменные модели
-│   │   │   │   ├── SambaShare.java          # Сущность шары
-│   │   │   │   ├── SambaUser.java           # Сущность пользователя
-│   │   │   │   └── SambaGroup.java          # Сущность группы
-│   │   │   │
-│   │   │   └── service/                     # Бизнес-логика и сервисы
-│   │   │       ├── infra/CommandExecutor.java# Выполнение shell-комманд по SSH
-│   │   │       ├── infra/SshSessionManager.java # Работа с SSH сессиями JSch
-│   │   │       ├── SmbConfParser.java       # Парсинг/запись INI-файла Samba
-│   │   │       ├── SambaConfigService.java  # Сохранение smb.conf, валидация testparm
-│   │   │       ├── SambaShareService.java   # Логика общих папок
-│   │   │       ├── SambaGroupService.java   # Логика Linux групп
-│   │   │       ├── SambaUserService.java    # Управление пользователями
-│   │   │       └── SambaMonitoringService.java # Статус процессов и дисков
-│   │   │
-│   │   └── resources/
-│   │       ├── static/css/style.css         # Основные стили
-│   │       ├── templates/                   # Thymeleaf-шаблоны (shares, users, groups, error)
-│   │       └── application.yaml             # Конфигурация Spring Boot
-│   └── test/                                # WebMvcTest-покрытие контроллеров
-├── Dockerfile                               # Сборка образа
-├── mkdocs.yml                               # Настройки документации
-└── README.md                                
+├── frontend/
+│   ├── src/
+│   │   ├── pages/                 # Страницы интерфейса
+│   │   ├── components/            # Общие компоненты и файловый менеджер
+│   │   ├── lib/api.ts             # HTTP-клиент, CSRF и обработка ошибок
+│   │   └── App.tsx                # Маршрутизация SPA
+│   └── vite.config.ts            # Базовый путь /ui/ и dev-прокси API
+├── src/main/java/mari/samba/
+│   ├── SambaWebUiApplication.java # Точка входа Spring Boot
+│   ├── auth/                     # Вход, выход и защита от перебора
+│   ├── share/                    # Общие ресурсы Samba
+│   ├── user/                     # Пользователи Samba
+│   ├── group/                    # Группы и членство
+│   ├── smbconfig/                # Чтение, изменение и резервные копии smb.conf
+│   ├── filesystem/               # Файлы, каталоги и использование дисков
+│   ├── monitoring/               # Состояние сервиса и журналы
+│   ├── ad/                       # Интеграция с Active Directory
+│   ├── fstec/                    # Оценка конфигурации по правилам YAML
+│   ├── infra/                    # SSH, формирование команд, парсер smb.conf
+│   ├── config/                   # Spring Security, MVC и свойства приложения
+│   └── core/                     # Ответы API, исключения и их обработка
+├── src/main/resources/
+│   ├── application.properties    # Настройки приложения
+│   └── fstec/                    # Правила оценки конфигурации
+├── src/test/java/mari/samba/     # Тесты контроллеров, сервисов и инфраструктуры
+├── .github/workflows/
+│   ├── ci.yml                    # Сборка, тесты и публикация по тегам
+│   └── docs.yml                  # Публикация документации
+├── docker/                       # Файлы контейнерного стенда и образов
+├── scripts/sandbox/              # Запуск локального стенда
+├── docs/                         # Исходники документации
+├── Dockerfile
+└── pom.xml
 ```
 
-## Ключевые паттерны
+Контроллеры, DTO и сервисы сгруппированы по функциональным областям. Единого класса WebRoutes в текущей структуре нет: маршруты API заданы аннотациями контроллеров.
 
-1. **Выполнение команд**: Код не плодит локальных потоков. Связь к Linux выполняется через обертку CommandExecutor, отправляющую команды (например, пользовательские `useradd`) через SSH. Это оставляет проект независимым от ОС сервера, где он развернут.
-2. **Безопасное обновление `smb.conf`**: Любое изменение в глобальных настройках проходит цикл "Резервная копия -> запись во временный файл `/tmp` -> проверка валидности структуры через команду `testparm` -> перенос `mv` -> перезагрузка `smbd`".
-3. **Безопасность (Spring Security)**: Все методы и модифицирующие эндпоинты покрыты CSRF защитой и проверяют наличие авторизованной сессии в `SecurityContextHolder`.
-4. **Clean Code API**: Все URL маршруты приложения собраны в `WebRoutes.java` (Anti-Magic Strings рефакторинг), а контроллеры полностью покрыты `WebMvcTest` испытаниями.
+## Запросы и удалённые операции
+
+1. React обращается к REST API через frontend/src/lib/api.ts. Клиент передаёт CSRF-токен в изменяющих запросах и обрабатывает ответы HTTP 401.
+2. Spring Security проверяет доступ. Публичные пути и исключения CSRF определены в SecurityConfig; login и logout исключены из проверки CSRF.
+3. Контроллер вызывает сервис своей функциональной области.
+4. Сервис использует CommandExecutor; реализация SshSessionManager выполняет команду через SSH. LinuxCommands централизует формирование команд и проверку аргументов.
+5. Результат возвращается через API. Общие ответы и обработка исключений находятся в пакете core.
+
+Наличие проверок аргументов не заменяет проверки прав и границ доступа. Доверие к SSH-хосту, обработка секретов и разрешённые файловые пути требуют отдельного анализа безопасности.
+
+## Работа с конфигурацией Samba
+
+SmbConfParser разбирает и изменяет содержимое smb.conf. SambaConfigService выполняет чтение, резервное копирование, сохранение и восстановление через SSH.
+
+Метод updateSmbConf создаёт резервную копию, записывает новое содержимое во временный файл /tmp/smb.conf.tmp, запускает testparm, переносит файл на место основной конфигурации и перезапускает smbd. Это последовательность команд, а не транзакция с автоматическим откатом.
+
+Восстановление резервной копии выполняется отдельным методом: проверка имени копии, резервирование текущего файла, копирование выбранной версии и перезапуск smbd.
+
+## Frontend и сборка
+
+React Router использует базовый путь /ui. Основные страницы: login, dashboard, shares, users, groups, config, ad и fstec. Файловый менеджер реализован компонентом FileManager.
+
+Maven frontend-maven-plugin устанавливает локальные Node.js/npm, выполняет npm install и npm run build. Затем maven-resources-plugin копирует frontend/dist в target/classes/static/ui; frontend включается в итоговый Spring Boot JAR.
+
+WebMvcConfig обслуживает /ui/** и возвращает index.html для маршрутов SPA. При отдельной разработке frontend Vite работает на порту 5173 и перенаправляет /api на backend по адресу http://localhost:8080.
+
+## Проверки и CI
+
+Backend содержит тесты контроллеров, сервисов и инфраструктуры. Наличие этих тестов не означает полного покрытия поведения приложения. В frontend предусмотрены команды build и lint; отдельной команды UI-тестов в package.json нет.
+
+CI в .github/workflows/ci.yml использует JDK 21, проверяет Spotless и выполняет Maven clean package. Публикация GitHub Release и Docker-образов выполняется по тегам v*.*.*. Инструкции запуска и требования к окружению приведены в README.md.
