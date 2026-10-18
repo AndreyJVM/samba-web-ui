@@ -7,7 +7,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import mari.samba.infra.SshSessionManager;
+import mari.samba.config.ExecutionProperties.Mode;
+import mari.samba.infra.ExecutionSessionManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -27,10 +29,23 @@ class AuthApiControllerTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private SshSessionManager sessionManager;
+    private ExecutionSessionManager sessionManager;
 
     @MockitoBean
     private mari.samba.auth.BruteForceProtectionService bruteForceService;
+
+    @BeforeEach
+    void setUpExecutionMode() {
+        when(sessionManager.effectiveMode()).thenReturn(Mode.REMOTE);
+        when(sessionManager.sessionMode(anyString())).thenReturn(Mode.REMOTE);
+    }
+
+    @Test
+    void reportsRemoteEnvironment() throws Exception {
+        mockMvc.perform(get("/api/auth/environment"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.mode").value("remote"));
+    }
 
     @Test
     void testConnect_Success() throws Exception {
@@ -55,6 +70,22 @@ class AuthApiControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+
+        verify(sessionManager).createSession(anyString(), any(ConnectionRequestDto.class));
+    }
+
+    @Test
+    void testConnect_LocalModeWithoutHost_Success() throws Exception {
+        when(sessionManager.effectiveMode()).thenReturn(Mode.LOCAL);
+        when(sessionManager.sessionMode(anyString())).thenReturn(Mode.LOCAL);
+        ConnectionRequestDto dto = new ConnectionRequestDto(null, 22, "admin", "password", "secret", null, null);
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(request().sessionAttribute("sambaHost", "Local server"));
 
         verify(sessionManager).createSession(anyString(), any(ConnectionRequestDto.class));
     }

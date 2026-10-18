@@ -1,0 +1,32 @@
+#!/bin/sh
+set -eu
+
+if ! getent group shareguard >/dev/null 2>&1; then
+    groupadd --system shareguard
+fi
+
+if ! id shareguard >/dev/null 2>&1; then
+    useradd --system --gid shareguard --home-dir /var/lib/shareguard --create-home --shell /usr/sbin/nologin shareguard
+fi
+
+install -d -o shareguard -g shareguard -m 0750 /var/lib/shareguard
+
+config=/etc/shareguard/shareguard.env
+if ! grep -Eq '^SHAREGUARD_EXECUTION_LOCAL_PASSWORD=.+$' "$config"; then
+    password=$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')
+    temporary=$(mktemp)
+    sed "s/^SHAREGUARD_EXECUTION_LOCAL_PASSWORD=.*/SHAREGUARD_EXECUTION_LOCAL_PASSWORD=$password/" "$config" > "$temporary"
+    cat "$temporary" > "$config"
+    rm -f "$temporary"
+fi
+chown root:root "$config"
+chmod 0600 "$config"
+
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload
+    systemctl enable shareguard-helper.service shareguard.service >/dev/null
+    systemctl restart shareguard-helper.service shareguard.service
+fi
+
+echo "ShareGuard is available at http://127.0.0.1:8080/ui/"
+echo "Local credentials are stored in /etc/shareguard/shareguard.env (root only)."

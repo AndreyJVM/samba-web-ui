@@ -45,6 +45,7 @@ markdown_extensions:
 nav:
   - О проекте: index.md
   - Быстрый старт: quickstart.md
+  - Локальный режим: local-mode.md
   - Подготовка сервера: server-setup.md
   - Рекомендации ФСТЭК: fstec.md
   - Архитектура: architecture.md

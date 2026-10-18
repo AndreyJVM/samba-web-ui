@@ -12,9 +12,11 @@ import mari.samba.auth.AuthApiController;
 import mari.samba.auth.AuthServiceImpl;
 import mari.samba.auth.BruteForceProtectionService;
 import mari.samba.auth.ConnectionRequestDto;
+import mari.samba.config.ExecutionProperties.Mode;
 import mari.samba.config.SecurityConfig;
 import mari.samba.core.SambaCommandException;
-import mari.samba.infra.SshSessionManager;
+import mari.samba.infra.ExecutionSessionManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -46,7 +48,7 @@ class HttpSecurityIntegrationTest {
     private MockMvc mvc;
 
     @MockitoBean
-    private SshSessionManager ssh;
+    private ExecutionSessionManager sessions;
 
     @MockitoBean
     private BruteForceProtectionService bruteForce;
@@ -54,12 +56,18 @@ class HttpSecurityIntegrationTest {
     @MockitoBean
     private SambaShareService shares;
 
+    @BeforeEach
+    void setUpRemoteExecution() {
+        when(sessions.effectiveMode()).thenReturn(Mode.REMOTE);
+        when(sessions.sessionMode(anyString())).thenReturn(Mode.REMOTE);
+    }
+
     @Test
     void anonymousReadsRequireAuthenticationWithoutRedirect() throws Exception {
         for (String path : new String[] {"/api/shares", "/api/auth/me"}) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized()).andExpect(header().doesNotExist("Location"));
         }
-        verifyNoInteractions(shares, ssh);
+        verifyNoInteractions(shares);
     }
 
     @Test
@@ -70,7 +78,7 @@ class HttpSecurityIntegrationTest {
                 .andExpect(jsonPath("$.data.user").value("qa-user"))
                 .andExpect(jsonPath("$.data.host").value("samba-node"));
         mvc.perform(get("/api/shares").session(session)).andExpect(status().isOk());
-        verify(ssh).createSession(eq(session.getId()), any(ConnectionRequestDto.class));
+        verify(sessions).createSession(eq(session.getId()), any(ConnectionRequestDto.class));
         verify(bruteForce).resetFailedLogin("127.0.0.1", "qa-user");
         verify(shares).getAllShares(session.getId());
     }
@@ -78,7 +86,7 @@ class HttpSecurityIntegrationTest {
     @Test
     void sshFailureRejectsLoginAndRegistersFailure() throws Exception {
         doThrow(new SambaCommandException("SSH rejected test connection"))
-                .when(ssh)
+                .when(sessions)
                 .createSession(anyString(), any(ConnectionRequestDto.class));
         MvcResult result =
                 mvc.perform(loginRequest()).andExpect(status().isUnauthorized()).andReturn();
@@ -96,7 +104,7 @@ class HttpSecurityIntegrationTest {
         MvcResult result = mvc.perform(loginRequest())
                 .andExpect(status().isTooManyRequests())
                 .andReturn();
-        verifyNoInteractions(ssh);
+        verify(sessions, never()).createSession(anyString(), any(ConnectionRequestDto.class));
         mvc.perform(get("/api/shares")
                         .session((MockHttpSession) result.getRequest().getSession(false)))
                 .andExpect(status().isUnauthorized());
@@ -150,9 +158,8 @@ class HttpSecurityIntegrationTest {
         String sessionId = session.getId();
         mvc.perform(post("/api/auth/logout").session(session)).andExpect(status().isOk());
         assertTrue(session.isInvalid());
-        verify(ssh).disconnect(sessionId);
-        verify(ssh).createSession(eq(sessionId), any(ConnectionRequestDto.class));
-        verifyNoMoreInteractions(ssh);
+        verify(sessions).disconnect(sessionId);
+        verify(sessions).createSession(eq(sessionId), any(ConnectionRequestDto.class));
         mvc.perform(get("/api/shares")).andExpect(status().isUnauthorized());
         verifyNoInteractions(shares);
     }
@@ -172,14 +179,13 @@ class HttpSecurityIntegrationTest {
                     createdSessionId.set(session.getId());
                     return null;
                 })
-                .when(ssh)
+                .when(sessions)
                 .disconnect(anyString());
 
         mvc.perform(post("/api/auth/logout")).andExpect(status().isOk());
 
         assertNotNull(createdSession.get());
-        verify(ssh).disconnect(createdSessionId.get());
-        verifyNoMoreInteractions(ssh);
+        verify(sessions).disconnect(createdSessionId.get());
         assertTrue(createdSession.get().isInvalid());
         mvc.perform(get("/api/shares")).andExpect(status().isUnauthorized());
         verifyNoInteractions(shares);

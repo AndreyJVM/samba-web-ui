@@ -26,7 +26,15 @@ public class SecurityConfig {
      * Includes frontend assets, index pages, and the login/logout API endpoints.
      */
     private static final String[] PUBLIC_MATCHERS = {
-        "/", "/ui/**", "/assets/**", "/index.html", "/favicon.ico", "/api/auth/login", "/api/auth/logout", "/error"
+        "/",
+        "/ui/**",
+        "/assets/**",
+        "/index.html",
+        "/favicon.ico",
+        "/api/auth/login",
+        "/api/auth/logout",
+        "/api/auth/environment",
+        "/error"
     };
 
     /**

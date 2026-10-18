@@ -1,8 +1,12 @@
 import { getErrorMessage } from "../lib/errors";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Lock, Key, ArrowRight, AlertTriangle } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { api } from "../lib/api";
+
+interface AuthEnvironment {
+  mode: "local" | "remote";
+}
 
 export default function LoginPage() {
   const [host, setHost] = useState("");
@@ -13,6 +17,14 @@ export default function LoginPage() {
   const [useKeyAuth, setUseKeyAuth] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [executionMode, setExecutionMode] = useState<AuthEnvironment["mode"]>("remote");
+  const isLocal = executionMode === "local";
+
+  useEffect(() => {
+    api.get<AuthEnvironment>("/api/auth/environment")
+      .then((environment) => setExecutionMode(environment.mode))
+      .catch(() => setExecutionMode("remote"));
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,12 +33,12 @@ export default function LoginPage() {
 
     try {
       await api.post("/api/auth/login", {
-        host,
-        port: parseInt(port),
+        host: isLocal ? undefined : host,
+        port: isLocal ? undefined : parseInt(port),
         username,
-        password: useKeyAuth ? undefined : password,
-        privateKey: useKeyAuth ? privateKey : undefined,
-        keyAuth: useKeyAuth
+        authType: !isLocal && useKeyAuth ? "key" : "password",
+        password: !isLocal && useKeyAuth ? undefined : password,
+        privateKey: !isLocal && useKeyAuth ? privateKey : undefined,
       });
       // Simple redirect since auth state isn't managed globally here
       window.location.href = "/ui/";
@@ -52,7 +64,9 @@ export default function LoginPage() {
             />
           </div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">ShareGuard</h1>
-          <p className="text-text-muted mt-2 text-[15px]">Войдите для управления сервером</p>
+          <p className="text-text-muted mt-2 text-[15px]">
+            {isLocal ? "Локальное управление сервером" : "Подключение к серверу по SSH"}
+          </p>
         </div>
 
         <div className="bg-surface rounded-[24px] border border-border p-8 sm:p-10 backdrop-blur-xl">
@@ -64,28 +78,30 @@ export default function LoginPage() {
               </div>
             )}
             
-            <div className="flex gap-4">
-              <div className="flex-1 space-y-2">
-                <label className="text-[13px] font-bold text-foreground uppercase tracking-wide">Хост / IP</label>
-                <Input 
-                  required 
-                  value={host}
-                  onChange={e => setHost(e.target.value)}
-                  placeholder="192.168.1.100" 
-                  className="bg-surface-2 border-border-strong focus:border-accent text-foreground hover:border-border-strong transition-colors text-base py-6 rounded-xl"
-                />
+            {!isLocal && (
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-2">
+                  <label className="text-[13px] font-bold text-foreground uppercase tracking-wide">Хост / IP</label>
+                  <Input
+                    required
+                    value={host}
+                    onChange={e => setHost(e.target.value)}
+                    placeholder="192.168.1.100"
+                    className="bg-surface-2 border-border-strong focus:border-accent text-foreground hover:border-border-strong transition-colors text-base py-6 rounded-xl"
+                  />
+                </div>
+                <div className="w-24 space-y-2">
+                  <label className="text-[13px] font-bold text-foreground uppercase tracking-wide">Порт</label>
+                  <Input
+                    required
+                    value={port}
+                    onChange={e => setPort(e.target.value)}
+                    type="number"
+                    className="bg-surface-2 border-border-strong focus:border-accent text-foreground hover:border-border-strong transition-colors text-base py-6 rounded-xl text-center"
+                  />
+                </div>
               </div>
-              <div className="w-24 space-y-2">
-                <label className="text-[13px] font-bold text-foreground uppercase tracking-wide">Порт</label>
-                <Input 
-                  required 
-                  value={port}
-                  onChange={e => setPort(e.target.value)}
-                  type="number" 
-                  className="bg-surface-2 border-border-strong focus:border-accent text-foreground hover:border-border-strong transition-colors text-base py-6 rounded-xl text-center"
-                />
-              </div>
-            </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-[13px] font-bold text-foreground uppercase tracking-wide">Пользователь</label>
@@ -98,7 +114,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="flex bg-surface-2 p-1.5 rounded-xl my-2 border border-border">
+            {!isLocal && <div className="flex bg-surface-2 p-1.5 rounded-xl my-2 border border-border">
               <button 
                 type="button" 
                 onClick={() => setUseKeyAuth(false)}
@@ -113,9 +129,9 @@ export default function LoginPage() {
               >
                 <Key className="w-4 h-4" /> SSH Ключ
               </button>
-            </div>
+            </div>}
 
-            {!useKeyAuth ? (
+            {isLocal || !useKeyAuth ? (
               <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
                 <label className="text-[13px] font-bold text-foreground uppercase tracking-wide flex justify-between">
                   <span>Пароль</span>
