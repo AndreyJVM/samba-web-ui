@@ -14,6 +14,9 @@ import mari.samba.infra.LinuxCommands;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -71,6 +74,7 @@ class FileSystemServiceTest {
         assertEquals(3, result.directories().size());
         assertTrue(result.directories().stream().anyMatch(i -> i.fullPath().equals("/srv")));
         assertTrue(result.directories().stream().anyMatch(i -> i.fullPath().equals("/data")));
+        verifyNoInteractions(commandExecutor);
     }
 
     @Test
@@ -95,6 +99,33 @@ class FileSystemServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> fileSystemService.createDirectory(SESSION_ID, "/srv/samba", "bad;folder*name"));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", " ", ".", "..", "nested/folder", "nested\\folder", "bad;name", "bad\nname"})
+    void invalidEntryNamesAreRejectedBeforeAnyCommand(String name) {
+        assertAll(
+                () -> assertThrows(
+                        IllegalArgumentException.class,
+                        () -> fileSystemService.createDirectory(SESSION_ID, "/srv", name)),
+                () -> assertThrows(
+                        IllegalArgumentException.class,
+                        () -> fileSystemService.uploadFile(SESSION_ID, "/srv", name, "ZmlsZQ==")));
+        verifyNoInteractions(commandExecutor);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {".hidden", "archive.tar.gz", "team_2026-10"})
+    void regularEntryNamesRemainAllowed(String name) {
+        String path = "/srv/" + name;
+        fileSystemService.createDirectory(SESSION_ID, "/srv", name);
+        fileSystemService.uploadFile(SESSION_ID, "/srv", name, "ZmlsZQ==");
+
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.mkdir(path));
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.chmod("0775", path));
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.uploadBase64Stdin(path), "ZmlsZQ==");
+        verifyNoMoreInteractions(commandExecutor);
     }
 
     @Test
@@ -151,5 +182,66 @@ class FileSystemServiceTest {
     @Test
     void testDownloadFile_UnauthorizedPath_ShouldThrowSecurityException() {
         assertThrows(SecurityException.class, () -> fileSystemService.downloadFile(SESSION_ID, "/etc/shadow"));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "  ", "/", "//", "/./", "/srv/..", "relative", "/etc", "/srv-other/file"})
+    void fileOperationsRejectInvalidPathsBeforeExecutingCommands(String path) {
+        Class<? extends RuntimeException> expected =
+                path == null || path.isBlank() ? IllegalArgumentException.class : SecurityException.class;
+
+        assertAll(
+                () -> assertThrows(expected, () -> fileSystemService.deleteItem(SESSION_ID, path)),
+                () -> assertThrows(expected, () -> fileSystemService.copyItem(SESSION_ID, path, "/data/file")),
+                () -> assertThrows(expected, () -> fileSystemService.copyItem(SESSION_ID, "/srv/file", path)),
+                () -> assertThrows(expected, () -> fileSystemService.moveItem(SESSION_ID, path, "/data/file")),
+                () -> assertThrows(expected, () -> fileSystemService.moveItem(SESSION_ID, "/srv/file", path)),
+                () -> assertThrows(expected, () -> fileSystemService.downloadFile(SESSION_ID, path)),
+                () -> assertThrows(expected, () -> fileSystemService.uploadFile(SESSION_ID, path, "file.txt", "")),
+                () -> assertThrows(expected, () -> fileSystemService.createDirectory(SESSION_ID, path, "folder")));
+        verifyNoInteractions(commandExecutor);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/srv", "/srv/", "/srv/child/..", "/data", "/mnt"})
+    void allowedRootsCannotBeDeletedOrMoved(String path) {
+        assertThrows(SecurityException.class, () -> fileSystemService.deleteItem(SESSION_ID, path));
+        assertThrows(SecurityException.class, () -> fileSystemService.moveItem(SESSION_ID, path, "/data/archive"));
+        verifyNoInteractions(commandExecutor);
+    }
+
+    @Test
+    void validOperationsNormalizePathsAndAllowRootAsDestinationDirectory() {
+        fileSystemService.copyItem(SESSION_ID, "/srv/folder/../file.txt", "/data/");
+        fileSystemService.moveItem(SESSION_ID, "/srv/folder/../file.txt", "/data/");
+        fileSystemService.deleteItem(SESSION_ID, "/srv/folder/../file.txt");
+        fileSystemService.uploadFile(SESSION_ID, "/srv/", "file.txt", "ZmlsZQ==");
+
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.copyRecursive("/srv/file.txt", "/data"));
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.move("/srv/file.txt", "/data"));
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.removeRecursive("/srv/file.txt"));
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.uploadBase64Stdin("/srv/file.txt"), "ZmlsZQ==");
+        verifyNoMoreInteractions(commandExecutor);
+    }
+
+    @Test
+    void rootDiskUsageRemainsAvailable() {
+        when(commandExecutor.execute(SESSION_ID, LinuxCommands.df("/")))
+                .thenReturn("Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/test 100 40 60 40% /");
+
+        DiskUsageDto result = fileSystemService.getDiskUsage(SESSION_ID, "/");
+
+        assertEquals("/", result.path());
+        assertEquals(40, result.usePercent());
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.df("/"));
+        verifyNoMoreInteractions(commandExecutor);
+    }
+
+    @Test
+    void generalPathGuardDoesNotTreatVirtualRootAsAnAllowedDirectory() {
+        assertThrows(SecurityException.class, () -> fileSystemService.requireAllowedPath(null));
+        assertThrows(SecurityException.class, () -> fileSystemService.requireAllowedPath("/"));
+        verifyNoInteractions(commandExecutor);
     }
 }

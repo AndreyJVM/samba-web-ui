@@ -29,26 +29,22 @@ public class FileSystemService {
     }
 
     public void copyItem(@NonNull String sessionId, @NonNull String source, @NonNull String destination) {
-        String safeSrc = normalizePath(source);
-        String safeDst = normalizePath(destination);
-        requireAllowedPath(safeSrc);
-        requireAllowedPath(safeDst);
+        String safeSrc = requireOperationPath(source);
+        String safeDst = requireOperationPath(destination);
         commandExecutor.execute(sessionId, LinuxCommands.copyRecursive(safeSrc, safeDst));
         log.info("Copied {} -> {}", safeSrc, safeDst);
     }
 
     public void moveItem(@NonNull String sessionId, @NonNull String source, @NonNull String destination) {
-        String safeSrc = normalizePath(source);
-        String safeDst = normalizePath(destination);
-        requireAllowedPath(safeSrc);
-        requireAllowedPath(safeDst);
+        String safeSrc = requireOperationPath(source);
+        String safeDst = requireOperationPath(destination);
+        requireNotAllowedRoot(safeSrc);
         commandExecutor.execute(sessionId, LinuxCommands.move(safeSrc, safeDst));
         log.info("Moved {} -> {}", safeSrc, safeDst);
     }
 
     public void deleteItem(@NonNull String sessionId, @NonNull String target) {
-        String safeTarget = normalizePath(target);
-        requireAllowedPath(safeTarget);
+        String safeTarget = requireOperationPath(target);
         requireNotAllowedRoot(safeTarget);
         commandExecutor.execute(sessionId, LinuxCommands.removeRecursive(safeTarget));
         log.info("Deleted {}", safeTarget);
@@ -59,13 +55,12 @@ public class FileSystemService {
             @NonNull String directory,
             @NonNull String filename,
             @NonNull String base64Content) {
-        if (!SAFE_FILE_NAME_PATTERN.matcher(filename).matches()) {
+        if (!isValidEntryName(filename)) {
             throw new IllegalArgumentException(
-                    "Invalid file name. Only alphanumeric characters, dashes, underscores, and dots are allowed.");
+                    "Invalid file name. Use alphanumeric characters, dashes, underscores, and dots; '.' and '..' are not allowed.");
         }
 
-        String safeParent = normalizePath(directory);
-        requireAllowedPath(safeParent);
+        String safeParent = requireOperationPath(directory);
         String targetPath = safeParent.endsWith("/") ? safeParent + filename : safeParent + "/" + filename;
         requireAllowedPath(targetPath);
 
@@ -75,8 +70,7 @@ public class FileSystemService {
     }
 
     public byte[] downloadFile(@NonNull String sessionId, @NonNull String filePath) {
-        String safePath = normalizePath(filePath);
-        requireAllowedPath(safePath);
+        String safePath = requireOperationPath(filePath);
 
         String command = LinuxCommands.base64(safePath);
         String base64Output = commandExecutor.execute(sessionId, command);
@@ -86,8 +80,6 @@ public class FileSystemService {
     /** Lists subdirectories within a requested path, returning normalized structure. */
     public DirectoryBrowseResultDto listDirectories(@NonNull String sessionId, String requestedPath) {
         String safePath = normalizePath(requestedPath);
-        requireAllowedPath(safePath);
-
         if ("/".equals(safePath)) {
             List<DirectoryItemDto> rootDirs = allowedRoots.stream()
                     .map(root -> new DirectoryItemDto(root.replaceFirst("^/", ""), root, "dir", 0))
@@ -95,6 +87,7 @@ public class FileSystemService {
             return new DirectoryBrowseResultDto("/", null, rootDirs);
         }
 
+        requireAllowedPath(safePath);
         String parentPath = getParentPath(safePath);
         String rawOutput = commandExecutor.execute(sessionId, LinuxCommands.findDirectories(safePath));
 
@@ -110,14 +103,12 @@ public class FileSystemService {
 
     /** Creates a directory under the given parent directory with secure permissions. */
     public void createDirectory(@NonNull String sessionId, @NonNull String parentPath, @NonNull String name) {
-        if (!SAFE_FILE_NAME_PATTERN.matcher(name).matches()) {
+        if (!isValidEntryName(name)) {
             throw new IllegalArgumentException(
-                    "Invalid directory name. Only alphanumeric characters, dashes, underscores, and dots are"
-                            + " allowed.");
+                    "Invalid directory name. Use alphanumeric characters, dashes, underscores, and dots; '.' and '..' are not allowed.");
         }
 
-        String safeParent = normalizePath(parentPath);
-        requireAllowedPath(safeParent);
+        String safeParent = requireOperationPath(parentPath);
 
         String newDirPath = safeParent.endsWith("/") ? safeParent + name : safeParent + "/" + name;
         requireAllowedPath(newDirPath);
@@ -130,7 +121,9 @@ public class FileSystemService {
     /** Retrieves disk usage information for a specified path. */
     public DiskUsageDto getDiskUsage(@NonNull String sessionId, String requestedPath) {
         String safePath = normalizePath(requestedPath);
-        requireAllowedPath(safePath);
+        if (!"/".equals(safePath)) {
+            requireAllowedPath(safePath);
+        }
 
         String rawOutput = commandExecutor.execute(sessionId, LinuxCommands.df(safePath));
         if (rawOutput == null || rawOutput.isBlank()) {
@@ -175,8 +168,8 @@ public class FileSystemService {
      * Public because it is also used by {@code SambaShareService} for share path validation.
      */
     public void requireAllowedPath(String path) {
-        if (path == null || "/".equals(path)) {
-            return;
+        if (path == null || path.isBlank() || !path.startsWith("/") || "/".equals(path)) {
+            throw new SecurityException("An absolute non-root path is required.");
         }
         boolean allowed = allowedRoots.stream().anyMatch(root -> path.equals(root) || path.startsWith(root + "/"));
         if (!allowed) {
@@ -188,9 +181,25 @@ public class FileSystemService {
     // Private helpers
     // ==========================================
 
+    private static boolean isValidEntryName(String name) {
+        return name != null
+                && !name.equals(".")
+                && !name.equals("..")
+                && SAFE_FILE_NAME_PATTERN.matcher(name).matches();
+    }
+
+    private String requireOperationPath(String path) {
+        if (path == null || path.isBlank()) {
+            throw new IllegalArgumentException("Path is required for file operations.");
+        }
+        String normalized = normalizePath(path);
+        requireAllowedPath(normalized);
+        return normalized;
+    }
+
     /**
      * Normalizes a path by resolving ".." segments and removing trailing slashes.
-     * Uses {@link Path#normalize()} to prevent path traversal attacks.
+     * This is lexical normalization only; it does not resolve remote symbolic links.
      */
     private String normalizePath(String path) {
         if (path == null || path.isBlank()) {
@@ -205,11 +214,11 @@ public class FileSystemService {
     }
 
     /**
-     * Prevents deletion of top-level allowed root directories themselves.
+     * Prevents deletion or relocation of top-level allowed root directories themselves.
      */
     private void requireNotAllowedRoot(String path) {
         if (allowedRoots.contains(path)) {
-            throw new SecurityException("Deletion of root directory '" + path + "' is not permitted.");
+            throw new SecurityException("Deletion or relocation of root directory '" + path + "' is not permitted.");
         }
     }
 
