@@ -68,10 +68,13 @@ bash scripts/sandbox/run-sandbox.sh
 режиме форма входа не запрашивает адрес и SSH-ключ. Веб-приложение работает без прав `root`, а
 разрешённые операции Samba передаёт отдельной системной службе через Unix-сокет.
 
+Скачайте готовый DEB-пакет из [GitHub Release](https://github.com/AndreyJVM/shareguard/releases/tag/v0.10.0)
+и установите его на Samba-сервере:
+
 ```bash
-./mvnw clean package
-./packaging/deb/build-deb.sh
-sudo apt install ./dist/shareguard_0.0.1_all.deb
+curl -fL -o shareguard_0.10.0_all.deb \
+  https://github.com/AndreyJVM/shareguard/releases/download/v0.10.0/shareguard_0.10.0_all.deb
+sudo apt install ./shareguard_0.10.0_all.deb
 ```
 
 Пакет создаёт службы `shareguard` и `shareguard-helper`, привязывает HTTP-сервер к

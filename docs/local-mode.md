@@ -26,19 +26,15 @@
 
 Значение по умолчанию — `AUTO`. Оно сохраняет прежнее SSH-поведение для существующих установок.
 
-## Сборка и установка пакета
+## Установка готового пакета
 
-На машине сборки нужны JDK 21, Node.js/npm и утилита `dpkg-deb`:
-
-```bash
-./mvnw clean package
-./packaging/deb/build-deb.sh
-```
-
-Результат находится в `dist/shareguard_0.0.1_all.deb`. Установите его на Samba-сервере:
+Скачайте готовый DEB-пакет из [GitHub Release](https://github.com/AndreyJVM/shareguard/releases/tag/v0.10.0)
+и установите его на Samba-сервере. Сборка проекта и установка Node.js/npm не требуются:
 
 ```bash
-sudo apt install ./dist/shareguard_0.0.1_all.deb
+curl -fL -o shareguard_0.10.0_all.deb \
+  https://github.com/AndreyJVM/shareguard/releases/download/v0.10.0/shareguard_0.10.0_all.deb
+sudo apt install ./shareguard_0.10.0_all.deb
 sudo systemctl status shareguard-helper shareguard
 ```
 
