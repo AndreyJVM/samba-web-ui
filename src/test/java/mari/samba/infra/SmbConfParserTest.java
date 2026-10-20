@@ -225,6 +225,42 @@ class SmbConfParserTest {
     }
 
     @Test
+    void parsesWindowsLineEndingsAndPreservesEqualsInsideValues() {
+        String config = "[global]\r\nserver string = Files = Archive\r\n"
+                + "[archive]\r\npath = /srv/data=archive\r\ncomment = Revision=2\r\n";
+
+        assertThat(parser.parseGlobalConfig(config).getServerString()).isEqualTo("Files = Archive");
+        assertThat(parser.parseShares(config)).singleElement().satisfies(share -> {
+            assertThat(share.getPath()).isEqualTo("/srv/data=archive");
+            assertThat(share.getComment()).isEqualTo("Revision=2");
+        });
+    }
+
+    @Test
+    void removingSectionDoesNotRemoveSimilarlyNamedShare() {
+        String config = "[archive]\npath = /srv/old\n[archive-2026]\npath = /srv/current\n";
+
+        String result = parser.removeSection(config, "ARCHIVE");
+
+        assertThat(parser.parseShares(result)).singleElement().satisfies(share -> {
+            assertThat(share.getName()).isEqualTo("archive-2026");
+            assertThat(share.getPath()).isEqualTo("/srv/current");
+        });
+        assertThat(result).doesNotContain("/srv/old");
+    }
+
+    @Test
+    void specialSectionsDoNotLeakTheirPropertiesIntoUserShares() {
+        String config = "[team]\npath = /srv/team\n[homes]\npath = /home/%S\n"
+                + "[printers]\npath = /var/spool/samba\n[other]\npath = /srv/other\n";
+
+        assertThat(parser.parseShares(config)).extracting(SambaShare::getName).containsExactly("team", "other");
+        assertThat(parser.parseShares(config))
+                .extracting(SambaShare::getPath)
+                .containsExactly("/srv/team", "/srv/other");
+    }
+
+    @Test
     @DisplayName("Should return empty map on null or empty input")
     void shouldReturnEmptyMapOnNullOrEmptyInput() {
         assertThat(parser.parseEffectiveConfig(null)).isEmpty();

@@ -195,6 +195,63 @@ class SambaConfigServiceTest {
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Invalid backup filename format.");
         }
+
+        @ParameterizedTest
+        @ValueSource(
+                strings = {
+                    "../smb.conf.backup_20301015_143000",
+                    "/tmp/smb.conf.backup_20301015_143000",
+                    "smb.conf.backup_20301015_143000;id",
+                    "",
+                    "smb.conf.backup_20301015_143000.bak"
+                })
+        void restoreBackup_rejectsUnsafeNamesBeforeExecutingCommands(String filename) {
+            assertThatThrownBy(() -> sambaConfigService.restoreBackup("session-1", filename))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            verifyNoInteractions(commandExecutor);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"safety-copy", "restore-copy", "restart"})
+        void restoreBackup_stopsOnFailureWithoutContinuingDestructiveSteps(String stage) {
+            String sessionId = "restore-session";
+            String filename = "smb.conf.backup_20301015_143000";
+            String restore = LinuxCommands.copy("/etc/samba/backups/" + filename, "/etc/samba/smb.conf");
+            String restart = LinuxCommands.systemctl("restart", "smbd");
+            SambaCommandException failure = new SambaCommandException("Synthetic " + stage + " failure");
+            when(commandExecutor.execute(eq(sessionId), anyString())).thenAnswer(invocation -> {
+                String command = invocation.getArgument(1);
+                boolean shouldFail =
+                        switch (stage) {
+                            case "safety-copy" -> command.startsWith(
+                                    "sudo cp -- '/etc/samba/smb.conf' '/etc/samba/backups/");
+                            case "restore-copy" -> command.equals(restore);
+                            case "restart" -> command.equals(restart);
+                            default -> false;
+                        };
+                if (shouldFail) {
+                    throw failure;
+                }
+                return "";
+            });
+
+            assertThatThrownBy(() -> sambaConfigService.restoreBackup(sessionId, filename))
+                    .isSameAs(failure);
+
+            if (stage.equals("safety-copy")) {
+                verify(commandExecutor, never()).execute(sessionId, restore);
+                verify(commandExecutor, never())
+                        .execute(sessionId, LinuxCommands.cleanupOldBackups("/etc/samba/backups", 10));
+            } else {
+                verify(commandExecutor).execute(sessionId, restore);
+            }
+            if (!stage.equals("restart")) {
+                verify(commandExecutor, never()).execute(sessionId, restart);
+            } else {
+                verify(commandExecutor).execute(sessionId, restart);
+            }
+        }
     }
 
     @Nested
