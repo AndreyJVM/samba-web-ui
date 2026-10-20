@@ -111,6 +111,21 @@ public class SambaUserService {
                 .toList();
     }
 
+    /** Returns account names from the OS user database without exposing passwd fields. */
+    public List<String> getSystemUsernames(String sessionId) {
+        String output = commandExecutor.execute(sessionId, LinuxCommands.listSystemUsers());
+        if (output == null || output.isBlank()) {
+            return List.of();
+        }
+        return output.lines()
+                .map(line -> line.split(":", -1))
+                .filter(parts -> parts.length == 7 && !parts[0].isBlank())
+                .map(parts -> parts[0])
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
     /**
      * Creates a new user tightly coupled to both the Linux OS and Samba configurations. Executes a
      * multi-step routine: creates the OS user, updates their OS password, adds them to the Samba

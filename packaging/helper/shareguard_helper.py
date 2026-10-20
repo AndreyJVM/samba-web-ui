@@ -224,6 +224,10 @@ class HelperPolicy:
         self._count(args, 0)
         return self._run(["pdbedit", "-L"])
 
+    def op_list_system_users(self, args, input_data):
+        self._count(args, 0)
+        return self._run(["getent", "passwd"])
+
     def op_user_exists(self, args, input_data):
         self._count(args, 1)
         self._username(args[0], allow_system=True)

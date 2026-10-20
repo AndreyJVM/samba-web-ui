@@ -198,6 +198,10 @@ public final class LinuxCommands {
         return "sudo pdbedit -L";
     }
 
+    public static String listSystemUsers() {
+        return "getent passwd";
+    }
+
     public static String checkUserExists(String username) {
         return String.format("id -- %s", escape(requireValidUsername(username)));
     }

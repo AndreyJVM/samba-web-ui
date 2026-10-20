@@ -9,6 +9,9 @@ import mari.samba.infra.CommandExecutor;
 import mari.samba.infra.LinuxCommands;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,6 +26,39 @@ class SambaUserServiceTest {
     private SambaUserService sambaUserService;
 
     private static final String SESSION_ID = "test-session";
+
+    @Test
+    void systemUsernamesExposeOnlySortedDistinctNames() {
+        when(commandExecutor.execute(SESSION_ID, LinuxCommands.listSystemUsers()))
+                .thenReturn("bob:x:1002:1002:Bob:/home/bob:/bin/bash\r\n"
+                        + "alice:x:1001:1001:Alice:/home/alice:/usr/sbin/nologin\r\n"
+                        + "bob:x:1002:1002:Bob:/home/bob:/bin/bash\n"
+                        + "invalid line\n:secret:1:1:Missing name:/tmp:/bin/sh\n");
+
+        assertEquals(List.of("alice", "bob"), sambaUserService.getSystemUsernames(SESSION_ID));
+        verify(commandExecutor).execute(SESSION_ID, "getent passwd");
+        verifyNoMoreInteractions(commandExecutor);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void emptySystemUserDatabaseReturnsEmptySuggestions(String output) {
+        when(commandExecutor.execute(SESSION_ID, LinuxCommands.listSystemUsers()))
+                .thenReturn(output);
+
+        assertEquals(List.of(), sambaUserService.getSystemUsernames(SESSION_ID));
+    }
+
+    @Test
+    void systemUserLookupDoesNotHideExecutionFailure() {
+        RuntimeException failure = new RuntimeException("Lookup failed");
+        when(commandExecutor.execute(SESSION_ID, LinuxCommands.listSystemUsers()))
+                .thenThrow(failure);
+
+        assertSame(
+                failure, assertThrows(RuntimeException.class, () -> sambaUserService.getSystemUsernames(SESSION_ID)));
+    }
 
     @Test
     void getAllUsers_ShouldParsePdbeditOutputCorrectly() throws Exception {

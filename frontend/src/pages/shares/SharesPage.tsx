@@ -44,7 +44,9 @@ interface Group { name: string; }
 export default function SharesPage() {
   const [shares, setShares] = useState<Share[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [systemUsers, setSystemUsers] = useState<string[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [suggestionsUnavailable, setSuggestionsUnavailable] = useState(false);
   
   const [loading, setLoading] = useState(true);
 
@@ -72,12 +74,17 @@ export default function SharesPage() {
   const { confirm } = useConfirm();
   const { t } = useTranslation();
 
+  const usernames = [...new Set([...users.map(user => user.username), ...systemUsers])].sort();
+  const accessOptions = [...usernames, ...groups.map(group => '@' + group.name)];
+  const sambaUsernames = new Set(users.map(user => user.username));
+  const optionDescriptions = Object.fromEntries(accessOptions.map(name => [name,
+    name.startsWith('@') ? t("shares.systemGroup") : sambaUsernames.has(name) ? t("shares.sambaAccount") : t("shares.osAccount")
+  ]));
+
   const advancedFields: AdvancedShareField[] = [
-    { l: t("shares.writeList"), k: "writeList", p: "@admins, user1", mult: true, sug: [...users.map(u => u.username), ...groups.map(g => '@' + g.name)] },
+    { l: t("shares.writeList"), k: "writeList", p: "@admins, user1", mult: true, sug: accessOptions },
     { l: t("shares.maxConn"), k: "maxConnections", p: "0" },
-    { l: t("shares.createMask"), k: "createMask", p: "0644" },
-    { l: t("shares.dirMask"), k: "directoryMask", p: "0755" },
-    { l: t("shares.forceUser"), k: "forceUser", p: "user1", mult: false, sug: users.map(u => u.username) },
+    { l: t("shares.forceUser"), k: "forceUser", p: "user1", mult: false, sug: usernames },
     { l: t("shares.forceGroup"), k: "forceGroup", p: "users", mult: false, sug: groups.map(g => g.name) },
     { l: t("shares.hostsAllow"), k: "hostsAllow", p: "192.168.1." },
     { l: t("shares.hostsDeny"), k: "hostsDeny", p: "ALL" },
@@ -86,13 +93,17 @@ export default function SharesPage() {
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
-      const [shRes, usRes, grRes] = await Promise.all([
-        api.get<Share[]>("/api/shares").catch(() => []),
-        api.get<User[]>("/api/users").catch(() => []),
-        api.get<Group[]>("/api/groups").catch(() => [])
+      setSuggestionsUnavailable(false);
+      const unavailable = () => { setSuggestionsUnavailable(true); return []; };
+      const [shRes, usRes, grRes, sysRes] = await Promise.all([
+        api.get<Share[]>("/api/shares"),
+        api.get<User[]>("/api/users").catch(unavailable),
+        api.get<Group[]>("/api/groups").catch(unavailable),
+        api.get<string[]>("/api/users/system").catch(unavailable)
       ]);
       setShares(shRes || []);
       setUsers(usRes || []);
+      setSystemUsers(sysRes || []);
       setGroups(grRes || []);
     } catch (err) {
       toastError("API Error", getErrorMessage(err));
@@ -284,9 +295,10 @@ export default function SharesPage() {
           <form onSubmit={handleSave} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
-                <label className="text-[12px] font-medium text-foreground">{t("shares.shareName")}</label>
+                <label htmlFor="share-name" className="text-[12px] font-medium text-foreground">{t("shares.shareName")}</label>
                 <input 
-                  required 
+                  id="share-name"
+                  required
                   value={currentShare.name} 
                   disabled={!currentShare.isNew}
                   onChange={(e) => setCurrentShare({ ...currentShare, name: e.target.value })} 
@@ -294,10 +306,11 @@ export default function SharesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[12px] font-medium text-foreground">{t("shares.diskPath")}</label>
+                <label htmlFor="share-path" className="text-[12px] font-medium text-foreground">{t("shares.diskPath")}</label>
                 <div className="flex gap-2">
                   <input 
-                    required 
+                    id="share-path"
+                    required
                     value={currentShare.path || ""} 
                     onChange={(e) => setCurrentShare({ ...currentShare, path: e.target.value })} 
                     className="flex-1 bg-surface border border-border-strong focus:border-accent focus:outline-none text-foreground transition-all py-2.5 px-3.5 text-[13px] rounded-lg font-mono"
@@ -333,17 +346,56 @@ export default function SharesPage() {
 
             <div className="space-y-3 pt-4 border-t border-border">
               <div className="flex flex-col gap-1">
-                <label className="text-[12px] font-medium text-foreground">{t("shares.validUsers")}</label>
+                <label htmlFor="share-valid-users" className="text-[12px] font-medium text-foreground">{t("shares.validUsers")}</label>
                 <p className="text-[12px] text-text-muted">{t("shares.validUsersHint")}</p>
               </div>
               
               <MultiSelect 
-                options={[...users.map(u => u.username), ...groups.map(g => '@' + g.name)]}
+                inputId="share-valid-users"
+                options={accessOptions}
+                optionDescriptions={optionDescriptions}
                 value={currentShare.validUsers || ""} 
                 onChange={(val: string) => setCurrentShare({ ...currentShare, validUsers: val })} 
                 placeholder="user1, user2, @admins"
               />
+              {suggestionsUnavailable && <p role="status" className="text-[12px] text-status-warning">{t("shares.suggestionsUnavailable")}</p>}
             </div>
+
+            <fieldset className="space-y-4 pt-4 border-t border-border">
+              <legend className="text-[13px] font-medium text-foreground">{t("shares.permissionPresets")}</legend>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {([
+                  { key: "createMask", label: "shares.createMask", hint: "shares.fileMaskHint", presets: ["0600", "0644", "0660", "0666"] },
+                  { key: "directoryMask", label: "shares.dirMask", hint: "shares.directoryMaskHint", presets: ["0700", "0755", "0770", "0777"] }
+                ] as const).map(field => (
+                  <div key={field.key} className="space-y-2">
+                    <label htmlFor={`share-${field.key}`} className="text-[12px] font-medium text-foreground">{t(field.label)}</label>
+                    <input
+                      id={`share-${field.key}`}
+                      value={currentShare[field.key] || ""}
+                      onChange={event => setCurrentShare({ ...currentShare, [field.key]: event.target.value })}
+                      pattern="[0-7]{3,4}"
+                      maxLength={4}
+                      placeholder={t("shares.defaultMask")}
+                      aria-describedby={`share-${field.key}-hint`}
+                      className="w-full bg-surface border border-border-strong focus:border-accent focus:outline-none py-2 px-3 text-[13px] font-mono rounded-lg text-foreground"
+                    />
+                    <div className="flex flex-wrap gap-2" role="group" aria-label={t(field.label)}>
+                      {field.presets.map(mask => (
+                        <button key={mask} type="button" aria-pressed={currentShare[field.key] === mask}
+                          onClick={() => setCurrentShare({ ...currentShare, [field.key]: mask })}
+                          className={`px-2 py-1 rounded-md border text-[12px] font-mono ${currentShare[field.key] === mask ? "border-accent text-accent-text bg-surface-tint" : "border-border text-text-muted hover:text-foreground"}`}>
+                          {mask}
+                        </button>
+                      ))}
+                    </div>
+                    <p id={`share-${field.key}-hint`} className="text-[12px] text-text-muted">{t(field.hint)}</p>
+                  </div>
+                ))}
+              </div>
+              {(currentShare.directoryMask === "0777" || currentShare.directoryMask === "777") &&
+                <p role="status" className="text-[12px] text-status-warning">{t("shares.worldWritableWarning")}</p>}
+            </fieldset>
 
             <div className="pt-2">
               <button 
@@ -361,10 +413,12 @@ export default function SharesPage() {
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 animate-in slide-in-from-top-2 duration-300">
                     {advancedFields.map(field => (
                         <div key={field.k} className="flex flex-col gap-1.5 overflow-visible">
-                          <label className="text-[11px] font-semibold text-text-muted uppercase" title={field.l}>{field.l}</label>
+                          <label htmlFor={`share-${field.k}`} className="text-[11px] font-semibold text-text-muted uppercase" title={field.l}>{field.l}</label>
                           {field.sug ? (
                             field.mult ? (
                               <MultiSelect 
+                                inputId={`share-${field.k}`}
+                                optionDescriptions={optionDescriptions}
                                 options={field.sug}
                                 value={currentShare[field.k] || ""}
                                 onChange={(val: string) => setCurrentShare({ ...currentShare, [field.k]: val })} 
@@ -373,6 +427,7 @@ export default function SharesPage() {
                             ) : (
                               <div className="w-full bg-surface border border-border-strong rounded-md flex items-center">
                                 <AutocompleteInput 
+                                  id={`share-${field.k}`}
                                   suggestions={field.sug}
                                   value={currentShare[field.k] || ""}
                                   onValueChange={(value) => setCurrentShare({ ...currentShare, [field.k]: value })}
@@ -383,6 +438,7 @@ export default function SharesPage() {
                             )
                           ) : (
                             <input 
+                              id={`share-${field.k}`}
                               value={currentShare[field.k] || ""}
                               onChange={(e) => setCurrentShare({ ...currentShare, [field.k]: e.target.value })} 
                               className="w-full bg-surface border border-border-strong focus:border-accent focus:outline-none transition-all py-1.5 px-2.5 text-[12px] font-mono rounded-md text-foreground"

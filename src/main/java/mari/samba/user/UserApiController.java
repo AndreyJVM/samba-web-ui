@@ -31,6 +31,11 @@ public class UserApiController {
         return ApiResponse.ok("User '" + dto.username() + "' created successfully", null);
     }
 
+    @GetMapping("/system")
+    public ApiResponse<List<String>> getSystemUsernames(@NonNull HttpSession session) {
+        return ApiResponse.ok(sambaUserService.getSystemUsernames(session.getId()));
+    }
+
     @DeleteMapping("/{username}")
     public ApiResponse<Void> deleteUser(@NonNull HttpSession session, @PathVariable String username) {
         String sessionId = session.getId();

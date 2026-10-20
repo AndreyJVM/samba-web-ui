@@ -8,10 +8,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class LocalCommandPolicyTest {
 
     private final LocalCommandPolicy policy = new LocalCommandPolicy();
+
+    @ParameterizedTest
+    @ValueSource(strings = {"getent shadow", "getent passwd root", "getent passwd; id"})
+    void systemUserLookupDoesNotAllowOtherDatabasesOrShellCommands(String command) {
+        assertThatThrownBy(() -> policy.classify(command, null))
+                .isInstanceOf(mari.samba.core.SambaCommandException.class);
+    }
 
     @ParameterizedTest
     @MethodSource("allowedCommands")
@@ -112,6 +120,7 @@ class LocalCommandPolicyTest {
                         "restart",
                         "smbd"),
                 arguments(LinuxCommands.listSambaUsers(), null, PrivilegedOperation.LIST_SAMBA_USERS),
+                arguments(LinuxCommands.listSystemUsers(), null, PrivilegedOperation.LIST_SYSTEM_USERS),
                 arguments(LinuxCommands.checkUserExists("alice"), null, PrivilegedOperation.USER_EXISTS, "alice"),
                 arguments(
                         LinuxCommands.addSystemUserWithHome("alice", "Alice Admin"),

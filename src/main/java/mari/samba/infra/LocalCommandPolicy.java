@@ -102,6 +102,9 @@ public class LocalCommandPolicy {
         if (shape(words, "getent", "group")) {
             return operation(PrivilegedOperation.LIST_GROUPS, inputData);
         }
+        if (shape(words, "getent", "passwd")) {
+            return operation(PrivilegedOperation.LIST_SYSTEM_USERS, inputData);
+        }
         if (shape(words, "sudo", "groupadd", null)) {
             return operation(PrivilegedOperation.ADD_GROUP, inputData, words.get(2));
         }

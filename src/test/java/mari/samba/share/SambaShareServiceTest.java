@@ -12,6 +12,8 @@ import mari.samba.infra.LinuxCommands;
 import mari.samba.smbconfig.SambaConfigService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -32,6 +34,25 @@ class SambaShareServiceTest {
     private SambaShareService shareService;
 
     private final String SESSION_ID = "test-session-id";
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0700", "0755", "0770", "0777"})
+    void explicitDirectoryPresetIsUsedForChmodWithoutUsingFileMask(String directoryMask) {
+        SambaShareCreateDto dto = SambaShareCreateDto.builder()
+                .name("team")
+                .path("/srv/team")
+                .createMask("0644")
+                .directoryMask(directoryMask)
+                .build();
+        when(configService.getSmbConfContent(SESSION_ID)).thenReturn("");
+        when(configService.parseShares("")).thenReturn(Collections.emptyList());
+        when(configService.buildShareSection(dto)).thenReturn("[team]\n");
+
+        shareService.createShare(SESSION_ID, dto);
+
+        verify(commandExecutor).execute(SESSION_ID, LinuxCommands.chmod(directoryMask, "/srv/team"));
+        verify(commandExecutor, never()).execute(SESSION_ID, LinuxCommands.chmod("0644", "/srv/team"));
+    }
 
     @Test
     void createShare_ShouldCreateDirectoryAndSetPermissions() throws Exception {

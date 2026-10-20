@@ -110,6 +110,18 @@ class HelperPolicyTest(unittest.TestCase):
                 {"operation": "ADD_GROUP", "arguments": ["wheel"], "inputData": None}
             )
 
+    def test_system_user_lookup_uses_fixed_read_only_command(self):
+        response = {"exitCode": 0, "stdout": "alice:x:1000:1000::/home/alice:/bin/bash\n", "stderr": ""}
+        with patch.object(self.policy, "_run", return_value=response) as run:
+            self.assertEqual(response, self.policy.dispatch({"operation": "LIST_SYSTEM_USERS", "arguments": [], "inputData": None}))
+            run.assert_called_once_with(["getent", "passwd"])
+
+    def test_system_user_lookup_rejects_extra_database_argument(self):
+        with patch.object(self.policy, "_run") as run:
+            with self.assertRaises(helper.PolicyError):
+                self.policy.dispatch({"operation": "LIST_SYSTEM_USERS", "arguments": ["shadow"], "inputData": None})
+            run.assert_not_called()
+
     def test_rejects_unlisted_service_and_operation(self):
         with self.assertRaises(helper.PolicyError):
             self.policy.dispatch(

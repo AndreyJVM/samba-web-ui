@@ -22,6 +22,7 @@ public enum PrivilegedOperation {
     DUMP_CONFIG,
     SYSTEMD,
     LIST_SAMBA_USERS,
+    LIST_SYSTEM_USERS,
     USER_EXISTS,
     ADD_SYSTEM_USER,
     DELETE_SYSTEM_USER,
