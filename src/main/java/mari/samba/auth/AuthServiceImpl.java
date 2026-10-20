@@ -4,7 +4,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import mari.samba.infra.SshSessionManager;
+import mari.samba.config.ExecutionProperties.Mode;
+import mari.samba.infra.ExecutionSessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
@@ -19,11 +20,11 @@ public class AuthServiceImpl implements AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
-    private final SshSessionManager sessionManager;
+    private final ExecutionSessionManager sessionManager;
     private final BruteForceProtectionService bruteForceService;
 
     public AuthServiceImpl(
-            @NonNull SshSessionManager sessionManager, @NonNull BruteForceProtectionService bruteForceService) {
+            @NonNull ExecutionSessionManager sessionManager, @NonNull BruteForceProtectionService bruteForceService) {
         this.sessionManager = sessionManager;
         this.bruteForceService = bruteForceService;
     }
@@ -45,6 +46,11 @@ public class AuthServiceImpl implements AuthService {
         if (request.isKeyAuth()
                 && (request.getPrivateKey() == null || request.getPrivateKey().isBlank())) {
             throw new IllegalArgumentException("Private key is required when using key authentication.");
+        }
+
+        if (sessionManager.effectiveMode() == Mode.REMOTE
+                && (request.getHost() == null || request.getHost().isBlank())) {
+            throw new IllegalArgumentException("Host is required for remote connections.");
         }
 
         try {

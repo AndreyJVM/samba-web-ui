@@ -1,0 +1,37 @@
+[Unit]
+Description=ShareGuard Samba management web interface
+After=network-online.target shareguard-helper.service
+Wants=network-online.target
+Requires=shareguard-helper.service
+
+[Service]
+Type=simple
+User=shareguard
+Group=shareguard
+EnvironmentFile=/etc/shareguard/shareguard.env
+WorkingDirectory=/var/lib/shareguard
+ExecStart=/usr/bin/java -jar /usr/lib/shareguard/shareguard.jar
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/shareguard
+ProtectClock=true
+ProtectControlGroups=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectHostname=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+[Unit]
+Description=ShareGuard privileged operation helper
+After=local-fs.target
+Before=shareguard.service
+
+[Service]
+Type=simple
+User=root
+Group=shareguard
+EnvironmentFile=/etc/shareguard/shareguard.env
+ExecStart=/usr/lib/shareguard/shareguard-helper --socket ${SHAREGUARD_HELPER_SOCKET} --user shareguard
+RuntimeDirectory=shareguard
+RuntimeDirectoryMode=0750
+UMask=0007
+Restart=on-failure
+RestartSec=2s
+NoNewPrivileges=true
+PrivateDevices=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectHostname=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
