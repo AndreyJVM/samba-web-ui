@@ -393,7 +393,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           <div className="flex items-center gap-3 shrink-0">
             {/* GitHub Project & Issues Link */}
             <a
-              href="https://github.com/vladimirmukhin/samba-web-ui"
+              href="https://github.com/AndreyJVM/shareguard"
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg border border-border transition-colors shadow-2xs group"

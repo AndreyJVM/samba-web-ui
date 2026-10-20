@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# Samba Web UI - Host Server Setup & Dynamic Sudo Configuration
+# ShareGuard - Host Server Setup & Dynamic Sudo Configuration
 # ==============================================================================
 # Этот скрипт подготавливает хост-машину (Ubuntu/Debian) для безопасного
-# управления через веб-интерфейс Samba Web UI:
+# управления через веб-интерфейс ShareGuard:
 # 1. Проверяет права root.
 # 2. Создаёт отдельного системного пользователя-администратора (по умолчанию: admin).
 # 3. Устанавливает Samba, Winbind, Kerberos и необходимые утилиты.
@@ -46,10 +46,10 @@ if ! echo "$ADMIN_USER" | grep -qE '^[a-z_][a-z0-9_.-]{0,31}$'; then
     exit 1
 fi
 
-SUDOERS_FILE="/etc/sudoers.d/samba-web-ui-${ADMIN_USER}"
+SUDOERS_FILE="/etc/sudoers.d/shareguard-${ADMIN_USER}"
 
 echo "========================================================"
-echo "    Настройка сервера для работы с Samba Web UI         "
+echo "    Настройка сервера для работы с ShareGuard           "
 echo "========================================================"
 log_info "Административный пользователь: $ADMIN_USER"
 
@@ -100,7 +100,7 @@ SUDO_LINE="$(IFS=', '; echo "${SUDO_ENTRIES[*]}")"
 # Пишем файл sudoers
 cat <<EOF > "$SUDOERS_FILE"
 # Автоматически сгенерировано setup-samba-server.sh
-# Разрешения для Samba Web UI (пользователь: $ADMIN_USER)
+# Разрешения для ShareGuard (пользователь: $ADMIN_USER)
 $ADMIN_USER ALL=(ALL) NOPASSWD: $SUDO_LINE
 EOF
 
@@ -110,5 +110,5 @@ chmod 0440 "$SUDOERS_FILE"
 echo "========================================================"
 echo " Настройка успешно завершена!                           "
 echo " Теперь вы можете подключиться к этому серверу          "
-echo " через Samba Web UI, используя пользователя: $ADMIN_USER"
+echo " через ShareGuard, используя пользователя: $ADMIN_USER  "
 echo "========================================================"

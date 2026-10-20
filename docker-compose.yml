@@ -8,12 +8,12 @@
 
 services:
   web:
-    image: samba-web-ui-web:latest
+    image: shareguard-web:latest
     build:
       context: .
       dockerfile: Dockerfile
       target: local
-    container_name: samba-web-ui
+    container_name: shareguard
     restart: unless-stopped
     ports:
       # Web UI Port

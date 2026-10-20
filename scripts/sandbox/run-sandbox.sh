@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# Samba Web UI - Docker Compose Sandbox Runner with Clean Teardown
+# ShareGuard - Docker Compose Sandbox Runner with Clean Teardown
 # ==============================================================================
 # Этот скрипт:
 # 1. Предлагает выбор режима развёртывания (с тестами / без тестов)
@@ -16,7 +16,7 @@
 #    - restart / logs / status / stop
 # 8. При завершении (Enter, stop, q или Ctrl+C) полностью останавливает compose,
 #    удаляет контейнеры, сети, вольюмы (samba-shares, samba-config)
-#    и локальный образ web-приложения (samba-web-ui-web:latest),
+#    и локальный образ web-приложения (shareguard-web:latest),
 #    гарантируя чистое состояние перед следующим запуском.
 # ==============================================================================
 
@@ -70,7 +70,7 @@ fi
 # Выбор режима развёртывания
 # ==============================================================================
 echo "=========================================================="
-echo "         Samba Web UI - Запуск Docker Sandbox             "
+echo "         ShareGuard - Запуск Docker Sandbox               "
 echo "=========================================================="
 echo ""
 echo "Выберите режим развёртывания:"
@@ -147,7 +147,7 @@ build_backend() {
 # Сборка Docker-образа web
 build_docker_image() {
     echo ">>> Сборка Docker-образа web (перенос JAR в alpine JRE)..."
-    if ! docker build --target local --network host -t samba-web-ui-web:latest .; then
+    if ! docker build --target local --network host -t shareguard-web:latest .; then
         echo "Ошибка: не удалось собрать Docker-образ web!" >&2
         return 1
     fi
@@ -250,7 +250,7 @@ rebuild_full() {
     echo ">>> Остановка сервисов, удаление контейнеров, сетей, вольюмов и образов..."
     $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
     docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
-    docker rmi -f samba-web-ui-web:latest samba-web-ui_web:latest >/dev/null 2>&1 || true
+    docker rmi -f shareguard-web:latest shareguard_web:latest >/dev/null 2>&1 || true
     rm -rf "$PROJECT_ROOT/frontend/dist"
 
     if ! build_frontend; then
@@ -294,7 +294,7 @@ cleanup() {
     docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
 
     # Дополнительное удаление образа веб-приложения по тегам/именам
-    docker rmi -f samba-web-ui-web:latest samba-web-ui_web:latest >/dev/null 2>&1 || true
+    docker rmi -f shareguard-web:latest shareguard_web:latest >/dev/null 2>&1 || true
 
     echo "=========================================================="
     echo "  [ГОТОВО] Контейнеры, вольюмы, сети и образ web удалены! "
@@ -309,7 +309,7 @@ trap cleanup EXIT INT TERM
 echo ">>> Проверка и предварительная очистка старых контейнеров/волюмов/образа web..."
 $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
 docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
-docker rmi -f samba-web-ui-web:latest samba-web-ui_web:latest >/dev/null 2>&1 || true
+docker rmi -f shareguard-web:latest shareguard_web:latest >/dev/null 2>&1 || true
 
 # Проверка наличия собранного фронтенда
 if [ ! -d "$PROJECT_ROOT/frontend/dist" ] || [ -z "$(ls -A "$PROJECT_ROOT/frontend/dist" 2>/dev/null)" ]; then

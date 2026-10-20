@@ -6,10 +6,10 @@
 
 ```bash
 docker run -d \
-  --name samba-web-ui \
+  --name shareguard \
   -p 8080:8080 \
   --restart unless-stopped \
-  andreyvorobevaqa/samba-web-ui:latest
+  andreyvorobevaqa/shareguard:latest
 ```
 
 После запуска откройте браузер по адресу: http://localhost:8080/ui.
@@ -23,8 +23,8 @@ docker run -d \
 
 ```shell
 # Клонирование репозитория
-git clone https://github.com/AndreyJVM/samba-web-ui.git
-cd samba-web-ui
+git clone https://github.com/AndreyJVM/shareguard.git
+cd shareguard
 
 # Сборка и запуск
 ./mvnw spring-boot:run

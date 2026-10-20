@@ -1,8 +1,8 @@
 site_name: ShareGuard
 site_description: Современный веб-интерфейс для управления сервером Samba на Spring Boot и Linux
 site_author: Andrey Vorobev
-repo_url: https://github.com/andreyvorobevaqa/samba-web-ui
-repo_name: andreyvorobevaqa/samba-web-ui
+repo_url: https://github.com/AndreyJVM/shareguard
+repo_name: AndreyJVM/shareguard
 
 theme:
   name: material

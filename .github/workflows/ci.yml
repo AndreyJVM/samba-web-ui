@@ -96,7 +96,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: andreyvorobevaqa/samba-web-ui
+          images: andreyvorobevaqa/shareguard
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -116,7 +116,7 @@ jobs:
         id: meta-astra
         uses: docker/metadata-action@v5
         with:
-          images: andreyvorobevaqa/samba-web-ui
+          images: andreyvorobevaqa/shareguard
           tags: |
             type=semver,pattern={{version}},prefix=astra-
             type=semver,pattern={{major}}.{{minor}},prefix=astra-
@@ -138,5 +138,5 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: andreyvorobevaqa/samba-web-ui
+          repository: andreyvorobevaqa/shareguard
           readme-filepath: ./DOCKERHUB.md

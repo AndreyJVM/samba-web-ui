@@ -9,8 +9,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableConfigurationProperties(SambaProperties.class)
-public class SambaWebUiApplication {
+public class ShareGuardApplication {
     public static void main(String[] args) {
-        SpringApplication.run(SambaWebUiApplication.class, args);
+        SpringApplication.run(ShareGuardApplication.class, args);
     }
 }

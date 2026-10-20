@@ -19,16 +19,16 @@
 
 ## Документация
 
-Полное руководство пользователя, инструкции по настройке и описание архитектуры доступны в **[документации](https://AndreyJVM.github.io/samba-web-ui/)**
+Полное руководство пользователя, инструкции по настройке и описание архитектуры доступны в **[документации](https://AndreyJVM.github.io/shareguard/)**
 
 ## Быстрый старт с Docker (Продакшн)
 
 ```bash
 docker run -d \
-  --name samba-web-ui \
+  --name shareguard \
   -p 8080:8080 \
   --restart unless-stopped \
-  andreyvorobevaqa/samba-web-ui:latest
+  andreyvorobevaqa/shareguard:latest
 ```
 
 Откройте браузер по адресу http://localhost:8080/ui.
@@ -103,7 +103,7 @@ sudo apt install ./dist/shareguard_0.0.1_all.deb
 ```
 
 ### Запуск бэкенда из IDE
-Основной класс: `mari.samba.SambaWebUiApplication`
+Основной класс: `mari.samba.ShareGuardApplication`
 
 Перед запуском из IDE убедитесь, что фронтенд собран (`cd frontend && npm run build`), либо запустите Vite dev-сервер:
 ```bash

@@ -18,7 +18,7 @@ ShareGuard — веб-интерфейс для управления Samba на 
 ## Структура проекта
 
 ```text
-samba-web-ui/
+shareguard/
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/                 # Страницы интерфейса
@@ -27,7 +27,7 @@ samba-web-ui/
 │   │   └── App.tsx                # Маршрутизация SPA
 │   └── vite.config.ts            # Базовый путь /ui/ и dev-прокси API
 ├── src/main/java/mari/samba/
-│   ├── SambaWebUiApplication.java # Точка входа Spring Boot
+│   ├── ShareGuardApplication.java # Точка входа Spring Boot
 │   ├── auth/                     # Вход, выход и защита от перебора
 │   ├── share/                    # Общие ресурсы Samba
 │   ├── user/                     # Пользователи Samba

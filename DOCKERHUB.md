@@ -8,10 +8,10 @@ Run the container using Docker:
 
 ```bash
 docker run -d \
-  --name samba-web-ui \
+  --name shareguard \
   -p 8080:8080 \
   --restart unless-stopped \
-  andreyvorobevaqa/samba-web-ui:latest
+  andreyvorobevaqa/shareguard:latest
 ```
 
 Open `http://localhost:8080/ui` in your browser. From the UI, you can connect to your Samba server using SSH credentials.
@@ -22,10 +22,10 @@ For Astra Linux SE 1.8 hosts where Parsec blocks JVM JIT executable memory, use 
 
 ```bash
 docker run -d \
-  --name samba-web-ui \
+  --name shareguard \
   -p 8080:8080 \
   --restart unless-stopped \
-  andreyvorobevaqa/samba-web-ui:astra-latest
+  andreyvorobevaqa/shareguard:astra-latest
 ```
 
 The Astra image disables PaX MPROTECT only for the `java` executable inside the image. This permits the JVM JIT to start and reduces memory-execution protection for that Java process. The regular `latest` image keeps its existing runtime configuration. Versioned Astra images use the `astra-<version>` tag.
@@ -44,4 +44,4 @@ The Astra image disables PaX MPROTECT only for the `java` executable inside the 
 
 ## Documentation and Source Code
 
-For full documentation, setup guides, and local development sandbox instructions, please visit the [GitHub Repository](https://github.com/andreyvorobevaqa/samba-web-ui).
+For full documentation, setup guides, and local development sandbox instructions, please visit the [GitHub Repository](https://github.com/AndreyJVM/shareguard).
