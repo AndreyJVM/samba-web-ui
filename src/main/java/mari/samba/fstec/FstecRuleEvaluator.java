@@ -67,17 +67,17 @@ public class FstecRuleEvaluator {
         if (current == null || expected == null) {
             return false;
         }
-        Set<String> currentTokens = Arrays.stream(current.split("[,\\s]+"))
-                .map(s -> s.trim().toLowerCase(Locale.ROOT))
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toSet());
-
-        Set<String> expectedTokens = Arrays.stream(expected.split("[,\\s]+"))
-                .map(s -> s.trim().toLowerCase(Locale.ROOT))
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toSet());
+        Set<String> currentTokens = tokens(current);
+        Set<String> expectedTokens = tokens(expected);
 
         return currentTokens.containsAll(expectedTokens);
+    }
+
+    private Set<String> tokens(String value) {
+        return Arrays.stream(value.split("[,\\s]+"))
+                .map(s -> s.trim().toLowerCase(Locale.ROOT))
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
     }
 
     public boolean evaluateNotPresentOrNotEquals(String current, String expected) {

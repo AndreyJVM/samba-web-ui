@@ -11,8 +11,10 @@ export class ApiError extends Error {
   }
 }
 
+const XSRF_TOKEN_COOKIE_PATTERN = /(^| )XSRF-TOKEN=([^;]+)/;
+
 function getCsrfToken(): string | null {
-  const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
+  const match = document.cookie.match(XSRF_TOKEN_COOKIE_PATTERN);
   return match ? match[2] : null;
 }
 
