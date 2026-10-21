@@ -49,3 +49,4 @@ nav:
   - Подготовка сервера: server-setup.md
   - Рекомендации ФСТЭК: fstec.md
   - Архитектура: architecture.md
+  - Статический анализ: static-analysis.md
