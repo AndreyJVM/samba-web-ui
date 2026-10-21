@@ -95,13 +95,19 @@ export const translations = {
       hostsAllow: "Hosts Allow",
       hostsDeny: "Hosts Deny",
       deleteConfirmTitle: "Delete Share",
-      deleteConfirmMsg: "Are you sure you want to delete share '{name}'? Path '{path}' will NOT be removed from disk."
+      deleteConfirmMsg: "Are you sure you want to delete share '{name}'? Path '{path}' will NOT be removed from disk.",
+      calcSize: "Calculate size",
+      calculating: "Calculating...",
+      private: "Private"
     },
     users: {
       title: "Users Management",
       newUser: "New User",
+      addUser: "Add User",
       noUsers: "No local users found.",
+      noUsersDesc: "Create users to grant them access to network shares.",
       username: "Username",
+      fullName: "Full Name",
       password: "Password",
       status: "Status",
       enabled: "Enabled",
@@ -109,6 +115,9 @@ export const translations = {
       deleteConfirmTitle: "Delete User",
       deleteConfirmMsg: "Are you sure you want to delete user '{name}'?",
       pwdChangeTitle: "Change Password for {name}",
+      changePwd: "Change Password",
+      newPassword: "New Password",
+      pwdDesc: "Set new password for user",
       newPass: "New Password",
       enableUser: "Enable",
       disableUser: "Disable",
@@ -124,10 +133,29 @@ export const translations = {
       deleteConfirmMsg: "Are you sure you want to delete group '{name}'?",
       manageMembers: "Manage Members: {name}",
       availableUsers: "Available Users",
-      noUsersInGroup: "No users in this group"
+      noUsersInGroup: "No users in this group",
+      posixGroup: "POSIX Group",
+      emptyGroup: "No members in group",
+      newOsGroup: "New OS Group",
+      addToGroup: "Add member to group"
     },
     ad: {
       title: "Active Directory Integration",
+      refresh: "Refresh",
+      healthStatus: "Domain Health Status",
+      healthDesc: "Check Kerberos ticket and Winbind daemon connectivity",
+      domainJoinState: "Domain Join State",
+      joined: "Joined",
+      winbindService: "Winbind Service",
+      operational: "Operational",
+      failing: "Failing",
+      kerberosDns: "Kerberos & DNS",
+      ok: "OK",
+      errorsDetected: "Errors Detected",
+      statusNotAvailable: "Status not available",
+      actionTitle: "Domain Operations",
+      actionDesc: "Join or leave an Active Directory domain",
+      targetDomain: "Target Domain",
       statusTitle: "Domain Status",
       connected: "Joined to Domain",
       notConnected: "Not Joined (Standalone Server)",
@@ -298,13 +326,19 @@ export const translations = {
       hostsAllow: "Разрешенные хосты (hosts allow)",
       hostsDeny: "Запрещенные хосты (hosts deny)",
       deleteConfirmTitle: "Удаление ресурса",
-      deleteConfirmMsg: "Вы уверены, что хотите удалить сетевой ресурс '{name}'? Папка '{path}' останется на диске."
+      deleteConfirmMsg: "Вы уверены, что хотите удалить сетевой ресурс '{name}'? Папка '{path}' останется на диске.",
+      calcSize: "Вычислить размер",
+      calculating: "Вычисление...",
+      private: "Приватный"
     },
     users: {
       title: "Пользователи Samba",
       newUser: "Новый пользователь",
+      addUser: "Добавить пользователя",
       noUsers: "Локальные пользователи не найдены.",
+      noUsersDesc: "Создайте пользователей для предоставления доступа к сетевым ресурсам.",
       username: "Логин",
+      fullName: "Полное имя",
       password: "Пароль",
       status: "Статус",
       enabled: "Активен",
@@ -312,6 +346,9 @@ export const translations = {
       deleteConfirmTitle: "Удаление пользователя",
       deleteConfirmMsg: "Удалить пользователя '{name}' из системы и Samba?",
       pwdChangeTitle: "Смена пароля: {name}",
+      changePwd: "Смена пароля",
+      newPassword: "Новый пароль",
+      pwdDesc: "Укажите новый пароль для пользователя",
       newPass: "Новый пароль",
       enableUser: "Включить",
       disableUser: "Отключить",
@@ -327,10 +364,29 @@ export const translations = {
       deleteConfirmMsg: "Вы уверены, что хотите удалить группу '{name}'?",
       manageMembers: "Участники группы: {name}",
       availableUsers: "Доступные пользователи",
-      noUsersInGroup: "В этой группе пока нет пользователей"
+      noUsersInGroup: "В этой группе пока нет пользователей",
+      posixGroup: "POSIX-группа",
+      emptyGroup: "В группе нет участников",
+      newOsGroup: "Новая группа ОС",
+      addToGroup: "Добавить участника в группу"
     },
     ad: {
       title: "Интеграция с Active Directory",
+      refresh: "Обновить",
+      healthStatus: "Состояние домена",
+      healthDesc: "Проверка билетов Kerberos и связи с демоном Winbind",
+      domainJoinState: "Статус подключения к домену",
+      joined: "В домене",
+      winbindService: "Служба Winbind",
+      operational: "Работает",
+      failing: "Ошибка",
+      kerberosDns: "Kerberos и DNS",
+      ok: "В норме",
+      errorsDetected: "Обнаружены ошибки",
+      statusNotAvailable: "Статус недоступен",
+      actionTitle: "Операции с доменом",
+      actionDesc: "Ввод или вывод сервера из домена Active Directory",
+      targetDomain: "Целевой домен",
       statusTitle: "Статус подключения к Домену",
       connected: "В домене (Введен)",
       notConnected: "Не подключен (Автономный сервер)",
@@ -424,7 +480,7 @@ export const getLanguage = () => currentLang;
 
 export const useTranslation = () => {
   const [lang, setLang] = useState<Language>(currentLang);
-  
+
   useEffect(() => {
     listeners.add(setLang);
     return () => {

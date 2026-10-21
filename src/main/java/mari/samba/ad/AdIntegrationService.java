@@ -47,8 +47,8 @@ public class AdIntegrationService {
         String joinOutput =
                 commandExecutor.execute(sessionId, LinuxCommands.netAdsJoin(request.username(), request.password()));
         if (looksLikeFailure(joinOutput)) {
-            log.error("Domain join failed: {}", joinOutput);
-            throw new AdJoinException("Domain join failed: " + joinOutput);
+            log.error("Domain join failed.");
+            throw new AdJoinException("Domain join failed.");
         }
 
         commandExecutor.execute(sessionId, LinuxCommands.systemctl("restart", "winbind"));

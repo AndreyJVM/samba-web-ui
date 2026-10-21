@@ -1,6 +1,6 @@
 import { getErrorMessage } from "../lib/errors";
 import { useEffect, useState } from "react";
-import { Lock, Key, ArrowRight, AlertTriangle } from "lucide-react";
+import { Lock, Key, ArrowRight, AlertTriangle, SlidersHorizontal } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { api } from "../lib/api";
 
@@ -11,6 +11,7 @@ interface AuthEnvironment {
 export default function LoginPage() {
   const [host, setHost] = useState("");
   const [port, setPort] = useState("22");
+  const [showPort, setShowPort] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [privateKey, setPrivateKey] = useState("");
@@ -32,9 +33,22 @@ export default function LoginPage() {
     setError("");
 
     try {
+      let finalHost = host.trim();
+      let finalPort = parseInt(port, 10);
+      if (isNaN(finalPort)) finalPort = 22;
+
+      // Support host:port if user entered it directly into host input
+      if (/^[^:]+:\d+$/.test(finalHost)) {
+        const [h, p] = finalHost.split(":");
+        if (p && !isNaN(parseInt(p, 10))) {
+          finalHost = h;
+          finalPort = parseInt(p, 10);
+        }
+      }
+
       await api.post("/api/auth/login", {
-        host: isLocal ? undefined : host,
-        port: isLocal ? undefined : parseInt(port),
+        host: isLocal ? undefined : finalHost,
+        port: isLocal ? undefined : finalPort,
         username,
         authType: !isLocal && useKeyAuth ? "key" : "password",
         password: !isLocal && useKeyAuth ? undefined : password,
@@ -50,134 +64,260 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg px-4 py-12 relative overflow-hidden font-sans">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#86efac]/10 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#86efac]/10 blur-[120px] pointer-events-none"></div>
-      
-      <div className="w-full max-w-[440px] relative z-10">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
-            <img 
-              src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
-              alt="ShareGuard" 
-              className="h-16 w-auto" 
+    <div className="min-h-screen flex flex-col justify-between bg-bg px-4 py-8 sm:py-12 relative font-sans text-foreground selection:bg-accent selection:text-on-accent overflow-y-auto">
+      {/* Subtle restrained engineering grid accent */}
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 pointer-events-none opacity-25 [background-image:radial-gradient(var(--border-strong)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_65%_65%_at_50%_50%,#000_40%,transparent_100%)]"
+      />
+
+      {/* Top spacer for balanced vertical alignment */}
+      <div className="shrink-0" />
+
+      {/* Main card container */}
+      <div className="w-full max-w-[400px] mx-auto relative z-10 my-auto">
+        {/* Brand identity header */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center p-2.5 rounded-2xl bg-surface border border-border shadow-xs mb-3">
+            <img
+              src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`}
+              alt="ShareGuard"
+              className="h-10 w-auto"
             />
           </div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">ShareGuard</h1>
-          <p className="text-text-muted mt-2 text-[15px]">
-            {isLocal ? "Локальное управление сервером" : "Подключение к серверу по SSH"}
+          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center justify-center gap-0.5">
+            <span>Share</span>
+            <span className="font-extrabold text-foreground">Guard</span>
+          </h1>
+          <p className="text-text-muted mt-1 text-xs sm:text-sm">
+            {isLocal ? "Локальное управление сервером Samba" : "Управление сервером Samba по SSH"}
           </p>
         </div>
 
-        <div className="bg-surface rounded-[24px] border border-border p-8 sm:p-10 backdrop-blur-xl">
-          <form onSubmit={handleLogin} className="space-y-6 flex flex-col">
+        {/* Login form card */}
+        <div className="bg-surface rounded-2xl border border-border p-6 sm:p-7 shadow-xs">
+          <form onSubmit={handleLogin} className="space-y-4">
             {error && (
-              /* TODO: token for status-error is not in theme palette, keeping functional status color */
-              <div className="bg-surface-2 text-status-error p-4 rounded-xl text-[14px] font-medium border border-status-error/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" /> {error}
+              <div
+                role="alert"
+                className="bg-surface-2 text-status-error p-3 rounded-lg text-xs font-medium border border-status-error/30 flex items-start gap-2.5"
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{error}</span>
               </div>
             )}
-            
+
+            {/* Main scenario: 1. Server Host with prominent port toggle pill */}
             {!isLocal && (
-              <div className="flex gap-4">
-                <div className="flex-1 space-y-2">
-                  <label className="text-[13px] font-bold text-foreground uppercase tracking-wide">Хост / IP</label>
+              <div className="space-y-2">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="login-host"
+                      className="block text-xs font-semibold text-text-muted uppercase tracking-wider"
+                    >
+                      Хост / IP
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPort(!showPort)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground ${
+                        showPort
+                          ? "bg-accent/25 border-accent/60 text-accent-text font-semibold"
+                          : "bg-surface-2 border-border-strong text-foreground hover:bg-surface hover:border-foreground/30"
+                      }`}
+                      title={showPort ? "Скрыть настройку порта" : "Изменить порт подключения (по умолчанию 22)"}
+                      aria-expanded={showPort}
+                    >
+                      <SlidersHorizontal className="w-3 h-3 shrink-0 opacity-70" />
+                      <span>{showPort ? "Скрыть порт" : `Порт: ${port || "22"}`}</span>
+                    </button>
+                  </div>
                   <Input
+                    id="login-host"
+                    name="host"
+                    autoComplete="host"
                     required
                     value={host}
                     onChange={e => setHost(e.target.value)}
                     placeholder="192.168.1.100"
-                    className="bg-surface-2 border-border-strong focus:border-accent text-foreground hover:border-border-strong transition-colors text-base py-6 rounded-xl"
+                    className="bg-surface-2 border-border-strong text-foreground focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-accent-text/30 text-sm h-10 rounded-lg transition-colors"
                   />
                 </div>
-                <div className="w-24 space-y-2">
-                  <label className="text-[13px] font-bold text-foreground uppercase tracking-wide">Порт</label>
-                  <Input
-                    required
-                    value={port}
-                    onChange={e => setPort(e.target.value)}
-                    type="number"
-                    className="bg-surface-2 border-border-strong focus:border-accent text-foreground hover:border-border-strong transition-colors text-base py-6 rounded-xl text-center"
-                  />
-                </div>
+
+                {/* Separate Port setting (revealed on click) */}
+                {showPort && (
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="flex items-center justify-between">
+                      <label
+                        htmlFor="login-port"
+                        className="block text-xs font-semibold text-text-muted uppercase tracking-wider"
+                      >
+                        Порт SSH
+                      </label>
+                      {port !== "22" && (
+                        <button
+                          type="button"
+                          onClick={() => setPort("22")}
+                          className="text-[11px] font-medium text-text-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
+                        >
+                          Сбросить на 22
+                        </button>
+                      )}
+                    </div>
+                    <Input
+                      id="login-port"
+                      name="port"
+                      required
+                      value={port}
+                      onChange={e => setPort(e.target.value)}
+                      type="number"
+                      placeholder="22"
+                      className="bg-surface-2 border-border-strong text-foreground focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-accent-text/30 text-sm h-10 rounded-lg transition-colors"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
-            <div className="space-y-2">
-              <label className="text-[13px] font-bold text-foreground uppercase tracking-wide">Пользователь</label>
-              <Input 
-                required 
+            {/* Main scenario: 2. Login (Username) */}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="login-username"
+                className="block text-xs font-semibold text-text-muted uppercase tracking-wider"
+              >
+                Пользователь
+              </label>
+              <Input
+                id="login-username"
+                name="username"
+                autoComplete="username"
+                required
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                placeholder="root" 
-                className="bg-surface-2 border-border-strong focus:border-accent text-foreground hover:border-border-strong transition-colors text-base py-6 rounded-xl"
+                placeholder="root"
+                className="bg-surface-2 border-border-strong text-foreground focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-accent-text/30 text-sm h-10 rounded-lg transition-colors"
               />
             </div>
 
-            {!isLocal && <div className="flex bg-surface-2 p-1.5 rounded-xl my-2 border border-border">
-              <button 
-                type="button" 
-                onClick={() => setUseKeyAuth(false)}
-                className={`flex-1 py-2 text-[14px] font-semibold rounded-lg transition-all duration-200 ${!useKeyAuth ? 'bg-surface text-accent-text border border-border' : 'text-text-muted hover:text-foreground'}`}
-              >
-                Пароль
-              </button>
-              <button 
-                type="button" 
-                onClick={() => setUseKeyAuth(true)}
-                className={`flex-1 py-2 text-[14px] font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 ${useKeyAuth ? 'bg-surface text-accent-text border border-border' : 'text-text-muted hover:text-foreground'}`}
-              >
-                <Key className="w-4 h-4" /> SSH Ключ
-              </button>
-            </div>}
-
+            {/* Main scenario: 3. Password OR Key input */}
             {isLocal || !useKeyAuth ? (
-              <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
-                <label className="text-[13px] font-bold text-foreground uppercase tracking-wide flex justify-between">
-                  <span>Пароль</span>
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="login-password"
+                  className="block text-xs font-semibold text-text-muted uppercase tracking-wider"
+                >
+                  Пароль
                 </label>
                 <div className="relative">
-                  <Input 
-                    required 
+                  <Input
+                    id="login-password"
+                    name="password"
+                    autoComplete="current-password"
+                    required
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    type="password" 
-                    placeholder="••••••••" 
-                    className="bg-surface-2 border-border-strong pl-11 focus:border-accent text-foreground hover:border-border-strong transition-colors text-base py-6 rounded-xl"
+                    type="password"
+                    placeholder="••••••••"
+                    className="bg-surface-2 border-border-strong pl-10 text-foreground focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-accent-text/30 text-sm h-10 rounded-lg transition-colors"
                   />
-                  <Lock className="w-5 h-5 text-text-muted absolute left-3.5 top-1/2 transform -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             ) : (
-              <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
-                <label className="text-[13px] font-bold text-foreground uppercase tracking-wide flex items-center justify-between">
-                  <span>Приватный ключ</span>
-                  <span className="font-normal text-[11px] text-text-muted lowercase tracking-normal">RSA / Ed25519</span>
-                </label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="login-privatekey"
+                    className="block text-xs font-semibold text-text-muted uppercase tracking-wider"
+                  >
+                    Приватный ключ
+                  </label>
+                  <span className="text-[11px] font-mono text-text-muted">RSA / Ed25519</span>
+                </div>
                 <textarea
+                  id="login-privatekey"
+                  name="privateKey"
                   required
                   value={privateKey}
                   onChange={e => setPrivateKey(e.target.value)}
-                  placeholder="-----BEGIN OPENSSH PRIVATE KEY-----\n..."
-                  className="w-full h-32 text-[13px] font-mono leading-relaxed p-4 bg-surface-2 border border-border-strong rounded-xl focus:border-accent hover:border-border-strong focus:outline-none transition-all resize-none text-foreground"
+                  placeholder={"-----BEGIN OPENSSH PRIVATE KEY-----\n..."}
+                  className="w-full h-28 text-xs font-mono leading-relaxed p-3 bg-surface-2 border border-border-strong rounded-lg text-foreground placeholder:text-text-muted focus:outline-none focus:border-border-strong focus:ring-2 focus:ring-accent-text/30 transition-colors resize-none"
                 />
               </div>
             )}
 
-            <button 
-              disabled={loading} 
-              type="submit" 
-              className="w-full bg-[#0a0a0a] hover:bg-black/85 text-white font-semibold flex items-center justify-center gap-2 h-14 rounded-xl text-[15px] mt-6 transition-all disabled:opacity-70 group border border-transparent dark:border-border"
+            {/* Main scenario: 4. Submit button with fixed dimensions to prevent jump */}
+            <button
+              disabled={loading}
+              type="submit"
+              className="w-full bg-foreground text-background font-medium flex items-center justify-center gap-2 h-11 rounded-lg text-sm mt-5 transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-foreground group shadow-xs shrink-0"
             >
-              {loading ? "Подключение..." : "Войти в систему"} {!loading && <ArrowRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />}
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin shrink-0" />
+                  <span>Подключение...</span>
+                </>
+              ) : (
+                <>
+                  <span>Войти в систему</span>
+                  <ArrowRight className="w-4 h-4 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+                </>
+              )}
             </button>
+
+            {/* Alternate SSH auth method visually separated under the submit button */}
+            {!isLocal && (
+              <div className="pt-4 border-t border-border mt-5 space-y-2">
+                <span className="block text-[11px] font-medium text-text-muted text-center">
+                  Способ аутентификации
+                </span>
+                <div
+                  className="flex bg-surface-2 p-1 rounded-lg border border-border"
+                  role="tablist"
+                  aria-label="Способ аутентификации"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    onClick={() => setUseKeyAuth(false)}
+                    aria-selected={!useKeyAuth}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      !useKeyAuth
+                        ? 'bg-surface text-foreground shadow-xs font-semibold'
+                        : 'text-text-muted hover:text-foreground'
+                    }`}
+                  >
+                    Пароль
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    onClick={() => setUseKeyAuth(true)}
+                    aria-selected={useKeyAuth}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                      useKeyAuth
+                        ? 'bg-surface text-foreground shadow-xs font-semibold'
+                        : 'text-text-muted hover:text-foreground'
+                    }`}
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                    <span>SSH-ключ</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </form>
         </div>
-        
-        <p className="text-center text-text-muted text-sm mt-8">
+
+        {/* Footer info */}
+        <p className="text-center text-text-muted text-xs mt-6">
           ShareGuard &copy; {new Date().getFullYear()}
         </p>
       </div>
+
+      {/* Bottom spacer for balance */}
+      <div className="shrink-0" />
     </div>
   );
 }

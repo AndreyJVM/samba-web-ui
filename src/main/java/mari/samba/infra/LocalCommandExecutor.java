@@ -43,9 +43,7 @@ public class LocalCommandExecutor implements CommandExecutor {
     public String execute(String sessionId, String command, String inputData) {
         CommandResult result = executeCommand(sessionId, command, inputData);
         if (!result.isSuccess()) {
-            String details = result.stderr().isBlank() ? result.stdout() : result.stderr();
-            throw new SambaCommandException(
-                    "Local command failed with code " + result.exitCode() + ": " + details.trim());
+            throw new SambaCommandException("Local command failed with code " + result.exitCode() + ".");
         }
         return result.stdout();
     }

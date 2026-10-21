@@ -60,18 +60,14 @@ public class AuthApiController {
     }
 
     /**
-     * Helper method to extract the real IP address of the client, factoring in potential proxy
-     * headers like "X-Forwarded-For".
+     * Uses the servlet client address. Forwarded headers must be handled by a trusted proxy
+     * configuration in the container, never by parsing client-supplied headers here.
      *
      * @param request the HTTP request
      * @return the resolved client IP address
      */
     private String getClientIp(@NonNull HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null || xfHeader.isEmpty()) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0].trim();
+        return request.getRemoteAddr();
     }
 
     /**
@@ -91,7 +87,7 @@ public class AuthApiController {
         String clientIp = getClientIp(httpRequest);
 
         try {
-            HttpSession session = httpRequest.getSession(true);
+            HttpSession session = prepareLoginSession(httpRequest);
             String sessionId = session.getId();
 
             authService.login(sessionId, request, clientIp);
@@ -119,6 +115,25 @@ public class AuthApiController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Login error: " + e.getMessage()));
         }
+    }
+
+    private HttpSession prepareLoginSession(HttpServletRequest request) {
+        HttpSession session = request.getSession(true);
+        String previousId = session.getId();
+        boolean previouslyAuthenticated =
+                session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY) != null
+                        || session.getAttribute("sambaUser") != null;
+
+        SecurityContextHolder.clearContext();
+        session.removeAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        session.removeAttribute("sambaHost");
+        session.removeAttribute("sambaUser");
+        if (previouslyAuthenticated) {
+            authService.logout(previousId);
+        }
+        // Execution sessions are keyed by HTTP session ID, so rotate before opening a connection.
+        request.changeSessionId();
+        return session;
     }
 
     /**

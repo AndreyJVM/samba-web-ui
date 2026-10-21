@@ -19,11 +19,18 @@ function getCsrfToken(): string | null {
 }
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const csrf = getCsrfToken();
+  const method = (options.method ?? "GET").toUpperCase();
+  const unsafe = !["GET", "HEAD", "OPTIONS", "TRACE"].includes(method);
+  let csrf = getCsrfToken();
+  if (unsafe && !csrf) {
+    await request("/api/auth/environment");
+    csrf = getCsrfToken();
+    if (!csrf) throw new ApiError("Не удалось получить CSRF-токен. Обновите страницу.", 403);
+  }
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
-  if (csrf && options.method && options.method !== 'GET') {
+  if (csrf && unsafe) {
     headers.set("X-XSRF-TOKEN", csrf);
   }
 

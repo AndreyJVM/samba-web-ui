@@ -10,6 +10,9 @@ import mari.samba.config.ExecutionProperties;
 import mari.samba.config.ExecutionProperties.Mode;
 import mari.samba.core.SshSessionExpiredException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ExecutionSessionManagerTest {
 
@@ -51,13 +54,15 @@ class ExecutionSessionManagerTest {
         assertThat(manager(Mode.AUTO, "").effectiveMode()).isEqualTo(Mode.REMOTE);
     }
 
-    @Test
-    void unknownSessionCannotExecuteCommands() {
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"synthetic-http-session-token"})
+    void unknownSessionCannotExecuteCommands(String sessionId) {
         ExecutionSessionManager manager = manager(Mode.LOCAL, "secret");
 
-        assertThatThrownBy(() -> manager.execute("missing", "command"))
+        assertThatThrownBy(() -> manager.execute(sessionId, "command"))
                 .isInstanceOf(SshSessionExpiredException.class)
-                .hasMessageContaining("Execution session not found");
+                .hasMessage("Execution session not found or expired. Please log in again.");
         verifyNoInteractions(local, ssh);
     }
 

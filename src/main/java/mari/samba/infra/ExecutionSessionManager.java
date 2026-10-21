@@ -69,9 +69,9 @@ public class ExecutionSessionManager implements CommandExecutor {
     }
 
     private CommandExecutor executorFor(String sessionId) {
-        Mode mode = sessionModes.get(sessionId);
+        Mode mode = sessionId == null ? null : sessionModes.get(sessionId);
         if (mode == null) {
-            throw new SshSessionExpiredException("Execution session not found or expired: " + sessionId);
+            throw new SshSessionExpiredException("Execution session not found or expired. Please log in again.");
         }
         return mode == Mode.LOCAL ? localExecutor : sshExecutor;
     }
