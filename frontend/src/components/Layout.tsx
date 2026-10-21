@@ -61,7 +61,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000); 
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -153,32 +153,32 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         }`}>
           {!isCollapsed ? (
             <>
-              <Link to="/shares" className="flex items-center gap-2.5 text-[16px] tracking-wide group">
-                <img 
-                  src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
-                  alt="ShareGuard" 
-                  className="h-7 w-auto shrink-0 transition-transform group-hover:scale-105" 
+              <Link to="/shares" className="flex items-center gap-2.5 text-base tracking-tight group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground rounded">
+                <img
+                  src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`}
+                  alt="ShareGuard"
+                  className="h-7 w-auto shrink-0 transition-transform group-hover:scale-105"
                 />
                 <span className="font-normal text-foreground">Share<span className="font-bold">Guard</span></span>
               </Link>
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={toggleLang}
-                  className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-xs font-bold uppercase tracking-wider"
+                  className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors text-xs font-bold uppercase tracking-wider focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
                   title={lang === "ru" ? "Switch to English" : "Переключить на Русский"}
                 >
                   {lang}
                 </button>
                 <button
                   onClick={toggleDark}
-                  className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
+                  className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
                   title={isDark ? "Light mode" : "Dark mode"}
                 >
                   {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                 </button>
                 <button
                   onClick={toggleCollapse}
-                  className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors"
+                  className="p-1.5 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
                   title={t("sidebar.collapse")}
                 >
                   <PanelLeftClose className="w-4 h-4" />
@@ -188,138 +188,21 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           ) : (
             <button
               onClick={toggleCollapse}
-              className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors group relative"
+              className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors group relative focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
               title={t("sidebar.expand")}
             >
-              <img 
-                src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`} 
-                alt="ShareGuard" 
-                className="h-7 w-auto shrink-0 group-hover:hidden transition-all" 
+              <img
+                src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`}
+                alt="ShareGuard"
+                className="h-7 w-auto shrink-0 group-hover:hidden transition-all"
               />
               <PanelLeftOpen className="w-6 h-6 hidden group-hover:block text-foreground" />
             </button>
           )}
         </div>
 
-        {/* Modern User Profile, Server Info, Logout & Status Card */}
-        {userInfo.host ? (
-          !isCollapsed ? (
-            <div className="p-3 border-b border-border shrink-0">
-              <div className="bg-surface-2/60 hover:bg-surface-2/80 transition-colors border border-border/80 rounded-xl p-3 space-y-2.5 shadow-2xs">
-                {/* User Row with integrated Logout button */}
-                <div className="flex items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="relative shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-accent/20 border border-accent/40 text-accent-text flex items-center justify-center font-bold text-xs uppercase tracking-wider select-none">
-                        {userInitial}
-                      </div>
-                      <span 
-                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-surface ${
-                          serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'
-                        }`}
-                        title={serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-foreground truncate leading-tight" title={userInfo.user}>
-                        {userInfo.user || t("sidebar.user")}
-                      </div>
-                      <div className="text-xs text-text-muted truncate flex items-center gap-1 mt-0.5 leading-tight font-mono" title={userInfo.host}>
-                        <Server className="w-3 h-3 shrink-0 opacity-60" />
-                        <span className="truncate">{userInfo.host}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Logout Button directly next to user */}
-                  <button
-                    onClick={handleLogout}
-                    className="p-1.5 text-text-muted hover:text-status-error hover:bg-status-error/10 rounded-lg transition-colors shrink-0"
-                    title={t("sidebar.logout")}
-                    aria-label={t("sidebar.logout")}
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Status indicator & service controls */}
-                <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="relative flex h-2 w-2 shrink-0">
-                      {serverStatus === true && (
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-active opacity-40"></span>
-                      )}
-                      <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                        serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'
-                      }`}></span>
-                    </div>
-                    <span className="text-[11px] font-medium text-text-muted truncate">
-                      {serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    {serverStatus === false && (
-                      <button
-                        onClick={() => handleServiceControl("start")}
-                        className="p-1 text-foreground hover:text-status-active hover:bg-surface rounded transition-colors"
-                        title={t("dashboard.startService")}
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                      </button>
-                    )}
-                    {serverStatus === true && (
-                      <button
-                        onClick={() => handleServiceControl("stop")}
-                        className="p-1 text-text-muted hover:text-status-error hover:bg-surface rounded transition-colors"
-                        title={t("dashboard.stop")}
-                      >
-                        <Square className="w-3.5 h-3.5 fill-current" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleServiceControl("restart")}
-                      className={`p-1 text-text-muted hover:text-foreground hover:bg-surface rounded transition-colors ${
-                        isRestarting ? "animate-spin text-foreground" : ""
-                      }`}
-                      title={t("sidebar.restart")}
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="py-3 px-2 border-b border-border flex flex-col items-center gap-2 shrink-0">
-              <div 
-                className="relative cursor-default" 
-                title={`${userInfo.user} @ ${userInfo.host} • ${serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}`}
-              >
-                <div className="w-9 h-9 rounded-full bg-accent/20 border border-accent/40 text-accent-text flex items-center justify-center font-bold text-xs uppercase tracking-wider select-none">
-                  {userInitial}
-                </div>
-                <span 
-                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-surface ${
-                    serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'
-                  }`}
-                />
-              </div>
-
-              <button
-                onClick={handleLogout}
-                className="p-2 text-text-muted hover:text-status-error hover:bg-status-error/10 rounded-lg transition-colors"
-                title={`${t("sidebar.logout")} (${userInfo.user})`}
-                aria-label={t("sidebar.logout")}
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          )
-        ) : null}
-
-        {/* Navigation items */}
-        <nav className={`flex-1 py-4 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar ${
+        {/* 1. Navigation */}
+        <nav className={`flex-1 py-3 flex flex-col gap-1 overflow-y-auto custom-scrollbar ${
           isCollapsed ? "px-2 items-center" : "px-3"
         }`}>
           {navItems.map((item) => {
@@ -330,57 +213,158 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                 key={item.path}
                 to={item.path}
                 title={isCollapsed ? item.name : undefined}
-                className={`flex items-center rounded-lg transition-all text-sm font-medium ${
-                  isCollapsed 
-                    ? "justify-center w-10 h-10 p-0" 
-                    : "gap-3 px-3 py-2.5 w-full"
+                className={`flex items-center rounded-lg transition-colors text-sm font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground ${
+                  isCollapsed
+                    ? "justify-center w-10 h-10 p-0"
+                    : "gap-3 px-3 py-2 w-full"
                 } ${
                   isActive
-                    ? "bg-accent text-on-accent shadow-xs"
-                    : "text-foreground hover:bg-surface-2"
+                    ? "bg-accent text-on-accent font-medium shadow-xs"
+                    : "text-text-muted hover:text-foreground hover:bg-surface-2"
                 }`}
               >
-                <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'opacity-100' : 'opacity-70'}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'opacity-100' : 'opacity-70'}`} />
                 {!isCollapsed && <span className="truncate">{item.name}</span>}
               </Link>
             );
           })}
         </nav>
 
-        {/* Footer */}
-        <div className={`border-t border-border shrink-0 transition-all ${
-          isCollapsed ? "p-2 flex flex-col items-center gap-1.5" : "p-3 flex items-center justify-between"
-        }`}>
-          {!isCollapsed ? (
-            <button
-              onClick={toggleCollapse}
-              className="w-full flex items-center justify-between text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors text-xs py-2 px-2.5 font-medium"
-              title={t("sidebar.collapse")}
-            >
-              <span className="flex items-center gap-2">
-                <PanelLeftClose className="w-4 h-4 shrink-0" />
-                <span>{t("sidebar.collapse")}</span>
-              </span>
-            </button>
+        {/* 2. Server & Connection Status */}
+        {userInfo.host ? (
+          !isCollapsed ? (
+            <div className="border-t border-border px-3 py-2.5 shrink-0 space-y-1.5">
+              <div className="flex items-center justify-between gap-1.5 min-w-0">
+                <div
+                  className="flex items-center gap-1.5 min-w-0 flex-1 text-xs"
+                  title={userInfo.host}
+                >
+                  <Server className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                  <span className="font-mono text-foreground font-medium truncate">
+                    {userInfo.host}
+                  </span>
+                </div>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  {serverStatus === false && (
+                    <button
+                      onClick={() => handleServiceControl("start")}
+                      className="p-1 text-text-muted hover:text-status-active hover:bg-surface-2 rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
+                      title={t("dashboard.startService")}
+                      aria-label={t("dashboard.startService")}
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                    </button>
+                  )}
+                  {serverStatus === true && (
+                    <button
+                      onClick={() => handleServiceControl("stop")}
+                      className="p-1 text-text-muted hover:text-status-error hover:bg-surface-2 rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
+                      title={t("dashboard.stop")}
+                      aria-label={t("dashboard.stop")}
+                    >
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleServiceControl("restart")}
+                    className={`p-1 text-text-muted hover:text-foreground hover:bg-surface-2 rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground ${
+                      isRestarting ? "animate-spin text-foreground" : ""
+                    }`}
+                    title={t("sidebar.restart")}
+                    aria-label={t("sidebar.restart")}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  {serverStatus === true && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-active opacity-40"></span>
+                  )}
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                    serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'
+                  }`} />
+                </span>
+                <span className="text-[11px] font-medium text-text-muted truncate">
+                  {serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}
+                </span>
+              </div>
+            </div>
           ) : (
-            <>
-              <button
-                onClick={toggleDark}
-                className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors"
-                title={isDark ? "Light mode" : "Dark mode"}
+            <div className="border-t border-border py-2 px-2 shrink-0 flex flex-col items-center">
+              <div
+                className="p-2 text-text-muted hover:text-foreground rounded-lg transition-colors relative cursor-default"
+                title={`${userInfo.host} • ${serverStatus === true ? t("sidebar.running") : serverStatus === false ? t("sidebar.stopped") : t("sidebar.wait")}`}
               >
-                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={toggleLang}
-                className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors text-xs font-bold uppercase tracking-wider"
-                title={lang === "ru" ? "Switch to English" : "Переключить на Русский"}
-              >
-                {lang}
-              </button>
-            </>
-          )}
-        </div>
+                <Server className="w-4 h-4" />
+                <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ring-2 ring-surface ${
+                  serverStatus === true ? 'bg-status-active' : serverStatus === false ? 'bg-status-error' : 'bg-status-disabled'
+                }`} />
+              </div>
+            </div>
+          )
+        ) : null}
+
+        {/* 3. User & Session Actions */}
+        {!isCollapsed ? (
+          <div className="border-t border-border px-3 py-2.5 shrink-0 flex items-center justify-between gap-2 bg-surface-2/30">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/40 text-accent-text flex items-center justify-center font-bold text-xs uppercase tracking-wider shrink-0 select-none">
+                {userInitial}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div
+                  className="text-xs font-semibold text-foreground truncate leading-tight"
+                  title={userInfo.user}
+                >
+                  {userInfo.user || t("sidebar.user")}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="p-1.5 text-text-muted hover:text-status-error hover:bg-status-error/10 rounded-lg transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-error"
+              title={t("sidebar.logout")}
+              aria-label={t("sidebar.logout")}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="border-t border-border py-2 px-2 shrink-0 flex flex-col items-center gap-1.5">
+            <div
+              className="w-8 h-8 rounded-full bg-accent/20 border border-accent/40 text-accent-text flex items-center justify-center font-bold text-xs uppercase tracking-wider select-none"
+              title={userInfo.user ? `${userInfo.user} @ ${userInfo.host}` : undefined}
+            >
+              {userInitial}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-2 text-text-muted hover:text-status-error hover:bg-status-error/10 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-error"
+              title={`${t("sidebar.logout")} (${userInfo.user})`}
+              aria-label={t("sidebar.logout")}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+            <button
+              onClick={toggleDark}
+              className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
+              title={isDark ? "Light mode" : "Dark mode"}
+            >
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={toggleLang}
+              className="p-2 text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors text-[11px] font-bold uppercase tracking-wider focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
+              title={lang === "ru" ? "Switch to English" : "Переключить на Русский"}
+            >
+              {lang}
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Main content */}
@@ -396,7 +380,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               href="https://github.com/AndreyJVM/shareguard"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg border border-border transition-colors shadow-2xs group"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg border border-border transition-colors shadow-2xs group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"
               title="GitHub repository & issues"
             >
               <Github className="w-4 h-4 text-foreground/80 group-hover:text-foreground transition-colors shrink-0" />

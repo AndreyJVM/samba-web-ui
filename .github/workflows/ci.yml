@@ -57,6 +57,10 @@ jobs:
         working-directory: frontend
         run: ./node/npm run lint
 
+      - name: Test frontend API client
+        working-directory: frontend
+        run: ./node/npm run test
+
       - name: Build DEB package
         shell: bash
         run: |

@@ -19,7 +19,9 @@ import mari.samba.infra.ExecutionSessionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -71,7 +73,45 @@ class HttpSecurityIntegrationTest {
     }
 
     @Test
-    void loginWithoutCsrfPersistsAuthenticationForReads() throws Exception {
+    void anonymousLoginWithoutCsrfDoesNotAttemptAuthentication() throws Exception {
+        mvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(LOGIN))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(sessions, bruteForce, shares);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "login, missing", "login, cookie-only", "login, header-only", "login, mismatch",
+        "logout, missing", "logout, cookie-only", "logout, header-only", "logout, mismatch"
+    })
+    void rejectedAuthCsrfDoesNotChangeExistingAuthentication(String endpoint, String mode) throws Exception {
+        MockHttpSession session = login();
+        String sessionId = session.getId();
+        Cookie token = csrfCookie(session);
+        clearInvocations(sessions, bruteForce);
+        MockHttpServletRequestBuilder request = post("/api/auth/" + endpoint)
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(LOGIN);
+        switch (mode) {
+            case "cookie-only" -> request.cookie(token);
+            case "header-only" -> request.header("X-XSRF-TOKEN", token.getValue());
+            case "mismatch" -> request.cookie(token).header("X-XSRF-TOKEN", token.getValue() + "-wrong");
+            default -> {}
+        }
+
+        mvc.perform(request).andExpect(status().isForbidden());
+
+        assertFalse(session.isInvalid());
+        assertEquals(sessionId, session.getId());
+        verifyNoInteractions(sessions, bruteForce, shares);
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk());
+    }
+
+    @Test
+    void loginWithCsrfPersistsAuthenticationForReads() throws Exception {
         MockHttpSession session = login();
         mvc.perform(get("/api/auth/me").session(session))
                 .andExpect(status().isOk())
@@ -153,10 +193,10 @@ class HttpSecurityIntegrationTest {
     }
 
     @Test
-    void logoutWithoutCsrfInvalidatesSessionAndDisconnectsOnce() throws Exception {
+    void logoutWithCsrfInvalidatesSessionAndDisconnectsOnce() throws Exception {
         MockHttpSession session = login();
         String sessionId = session.getId();
-        mvc.perform(post("/api/auth/logout").session(session)).andExpect(status().isOk());
+        mvc.perform(withCsrf(post("/api/auth/logout")).session(session)).andExpect(status().isOk());
         assertTrue(session.isInvalid());
         verify(sessions).disconnect(sessionId);
         verify(sessions).createSession(eq(sessionId), any(ConnectionRequestDto.class));
@@ -182,7 +222,7 @@ class HttpSecurityIntegrationTest {
                 .when(sessions)
                 .disconnect(anyString());
 
-        mvc.perform(post("/api/auth/logout")).andExpect(status().isOk());
+        mvc.perform(withCsrf(post("/api/auth/logout"))).andExpect(status().isOk());
 
         assertNotNull(createdSession.get());
         verify(sessions).disconnect(createdSessionId.get());
@@ -209,7 +249,7 @@ class HttpSecurityIntegrationTest {
         when(sessions.effectiveMode()).thenReturn(Mode.LOCAL);
         when(sessions.sessionMode(anyString())).thenReturn(Mode.LOCAL);
         MvcResult result = mvc.perform(
-                        post("/api/auth/login")
+                        withCsrf(post("/api/auth/login"))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
@@ -237,7 +277,7 @@ class HttpSecurityIntegrationTest {
     void localLoginWithoutPasswordRejectsRequestWithoutAuthenticating() throws Exception {
         when(sessions.effectiveMode()).thenReturn(Mode.LOCAL);
         MvcResult result = mvc.perform(
-                        post("/api/auth/login")
+                        withCsrf(post("/api/auth/login"))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(
                                         """
@@ -261,8 +301,88 @@ class HttpSecurityIntegrationTest {
         return session;
     }
 
-    private MockHttpServletRequestBuilder loginRequest() {
-        return post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(LOGIN);
+    @Test
+    void loginRotatesExistingAnonymousSessionBeforeOpeningConnection() throws Exception {
+        MockHttpSession anonymous = new MockHttpSession();
+        String originalId = anonymous.getId();
+
+        MvcResult result = mvc.perform(loginRequest().session(anonymous))
+                .andExpect(status().isOk())
+                .andReturn();
+        MockHttpSession authenticated = (MockHttpSession) result.getRequest().getSession(false);
+
+        assertNotNull(authenticated);
+        assertNotEquals(originalId, authenticated.getId());
+        verify(sessions).createSession(eq(authenticated.getId()), any(ConnectionRequestDto.class));
+        verify(sessions, never()).createSession(eq(originalId), any(ConnectionRequestDto.class));
+        mvc.perform(get("/api/auth/me").session(authenticated)).andExpect(status().isOk());
+    }
+
+    @Test
+    void failedReloginRemovesPreviousAuthenticationAndConnection() throws Exception {
+        MockHttpSession session = login();
+        String previousId = session.getId();
+        doThrow(new SambaCommandException("Rejected connection"))
+                .when(sessions)
+                .createSession(anyString(), any(ConnectionRequestDto.class));
+
+        mvc.perform(loginRequest().session(session)).andExpect(status().isUnauthorized());
+
+        assertNotEquals(previousId, session.getId());
+        assertNull(session.getAttribute("sambaUser"));
+        assertNull(session.getAttribute("sambaHost"));
+        verify(sessions).disconnect(previousId);
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/shares").session(session)).andExpect(status().isUnauthorized());
+        verifyNoInteractions(shares);
+    }
+
+    @Test
+    void successfulReloginDisconnectsOldConnectionBeforeOpeningNewOne() throws Exception {
+        MockHttpSession session = login();
+        String previousId = session.getId();
+        clearInvocations(sessions);
+
+        mvc.perform(loginRequest().session(session)).andExpect(status().isOk());
+
+        assertNotEquals(previousId, session.getId());
+        InOrder order = inOrder(sessions);
+        order.verify(sessions).disconnect(previousId);
+        order.verify(sessions).createSession(eq(session.getId()), any(ConnectionRequestDto.class));
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk());
+    }
+
+    @Test
+    void blockedReloginAlsoRevokesPreviousAuthenticationWithoutOpeningConnection() throws Exception {
+        MockHttpSession session = login();
+        String previousId = session.getId();
+        clearInvocations(sessions);
+        when(bruteForce.isBlocked("127.0.0.1", "qa-user")).thenReturn(true);
+
+        mvc.perform(loginRequest().session(session)).andExpect(status().isTooManyRequests());
+
+        assertNotEquals(previousId, session.getId());
+        verify(sessions).disconnect(previousId);
+        verify(sessions, never()).createSession(anyString(), any(ConnectionRequestDto.class));
+        mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/shares").session(session)).andExpect(status().isUnauthorized());
+        verifyNoInteractions(shares);
+    }
+
+    private MockHttpServletRequestBuilder loginRequest() throws Exception {
+        return withCsrf(post("/api/auth/login"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(LOGIN);
+    }
+
+    private MockHttpServletRequestBuilder withCsrf(MockHttpServletRequestBuilder request) throws Exception {
+        Cookie token = mvc.perform(get("/api/auth/environment"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getCookie("XSRF-TOKEN");
+        assertNotNull(token);
+        return request.cookie(token).header("X-XSRF-TOKEN", token.getValue());
     }
 
     private Cookie csrfCookie(MockHttpSession session) throws Exception {

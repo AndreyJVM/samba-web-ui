@@ -66,12 +66,12 @@ public class SshSessionManager implements CommandExecutor {
     }
 
     public Session getSession(String sessionId) {
-        Session session = sessions.get(sessionId);
+        Session session = sessionId == null ? null : sessions.get(sessionId);
         if (session == null || !session.isConnected()) {
             if (sessionId != null) {
                 sessions.remove(sessionId);
             }
-            throw new SshSessionExpiredException("SSH session not found or disconnected: " + sessionId);
+            throw new SshSessionExpiredException("SSH session not found or disconnected. Please log in again.");
         }
         return session;
     }
@@ -80,7 +80,7 @@ public class SshSessionManager implements CommandExecutor {
         Session session = sessions.remove(sessionId);
         if (session != null && session.isConnected()) {
             session.disconnect();
-            log.info("SSH session disconnected: {}", sessionId);
+            log.info("SSH session disconnected.");
         }
     }
 
@@ -97,10 +97,7 @@ public class SshSessionManager implements CommandExecutor {
     public String execute(String sessionId, String command, String inputData) {
         CommandResult result = executeCommand(sessionId, command, inputData);
         if (!result.isSuccess()) {
-            throw new SambaCommandException("Command failed with code "
-                    + result.exitCode()
-                    + ": "
-                    + (result.stderr().isBlank() ? result.stdout() : result.stderr()));
+            throw new SambaCommandException("SSH command failed with code " + result.exitCode() + ".");
         }
         return result.stdout();
     }
@@ -141,8 +138,8 @@ public class SshSessionManager implements CommandExecutor {
                     drainStreams(stdout, stderr, stdoutStream, stderrStream, buffer);
                     if (System.currentTimeMillis() > deadline) {
                         channel.disconnect();
-                        throw new SambaCommandException(
-                                "Command timed out after " + getCommandTimeout().toMillis() + " ms: " + command);
+                        throw new SambaCommandException("SSH command timed out after "
+                                + getCommandTimeout().toMillis() + " ms.");
                     }
                     Thread.sleep(50);
                 }
@@ -155,7 +152,7 @@ public class SshSessionManager implements CommandExecutor {
             String stderrOutput = stderrStream.toString(StandardCharsets.UTF_8);
 
             if (exitStatus != 0) {
-                log.warn("Command '{}' failed with code {}: {}", command, exitStatus, stderrOutput.trim());
+                log.warn("SSH command failed with code {}", exitStatus);
             }
 
             return new CommandResult(exitStatus, stdoutOutput, stderrOutput);
@@ -163,8 +160,9 @@ public class SshSessionManager implements CommandExecutor {
         } catch (SambaCommandException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Execution error for command '{}': {}", command, e.getMessage());
-            throw new SambaCommandException("Error executing command: " + command, e);
+            // Commands, remote output and exception messages can contain credentials.
+            log.error("SSH command execution failed ({})", e.getClass().getSimpleName());
+            throw new SambaCommandException("SSH command execution failed.");
         } finally {
             if (channel != null && channel.isConnected()) {
                 channel.disconnect();
