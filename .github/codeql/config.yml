@@ -1,0 +1,15 @@
+name: ShareGuard security and quality
+
+queries:
+  - uses: security-and-quality
+
+# Source discovery exclusions apply to interpreted languages. Java is extracted
+# from the explicit Maven compile step in the workflow.
+paths-ignore:
+  - target
+  - dist
+  - frontend/dist
+  - frontend/node
+  - frontend/node_modules
+  - frontend/vite.config.js
+  - frontend/vite.config.d.ts
