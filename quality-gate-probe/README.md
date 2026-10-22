@@ -1,3 +1,3 @@
 # Temporary Quality Gate verification
 
-Isolated CodeQL fixture for issue #8. Never imported by the application. This PR must be closed without merging after verification.
+The isolated code injection fixture has been removed. The negative test blocked the PR despite successful CI and language analyses. This clean revision verifies that the same gate permits a PR after successful checks. Close without merging after verification.
