@@ -46,6 +46,7 @@ nav:
   - О проекте: index.md
   - Быстрый старт: quickstart.md
   - Локальный режим: local-mode.md
+  - Временный доступ к UI: temporary-access.md
   - Подготовка сервера: server-setup.md
   - Рекомендации ФСТЭК: fstec.md
   - Архитектура: architecture.md
