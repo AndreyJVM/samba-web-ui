@@ -37,6 +37,18 @@ public class AuthServiceImpl implements AuthService {
             throw new SecurityException("Too many failed login attempts. IP temporarily blocked.");
         }
 
+        validateCredentials(request);
+        connectSsh(sessionId, request, clientIp);
+
+        List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        bruteForceService.resetFailedLogin(clientIp, request.getUsername());
+        log.info("User '{}' successfully authenticated for host '{}'", request.getUsername(), request.getHost());
+    }
+
+    private static void validateCredentials(ConnectionRequestDto request) {
         if (!request.isKeyAuth()
                 && (request.getPassword() == null || request.getPassword().isBlank())) {
             throw new IllegalArgumentException("Password is required when not using key authentication.");
@@ -50,20 +62,11 @@ public class AuthServiceImpl implements AuthService {
         if (request.getHost() == null || request.getHost().isBlank()) {
             throw new IllegalArgumentException("Host is required for remote connections.");
         }
+    }
 
+    private void connectSsh(String sessionId, ConnectionRequestDto request, String clientIp) throws Exception {
         try {
             sessionManager.createSession(sessionId, request);
-
-            List<SimpleGrantedAuthority> authorities =
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            bruteForceService.resetFailedLogin(clientIp, request.getUsername());
-            log.info("User '{}' successfully authenticated for host '{}'", request.getUsername(), request.getHost());
-
         } catch (Exception e) {
             bruteForceService.registerFailedLogin(clientIp, request.getUsername());
             log.warn(

@@ -83,6 +83,36 @@ class AuthServiceImplTest {
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void successfulSshConnectionIsRequiredBeforePublishingAuthentication(boolean keyAuth) throws Exception {
+        ConnectionRequestDto request = new ConnectionRequestDto(
+                "server",
+                22,
+                "admin",
+                keyAuth ? "key" : "password",
+                keyAuth ? null : "test-only",
+                keyAuth ? "synthetic-key" : null,
+                null);
+        doAnswer(invocation -> {
+                    assertThat(SecurityContextHolder.getContext().getAuthentication())
+                            .isNull();
+                    verify(bruteForce, never()).resetFailedLogin(anyString(), anyString());
+                    return null;
+                })
+                .when(sessions)
+                .createSession("session", request);
+
+        service.login("session", request, "127.0.0.1");
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication().isAuthenticated())
+                .isTrue();
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getName())
+                .isEqualTo("admin");
+        verify(sessions).createSession("session", request);
+        verify(bruteForce).resetFailedLogin("127.0.0.1", "admin");
+    }
+
     @Test
     void connectionFailureRegistersAttemptWithoutAuthenticating() throws Exception {
         ConnectionRequestDto request =
