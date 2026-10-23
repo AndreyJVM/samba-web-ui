@@ -172,6 +172,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: andreyvorobevaqa/sambryx
+          flavor: latest=false
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -199,10 +200,26 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: andreyvorobevaqa/sambryx
+          flavor: latest=false
           tags: |
             type=semver,pattern={{version}},prefix=astra-
             type=semver,pattern={{major}}.{{minor}},prefix=astra-
             type=raw,value=astra-latest,enable=true
+
+      - name: Reject overlapping standard and Astra tags
+        env:
+          STANDARD_TAGS: ${{ steps.meta.outputs.tags }}
+          ASTRA_TAGS: ${{ steps.meta-astra.outputs.tags }}
+        shell: bash
+        run: |
+          test -n "$STANDARD_TAGS"
+          test -n "$ASTRA_TAGS"
+          while IFS= read -r tag; do
+            if grep -Fxq -- "$tag" <<< "$STANDARD_TAGS"; then
+              echo "Standard and Astra image tags must not overlap" >&2
+              exit 1
+            fi
+          done <<< "$ASTRA_TAGS"
 
       - name: Package experimental Astra Docker image
         id: build-astra
