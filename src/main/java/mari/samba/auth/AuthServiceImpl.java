@@ -33,7 +33,7 @@ public class AuthServiceImpl implements AuthService {
             throws Exception {
 
         if (bruteForceService.isBlocked(clientIp, request.getUsername())) {
-            log.warn("Blocked login attempt from IP {} due to too many failed attempts", clientIp);
+            log.warn("Blocked login attempt from IP {} due to too many failed attempts", logValue(clientIp));
             throw new SecurityException("Too many failed login attempts. IP temporarily blocked.");
         }
 
@@ -45,7 +45,10 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         bruteForceService.resetFailedLogin(clientIp, request.getUsername());
-        log.info("User '{}' successfully authenticated for host '{}'", request.getUsername(), request.getHost());
+        log.info(
+                "User '{}' successfully authenticated for host '{}'",
+                logValue(request.getUsername()),
+                logValue(request.getHost()));
     }
 
     private static void validateCredentials(ConnectionRequestDto request) {
@@ -70,12 +73,16 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             bruteForceService.registerFailedLogin(clientIp, request.getUsername());
             log.warn(
-                    "Failed authentication attempt for user '{}' from IP {}: {}",
-                    request.getUsername(),
-                    clientIp,
-                    e.getMessage());
+                    "Failed authentication attempt for user '{}' from IP {} ({})",
+                    logValue(request.getUsername()),
+                    logValue(clientIp),
+                    e.getClass().getSimpleName());
             throw e;
         }
+    }
+
+    private static String logValue(String value) {
+        return value == null ? "" : value.replace('\r', '_').replace('\n', '_');
     }
 
     @Override
