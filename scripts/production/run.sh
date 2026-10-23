@@ -2,7 +2,7 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-config=${SHAREGUARD_ENV_FILE:-"$root/deploy/production/.env"}
+config=${SAMBRYX_ENV_FILE:-"$root/deploy/production/.env"}
 if [[ ! -f "$config" ]]; then
     echo "Copy deploy/production/.env.example to deploy/production/.env and configure images and TLS files." >&2
     exit 1

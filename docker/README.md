@@ -1,4 +1,4 @@
-# Docker Sandbox for ShareGuard
+# Docker Sandbox for Sambryx
 
 Эта директория содержит конфигурацию для запуска тестового окружения (Sandbox), чтобы разработчики могли проверять функциональность без установки Samba и SSH на свой рабочий компьютер (например, на Windows/Mac).
 
@@ -43,7 +43,7 @@ Maven устанавливает локальные Node.js/npm для frontend.
 
 ---
 
-## Авторизация в ShareGuard
+## Авторизация в Sambryx
 
 Откройте интерфейс в браузере: **`http://localhost:8080/ui`**
 

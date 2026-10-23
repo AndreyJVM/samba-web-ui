@@ -1,4 +1,4 @@
-name: shareguard-production
+name: ${COMPOSE_PROJECT_NAME:-sambryx-production}
 
 x-logging: &logging
   driver: json-file
@@ -8,7 +8,7 @@ x-logging: &logging
 
 services:
   web:
-    image: ${SHAREGUARD_IMAGE:?Set SHAREGUARD_IMAGE to a versioned release image}
+    image: ${SAMBRYX_IMAGE:?Set SAMBRYX_IMAGE to a versioned release image}
     user: "10001:10001"
     restart: unless-stopped
     read_only: true

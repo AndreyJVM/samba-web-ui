@@ -1,6 +1,6 @@
 # Настройка целевого сервера Linux
 
-ShareGuard обращается с сервером по SSH от имени специального пользователя, которому выданы права `sudo`.
+Sambryx обращается с сервером по SSH от имени специального пользователя, которому выданы права `sudo`.
 
 ---
 
@@ -28,7 +28,7 @@ sudo smbpasswd -a samba-admin
 Добавьте права для `samba-admin` на выполнение требуемых команд без ввода пароля `sudo`:
 
 ```shell
-sudo visudo -f /etc/sudoers.d/shareguard
+sudo visudo -f /etc/sudoers.d/sambryx
 ```
 
 Вставьте следующую строку (всё в одну линию):
@@ -41,5 +41,5 @@ samba-admin ALL=(ALL) NOPASSWD: /usr/sbin/useradd, /sbin/useradd, /usr/sbin/user
 Защитите файл прав:
 
 ```shell
-sudo chmod 0440 /etc/sudoers.d/shareguard
+sudo chmod 0440 /etc/sudoers.d/sambryx
 ```

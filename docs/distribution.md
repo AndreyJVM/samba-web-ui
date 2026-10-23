@@ -1,6 +1,6 @@
 # Сборка и поставка Docker
 
-Docker — поддерживаемый способ поставки ShareGuard. Панель управляет Samba-серверами через SSH.
+Docker — поддерживаемый способ поставки Sambryx. Панель управляет Samba-серверами через SSH.
 JRE 21 входит в образ; Java на управляемом сервере не требуется.
 
 ## Образы
@@ -21,10 +21,10 @@ Backend и frontend собираются Maven один раз в Spring Boot JA
 
 ```bash
 ./mvnw clean package
-JAR_FILE=target/shareguard-0.0.1-SNAPSHOT.jar
+JAR_FILE=target/sambryx-0.0.1-SNAPSHOT.jar
 python3 scripts/ci/verify-artifacts.py "$JAR_FILE"
-docker build --build-arg "JAR_FILE=$JAR_FILE" --tag shareguard:local .
-bash scripts/ci/smoke-docker.sh shareguard:local "$JAR_FILE"
+docker build --build-arg "JAR_FILE=$JAR_FILE" --tag sambryx:local .
+bash scripts/ci/smoke-docker.sh sambryx:local "$JAR_FILE"
 ```
 
 Путь соответствует стандартной версии проекта. В `target` должен находиться ровно один `*.jar`.

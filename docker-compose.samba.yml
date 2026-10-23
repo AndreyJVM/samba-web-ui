@@ -8,7 +8,7 @@ services:
         condition: service_healthy
 
   samba-node:
-    image: shareguard-samba-node:ubuntu24.04
+    image: sambryx-samba-node:ubuntu24.04
     build:
       context: ./deploy/production/samba
     restart: unless-stopped

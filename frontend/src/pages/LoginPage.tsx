@@ -67,14 +67,13 @@ export default function LoginPage() {
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center p-2.5 rounded-2xl bg-surface border border-border shadow-xs mb-3">
             <img
-              src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`}
-              alt="ShareGuard"
+              src={`${import.meta.env.BASE_URL}sambryx/logo-mark.svg`}
+              alt="Sambryx"
               className="h-10 w-auto"
             />
           </div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center justify-center gap-0.5">
-            <span>Share</span>
-            <span className="font-extrabold text-foreground">Guard</span>
+            <span>Sambryx</span>
           </h1>
           <p className="text-text-muted mt-1 text-xs sm:text-sm">
             Управление сервером Samba по SSH
@@ -295,7 +294,7 @@ export default function LoginPage() {
 
         {/* Footer info */}
         <p className="text-center text-text-muted text-xs mt-6">
-          ShareGuard &copy; {new Date().getFullYear()}
+          Sambryx &copy; {new Date().getFullYear()}
         </p>
       </div>
 

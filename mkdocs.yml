@@ -1,8 +1,8 @@
-site_name: ShareGuard
+site_name: Sambryx
 site_description: Современный веб-интерфейс для управления сервером Samba на Spring Boot и Linux
 site_author: Andrey Vorobev
-repo_url: https://github.com/AndreyJVM/shareguard
-repo_name: AndreyJVM/shareguard
+repo_url: https://github.com/AndreyJVM/sambryx
+repo_name: AndreyJVM/sambryx
 
 theme:
   name: material
@@ -51,4 +51,5 @@ nav:
   - Архитектура: architecture.md
   - Сборка и поставки: distribution.md
   - Production Compose: production.md
+  - Переименование: renaming.md
   - Статический анализ: static-analysis.md

@@ -2,14 +2,14 @@
 
 ## Запуск через Docker
 
-Самый быстрый способ развернуть **ShareGuard** — использовать готовый образ с Docker Hub.
+Самый быстрый способ развернуть **Sambryx** — использовать готовый образ с Docker Hub.
 
 ```bash
 docker run -d \
-  --name shareguard \
+  --name sambryx \
   -p 8080:8080 \
   --restart unless-stopped \
-  andreyvorobevaqa/shareguard:latest
+  andreyvorobevaqa/sambryx:latest
 ```
 
 После запуска откройте браузер по адресу: http://localhost:8080/ui.
@@ -23,8 +23,8 @@ docker run -d \
 
 ```shell
 # Клонирование репозитория
-git clone https://github.com/AndreyJVM/shareguard.git
-cd shareguard
+git clone https://github.com/AndreyJVM/sambryx.git
+cd sambryx
 
 # Сборка и запуск
 ./mvnw spring-boot:run

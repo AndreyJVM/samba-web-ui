@@ -15,7 +15,7 @@ unit=${unit%.service}
 case "$unit" in smbd|nmbd|winbind|sshd) ;; *) echo "Unsupported service." >&2; exit 2 ;; esac
 
 control() {
-    /usr/bin/supervisorctl -c /opt/shareguard-node/supervisord.conf "$@"
+    /usr/bin/supervisorctl -c /opt/sambryx-node/supervisord.conf "$@"
 }
 case "$action" in
     start|stop|restart|status) control "$action" "$unit" ;;

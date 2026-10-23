@@ -1,7 +1,7 @@
-# ShareGuard
+# Sambryx
 
 <p>
-  <img src="frontend/public/shareguard/logo-full-light.svg" alt="ShareGuard" height="64">
+  <img src="frontend/public/sambryx/logo-full-light.svg" alt="Sambryx" height="64">
 </p>
 
 <p>
@@ -12,28 +12,30 @@
   <img src="https://img.shields.io/badge/Docs-MkDocs%20Material-purple.svg" alt="Documentation">
 </p>
 
-**ShareGuard** — это современная веб-панель управления файловыми серверами Samba на Linux. 
+**Sambryx** — это современная веб-панель управления файловыми серверами Samba на Linux.
 Позволяет системным администраторам централизованно управлять каталогами, учетными записями,
 правами доступа и глобальными параметрами `smb.conf`. Управляемый сервер подключается по SSH. Основной способ поставки панели — Docker.
 
 ## Документация
 
-Полное руководство пользователя, инструкции по настройке и описание архитектуры доступны в **[документации](https://AndreyJVM.github.io/shareguard/)**
+Полное руководство пользователя, инструкции по настройке и описание архитектуры доступны в **[документации](https://AndreyJVM.github.io/sambryx/)**
 
 ## Быстрый старт с Docker (Продакшн)
 
 ```bash
 docker run -d \
-  --name shareguard \
+  --name sambryx \
   -p 8080:8080 \
   --restart unless-stopped \
-  andreyvorobevaqa/shareguard:latest
+  andreyvorobevaqa/sambryx:latest
 ```
 
 Откройте браузер по адресу http://localhost:8080/ui.
 
 Для развёртывания с HTTPS используйте [production Docker Compose](docs/production.md).
 Доступны панель для существующего SSH-сервера и отдельный полный стек с Samba.
+
+При обновлении существующей установки см. [переход на Sambryx](docs/renaming.md).
 
 ## Локальная разработка и тестирование (Sandbox)
 
@@ -66,7 +68,7 @@ bash scripts/sandbox/run-sandbox.sh
 
 ## Способ поставки
 
-ShareGuard поставляется в Docker-образе с JRE 21 и управляет Samba-серверами через SSH.
+Sambryx поставляется в Docker-образе с JRE 21 и управляет Samba-серверами через SSH.
 Java на управляемом сервере не требуется.
 
 ## Разработка
@@ -97,7 +99,7 @@ Docker использует собранный JAR с frontend. Перед ло�
 ```
 
 ### Запуск бэкенда из IDE
-Основной класс: `mari.samba.ShareGuardApplication`
+Основной класс: `mari.samba.SambryxApplication`
 
 Перед запуском из IDE убедитесь, что фронтенд собран (`cd frontend && npm run build`), либо запустите Vite dev-сервер:
 ```bash

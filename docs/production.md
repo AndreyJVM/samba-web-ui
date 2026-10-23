@@ -22,7 +22,7 @@ HTTPS и, во втором варианте, SMB на выбранном адр
 ## Требования
 
 - Docker Engine и Docker Compose с поддержкой `up --wait` и Compose secrets.
-- Опубликованный Docker-образ ShareGuard с конкретным тегом версии или digest.
+- Опубликованный Docker-образ Sambryx с конкретным тегом версии или digest.
 - TLS-сертификат с полной цепочкой и приватный ключ для имени панели.
 - Непривилегированный пользователь с доступом к Docker; Bash для скрипта запуска.
 - Для встроенного Samba-узла: доступ к Ubuntu-репозиториям при первой сборке и отдельная пара SSH-ключей.
@@ -46,7 +46,8 @@ id -g
 
 | Переменная | Настройка |
 | --- | --- |
-| `SHAREGUARD_IMAGE` | Конкретный опубликованный тег или digest. Замените `REPLACE_WITH_RELEASE_TAG`; `latest` не используется. |
+| `COMPOSE_PROJECT_NAME` | Имя нового проекта: `sambryx-production`; для существующего стека сохраните прежнее имя, см. [переход](renaming.md). |
+| `SAMBRYX_IMAGE` | Конкретный опубликованный тег или digest. Замените `REPLACE_WITH_RELEASE_TAG`; `latest` не используется. |
 | `PROXY_UID`, `PROXY_GID` | Ненулевые UID/GID владельца TLS-ключа; значения `id -u` и `id -g`. |
 | `TLS_CERT_FILE` | Путь к полной цепочке сертификата. |
 | `TLS_KEY_FILE` | Путь к приватному ключу с правами `0600`, доступному `PROXY_UID`. |
@@ -128,7 +129,7 @@ Samba, SSH и опциональный winbind управляются Supervisor
 
 ## Данные и обновление
 
-Именованные тома создаются с префиксом проекта `shareguard-production`:
+Именованные тома создаются с префиксом проекта `sambryx-production`:
 
 | Том | Содержимое |
 | --- | --- |
@@ -143,7 +144,7 @@ Samba, SSH и опциональный winbind управляются Supervisor
 Samba-узлом, защищайте её как содержащую пароли и ключи. При изменении имени Compose-проекта будут
 созданы новые тома: сохраняйте имя проекта или переносите данные явно.
 
-Для обновления панели задайте новый `SHAREGUARD_IMAGE` и выполните:
+Для обновления панели задайте новый `SAMBRYX_IMAGE` и выполните:
 
 ```bash
 docker compose --env-file deploy/production/.env \
@@ -182,10 +183,10 @@ Python 3, OpenSSL, ssh-keygen, Docker и локально подготовлен
 
 ```bash
 ./mvnw clean package
-docker build -t shareguard-ci:production .
+docker build -t sambryx-ci:production .
 docker pull nginx:1.30.6-alpine
-docker build -t shareguard-samba-node:ubuntu24.04 deploy/production/samba
-python3 scripts/ci/smoke-production.py shareguard-ci:production
+docker build -t sambryx-samba-node:ubuntu24.04 deploy/production/samba
+python3 scripts/ci/smoke-production.py sambryx-ci:production
 ```
 
 Тест создаёт уникальный Compose-проект с временными ключами и случайными loopback-портами.
