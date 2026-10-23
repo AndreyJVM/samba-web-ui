@@ -46,3 +46,6 @@ frontend/package-lock.json
 frontend/*.tsbuildinfo
 frontend/*.d.ts
 frontend/*.js
+
+### Production deployment secrets ###
+/deploy/production/secrets/

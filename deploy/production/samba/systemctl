@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+
+if [ "$#" -eq 3 ] && [ "$2" = "--" ]; then
+    action=$1
+    unit=$3
+elif [ "$#" -eq 2 ]; then
+    action=$1
+    unit=$2
+else
+    echo "Usage: systemctl ACTION [--] UNIT" >&2
+    exit 2
+fi
+unit=${unit%.service}
+case "$unit" in smbd|nmbd|winbind|sshd) ;; *) echo "Unsupported service." >&2; exit 2 ;; esac
+
+control() {
+    /usr/bin/supervisorctl -c /opt/shareguard-node/supervisord.conf "$@"
+}
+case "$action" in
+    start|stop|restart|status) control "$action" "$unit" ;;
+    is-active)
+        if control status "$unit" 2>/dev/null | grep -q ' RUNNING '; then
+            echo active
+        else
+            echo inactive
+            exit 3
+        fi
+        ;;
+    *) echo "Unsupported service action." >&2; exit 2 ;;
+esac

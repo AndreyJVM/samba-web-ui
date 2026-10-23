@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!smb.conf
+!sshd_config
+!supervisord.conf
+!entrypoint.sh
+!systemctl
