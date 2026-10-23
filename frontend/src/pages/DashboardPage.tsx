@@ -1,188 +1,583 @@
 import { getErrorMessage } from "../lib/errors";
-import { useEffect, useState, useCallback, useRef } from "react";
-import { FileStack, Power } from "lucide-react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  ChevronDown,
+  FileStack,
+  FolderOpen,
+  HardDrive,
+  Play,
+  RefreshCw,
+  Server,
+  Square,
+  Users,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { useToast } from "../components/ui/toast";
+import { useConfirm } from "../components/ui/confirm";
 import { useTranslation } from "../lib/i18n";
 import { FileManager } from "../components/FileManager";
 
 interface DashboardData {
   isRunning: boolean;
-  diskUsage: string[];
-  connections: Record<string, string>[];
-  openFiles: (Record<string, string> | string)[];
+  connections: { pid: string; user: string; machine: string }[];
+  openFiles: { pid: string; rw: string; file: string }[];
 }
 
-interface DiskUsage { total: string; used: string; available: string; usePercent: number; mountPoint: string; }
+interface DiskUsage {
+  total: string;
+  used: string;
+  available: string;
+  usePercent: number;
+  mountPoint: string;
+}
+type ServiceAction = "start" | "stop" | "restart";
+
+const panel = "rounded-xl border border-border bg-surface";
+const button =
+  "inline-flex items-center justify-center gap-2 rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-text disabled:cursor-not-allowed disabled:opacity-50";
+
+function Metric({
+  label,
+  value,
+  detail,
+  icon,
+}: {
+  label: string;
+  value: ReactNode;
+  detail: string;
+  icon: ReactNode;
+}) {
+  return (
+    <div className={`${panel} p-5`}>
+      <div className="flex items-center justify-between gap-3 text-text-muted">
+        <span className="text-sm">{label}</span>
+        {icon}
+      </div>
+      <div className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">
+        {value}
+      </div>
+      <p className="mt-2 text-xs text-text-muted">{detail}</p>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [dashLoading, setDashLoading] = useState(true);
-  const hasDashboardData = useRef(false);
-
-  const [diskUsage, setDiskUsage] = useState<DiskUsage | null>(null);
-
+  const [disk, setDisk] = useState<DiskUsage | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [dashboardError, setDashboardError] = useState("");
+  const [diskError, setDiskError] = useState("");
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [pendingAction, setPendingAction] = useState<ServiceAction | null>(
+    null,
+  );
+  const [explorerOpen, setExplorerOpen] = useState(false);
+  const [explorerLoaded, setExplorerLoaded] = useState(false);
+  const mounted = useRef(false);
+  const fetching = useRef(false);
+  const controlling = useRef(false);
   const { info, error: toastError } = useToast();
-  const { t } = useTranslation();
+  const { confirm } = useConfirm();
+  const { t, lang } = useTranslation();
 
-  const fetchDashboard = useCallback(async () => {
+  const refresh = useCallback(async () => {
+    if (fetching.current) return;
+    fetching.current = true;
+    if (mounted.current) setRefreshing(true);
     try {
-      const res = await api.get<DashboardData>("/api/monitoring/dashboard");
-      hasDashboardData.current = true;
-      setData(res);
-    } catch (err) {
-      if (!hasDashboardData.current) toastError("Error", getErrorMessage(err));
+      const [overview, storage] = await Promise.allSettled([
+        api.get<DashboardData>("/api/monitoring/dashboard"),
+        api.get<DiskUsage>("/api/fs/disk-usage?path=/"),
+      ]);
+      if (!mounted.current) return;
+      if (overview.status === "fulfilled") {
+        setData(overview.value);
+        setUpdatedAt(new Date());
+        setDashboardError("");
+      } else {
+        setDashboardError(getErrorMessage(overview.reason));
+      }
+      if (storage.status === "fulfilled") {
+        setDisk(storage.value);
+        setDiskError("");
+      } else {
+        setDiskError(getErrorMessage(storage.reason));
+      }
     } finally {
-      setDashLoading(false);
+      fetching.current = false;
+      if (mounted.current) {
+        setInitialLoading(false);
+        setRefreshing(false);
+      }
     }
-  }, [toastError]);
-
-  const fetchFiles = async () => {
-    try {
-      const diskRes = await api.get<DiskUsage>(`/api/fs/disk-usage?path=/`).catch(() => null);
-      if (diskRes) setDiskUsage(diskRes);
-    } catch {
-      // Disk usage is optional; retain the last successfully loaded value.
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboard();
-    const interval = setInterval(fetchDashboard, 10000);
-    return () => clearInterval(interval);
-  }, [fetchDashboard]);
-
-  useEffect(() => {
-    fetchFiles();
   }, []);
 
-  const handleServiceControl = async (action: string) => {
+  useEffect(() => {
+    mounted.current = true;
+    void refresh();
+    const interval = setInterval(() => {
+      void refresh();
+    }, 10000);
+    return () => {
+      mounted.current = false;
+      clearInterval(interval);
+    };
+  }, [refresh]);
+
+  const handleServiceControl = async (action: ServiceAction) => {
+    if (controlling.current) return;
+    controlling.current = true;
+    setPendingAction(action);
     try {
+      if (
+        action !== "start" &&
+        !(await confirm({
+          title: t(
+            action === "stop"
+              ? "dashboard.confirmStop"
+              : "dashboard.confirmRestart",
+          ),
+          message: t("dashboard.serviceImpact"),
+          destructive: action === "stop",
+          confirmText: t(
+            action === "stop" ? "dashboard.stop" : "dashboard.restart",
+          ),
+        }))
+      )
+        return;
+      if (!mounted.current) return;
       await api.post(`/api/monitoring/control?action=${action}`);
-      info("Command Sent", `Action: ${action} initiated`);
-      setTimeout(fetchDashboard, 1500);
+      if (!mounted.current) return;
+      info(
+        t("dashboard.commandCompleted"),
+        t(
+          `dashboard.${action === "start" ? "started" : action === "stop" ? "stopped" : "restarted"}`,
+        ),
+      );
+      await refresh();
     } catch (err) {
-      toastError("Control Error", getErrorMessage(err));
+      if (mounted.current)
+        toastError(t("dashboard.controlError"), getErrorMessage(err));
+    } finally {
+      controlling.current = false;
+      if (mounted.current) setPendingAction(null);
     }
   };
 
+  const percentage = disk ? Math.max(0, Math.min(100, disk.usePercent)) : 0;
+  const diskTone =
+    percentage >= 90
+      ? "bg-status-error"
+      : percentage >= 70
+        ? "bg-status-warning"
+        : "bg-accent";
+  const connections = data?.connections ?? [];
+  const openFiles = data?.openFiles ?? [];
+  const missing = initialLoading ? "…" : "—";
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center gap-3 pb-4">
-        <h1 className="text-2xl font-semibold text-foreground tracking-tight">{t("dashboard.title")}</h1>
-      </div>
-
-      {dashLoading && !data ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {[1,2,3].map(i => (
-             <div key={i} className="h-32 bg-surface border border-border rounded-lg animate-pulse" />
-          ))}
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-text-muted">
+            <Activity className="h-3.5 w-3.5" />
+            Samba · SSH
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {t("dashboard.title")}
+          </h1>
+          <p className="mt-1 text-sm text-text-muted">
+            {t("dashboard.subtitle")}
+          </p>
         </div>
-      ) : data ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          
-          <div className="bg-surface border border-border p-5 rounded-lg flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[13px] font-medium text-text-muted">{t("dashboard.serviceStatus")}</h3>
-              {/* TODO: token for status-active and status-error are not in theme palette, keeping functional colors */}
-              <Power className={`w-4 h-4 ${data.isRunning ? "text-status-active" : "text-status-error"}`} />
-            </div>
-            <div className="flex items-baseline gap-2 mb-5">
-              <span className={`text-2xl font-semibold ${data.isRunning ? "text-accent-text" : "text-foreground"}`}>
-                {data.isRunning ? t("sidebar.running") : t("sidebar.stopped")}
-              </span>
-              <span className="text-[11px] text-text-muted uppercase tracking-widest bg-surface-2 px-1.5 py-0.5 rounded-sm border border-border">smbd</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mt-auto">
-              {!data.isRunning ? (
-                <button onClick={() => handleServiceControl("start")} className="col-span-2 text-[13px] font-medium bg-accent text-on-accent hover:opacity-90 py-2 rounded-md transition-colors">
-                  {t("dashboard.startService")}
-                </button>
-              ) : (
-                <>
-                  {/* TODO: token for status-error is not in theme palette, keeping functional status color */}
-                  <button onClick={() => handleServiceControl("stop")} className="text-[13px] font-medium bg-surface-2 text-status-error hover:bg-surface py-2 rounded-md transition-colors border border-status-error/30">
-                    {t("dashboard.stop")}
-                  </button>
-                  <button onClick={() => handleServiceControl("restart")} className="text-[13px] font-medium bg-surface-2 text-foreground hover:bg-surface py-2 rounded-md transition-colors border border-border-strong">
-                    {t("dashboard.restart")}
-                  </button>
-                </>
-              )}
-            </div>
+        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+          <div className="text-xs text-text-muted sm:text-right" role="status">
+            <p>{t("dashboard.autoRefresh")}</p>
+            <p className="mt-1 tabular-nums">
+              {updatedAt
+                ? `${t("dashboard.updated")} ${updatedAt.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+                : t("dashboard.notUpdated")}
+            </p>
           </div>
-
-          <div className="bg-surface border border-border p-5 rounded-lg flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[13px] font-medium text-text-muted">{t("dashboard.activeSessions")}</h3>
-            </div>
-            <div className="flex items-end gap-2 mb-2">
-              <span className="text-4xl font-semibold text-foreground tracking-tight">{data.connections?.length || 0}</span>
-              <span className="text-sm text-text-muted mb-1.5 font-medium">{t("dashboard.clients")}</span>
-            </div>
-          </div>
-
-          <div className="bg-surface border border-border p-5 rounded-lg flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[13px] font-medium text-text-muted">{t("dashboard.openFiles")}</h3>
-              <FileStack className="w-4 h-4 text-text-muted" />
-            </div>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-semibold text-foreground tracking-tight">{data.openFiles?.length || 0}</span>
-              <span className="text-sm text-text-muted mb-1.5 font-medium">{t("dashboard.locked")}</span>
-            </div>
-            <div className="h-[44px] mt-2 overflow-y-auto custom-scrollbar flex flex-col gap-1.5">
-               {data.openFiles?.length > 0 ? data.openFiles.slice(0, 2).map((f, idx) => (
-                 <div key={idx} className="flex justify-between items-center text-[11px] font-mono bg-surface-2 px-2 py-1 rounded-sm border border-border">
-                   <span className="truncate max-w-[70%]">{typeof f === 'object' ? f.path : f.toString()}</span>
-                   <span className="text-foreground font-semibold">{typeof f === 'object' ? f.user : '-'}</span>
-                 </div>
-               )) : (
-                 <span className="text-[13px] text-text-muted mt-1">{t("dashboard.noFilesInUse")}</span>
-               )}
-            </div>
-          </div>
+          <button
+            className={button}
+            onClick={() => {
+              void refresh();
+            }}
+            disabled={refreshing || pendingAction !== null}
+            aria-label={t("dashboard.refresh")}
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+            />
+            {t("dashboard.refresh")}
+          </button>
         </div>
-      ) : null}
+      </header>
 
-      <div className="pt-6">
-         <div className="flex items-center gap-3 pb-4">
-            <h2 className="text-lg font-semibold text-foreground tracking-tight">{t("dashboard.storageExplorer")}</h2>
-         </div>
-      </div>
-
-      {diskUsage && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-surface rounded-lg p-5 border border-border relative overflow-hidden">
-          <div className="col-span-2 lg:col-span-4 flex items-center gap-4 mb-2">
-            <div className="flex-1 bg-track border border-border rounded-full h-3 overflow-hidden">
-               <div 
-                 className={`h-full transition-all duration-500 rounded-full ${diskUsage.usePercent > 90 ? 'bg-status-error' : diskUsage.usePercent > 70 ? 'bg-status-warning' : 'bg-accent'}`} 
-                 style={{ width: `${diskUsage.usePercent}%` }}
-               />
-            </div>
-            <span className="text-sm font-semibold w-12 text-right">{diskUsage.usePercent}%</span>
-          </div>
-
-          <div className="flex flex-col">
-            <span className="text-xs text-text-muted font-medium mb-1">{t("dashboard.total")}</span>
-            <span className="text-sm font-mono font-medium">{diskUsage.total}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-text-muted font-medium mb-1">{t("dashboard.used")}</span>
-            <span className="text-sm font-mono font-medium">{diskUsage.used}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-text-muted font-medium mb-1">{t("dashboard.free")}</span>
-            <span className="text-sm font-mono font-semibold text-accent-text">{diskUsage.available}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-text-muted font-medium mb-1">{t("dashboard.mount")}</span>
-            <span className="text-sm font-mono text-foreground truncate" title={diskUsage.mountPoint}>{diskUsage.mountPoint}</span>
+      {dashboardError && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-status-warning/40 bg-surface p-4"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warning" />
+          <div className="text-sm">
+            <p className="font-medium">
+              {t(data ? "dashboard.staleData" : "dashboard.loadError")}
+            </p>
+            <p className="mt-1 text-text-muted">{dashboardError}</p>
           </div>
         </div>
       )}
 
-      <FileManager />
+      <div
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        aria-busy={initialLoading}
+      >
+        <Metric
+          label={t("dashboard.serviceStatus")}
+          icon={<Server className="h-4 w-4" />}
+          value={
+            data ? (
+              <span
+                className={`flex items-center gap-2 text-2xl ${data.isRunning ? "text-accent-text" : "text-status-error"}`}
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${data.isRunning ? "bg-status-active" : "bg-status-error"}`}
+                />
+                {t(data.isRunning ? "sidebar.running" : "sidebar.stopped")}
+              </span>
+            ) : (
+              missing
+            )
+          }
+          detail={t("dashboard.serviceCaption")}
+        />
+        <Metric
+          label={t("dashboard.activeSessions")}
+          icon={<Users className="h-4 w-4" />}
+          value={data ? connections.length : missing}
+          detail={t("dashboard.sessionsCaption")}
+        />
+        <Metric
+          label={t("dashboard.openFiles")}
+          icon={<FileStack className="h-4 w-4" />}
+          value={data ? openFiles.length : missing}
+          detail={t("dashboard.filesCaption")}
+        />
+        <Metric
+          label={t("dashboard.rootDisk")}
+          icon={<HardDrive className="h-4 w-4" />}
+          value={disk ? `${percentage}%` : missing}
+          detail={
+            diskError
+              ? t("dashboard.diskUnavailable")
+              : disk
+                ? `${t("dashboard.free")}: ${disk.available}`
+                : t("dashboard.rootDiskCaption")
+          }
+        />
+      </div>
+
+      <section
+        className={`${panel} flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between`}
+        aria-label={t("dashboard.serviceActions")}
+      >
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg border border-border bg-surface-2 p-2">
+            <Server className="h-5 w-5 text-text-muted" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold">
+              {t("dashboard.serviceActions")}
+            </h2>
+            <p className="mt-1 text-xs text-text-muted">
+              {t("dashboard.serviceImpact")}
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {data && !data.isRunning ? (
+            <button
+              className={`${button} !bg-accent !text-on-accent`}
+              onClick={() => {
+                void handleServiceControl("start");
+              }}
+              disabled={pendingAction !== null || Boolean(dashboardError)}
+            >
+              <Play className="h-4 w-4" />
+              {t("dashboard.startService")}
+            </button>
+          ) : (
+            <>
+              <button
+                className={button}
+                onClick={() => {
+                  void handleServiceControl("restart");
+                }}
+                disabled={
+                  !data || pendingAction !== null || Boolean(dashboardError)
+                }
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${pendingAction === "restart" ? "animate-spin" : ""}`}
+                />
+                {t("dashboard.restart")}
+              </button>
+              <button
+                className={`${button} !text-status-error`}
+                onClick={() => {
+                  void handleServiceControl("stop");
+                }}
+                disabled={
+                  !data || pendingAction !== null || Boolean(dashboardError)
+                }
+              >
+                <Square className="h-3.5 w-3.5" />
+                {t("dashboard.stop")}
+              </button>
+            </>
+          )}
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <section className={`${panel} overflow-hidden`}>
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Users className="h-4 w-4 text-text-muted" />
+              {t("dashboard.activeSessions")}
+            </h2>
+            <span className="rounded-md bg-surface-2 px-2 py-0.5 text-xs tabular-nums text-text-muted">
+              {data ? connections.length : "—"}
+            </span>
+          </div>
+          {connections.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-surface-2 text-xs text-text-muted">
+                  <tr>
+                    <th className="px-5 py-3 font-medium">
+                      {t("dashboard.sessionUser")}
+                    </th>
+                    <th className="px-5 py-3 font-medium">
+                      {t("dashboard.clientAddress")}
+                    </th>
+                    <th className="px-5 py-3 font-medium">PID</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {connections.slice(0, 6).map((connection, index) => (
+                    <tr key={`${connection.pid}-${index}`}>
+                      <td className="px-5 py-3 font-medium">
+                        {connection.user || "—"}
+                      </td>
+                      <td className="px-5 py-3 font-mono text-xs text-text-muted">
+                        {connection.machine || "—"}
+                      </td>
+                      <td className="px-5 py-3 font-mono text-xs text-text-muted">
+                        {connection.pid || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex min-h-40 flex-col items-center justify-center gap-2 p-6 text-center">
+              <Users className="h-6 w-6 text-text-muted" />
+              <p className="text-sm text-text-muted">
+                {t(
+                  data
+                    ? "dashboard.noSessions"
+                    : initialLoading
+                      ? "sidebar.wait"
+                      : "dashboard.noData",
+                )}
+              </p>
+            </div>
+          )}
+          {connections.length > 6 && (
+            <p className="border-t border-border px-5 py-3 text-xs text-text-muted">
+              {t("dashboard.showingSessions")} 6 / {connections.length}
+            </p>
+          )}
+        </section>
+        <section className={`${panel} overflow-hidden`}>
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <FileStack className="h-4 w-4 text-text-muted" />
+              {t("dashboard.openFiles")}
+            </h2>
+            <span className="rounded-md bg-surface-2 px-2 py-0.5 text-xs tabular-nums text-text-muted">
+              {data ? openFiles.length : "—"}
+            </span>
+          </div>
+          {openFiles.length ? (
+            <ul className="divide-y divide-border">
+              {openFiles.slice(0, 6).map((file, index) => (
+                <li
+                  key={`${file.pid}-${index}`}
+                  className="flex items-center gap-3 px-5 py-3"
+                >
+                  <FileStack className="h-4 w-4 shrink-0 text-text-muted" />
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="truncate text-sm font-medium"
+                      title={file.file}
+                    >
+                      {file.file || t("dashboard.unnamedFile")}
+                    </p>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      PID {file.pid || "—"}
+                    </p>
+                  </div>
+                  <span className="rounded border border-border px-1.5 py-0.5 font-mono text-xs text-text-muted">
+                    {file.rw || "—"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex min-h-40 flex-col items-center justify-center gap-2 p-6 text-center">
+              <FileStack className="h-6 w-6 text-text-muted" />
+              <p className="text-sm text-text-muted">
+                {t(
+                  data
+                    ? "dashboard.noFilesInUse"
+                    : initialLoading
+                      ? "sidebar.wait"
+                      : "dashboard.noData",
+                )}
+              </p>
+            </div>
+          )}
+          {openFiles.length > 6 && (
+            <p className="border-t border-border px-5 py-3 text-xs text-text-muted">
+              {t("dashboard.showingFiles")} 6 / {openFiles.length}
+            </p>
+          )}
+        </section>
+      </div>
+
+      <section className={`${panel} p-5`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <HardDrive className="h-4 w-4 text-text-muted" />
+            {t("dashboard.rootDisk")}
+          </h2>
+          <span className="font-mono text-xs text-text-muted">
+            {disk?.mountPoint || "/"}
+          </span>
+        </div>
+        {diskError && (
+          <p role="status" className="mt-3 text-sm text-status-warning">
+            {t(disk ? "dashboard.diskStale" : "dashboard.diskUnavailable")}
+          </p>
+        )}
+        {disk ? (
+          <>
+            <div className="mt-5 flex items-center gap-4">
+              <div
+                role="progressbar"
+                aria-label={t("dashboard.used")}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={percentage}
+                className="h-2.5 flex-1 overflow-hidden rounded-full bg-track"
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${diskTone}`}
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+              <span className="text-sm font-semibold tabular-nums">
+                {percentage}%
+              </span>
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              {[
+                ["total", disk.total],
+                ["used", disk.used],
+                ["free", disk.available],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <p className="text-xs text-text-muted">
+                    {t(`dashboard.${label}`)}
+                  </p>
+                  <p className="mt-1 font-mono text-sm font-medium">{value}</p>
+                </div>
+              ))}
+            </div>
+            {percentage >= 90 && (
+              <p className="mt-4 flex items-center gap-2 text-sm text-status-error">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {t("dashboard.diskCritical")}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="py-6 text-sm text-text-muted">
+            {t(initialLoading ? "sidebar.wait" : "dashboard.noData")}
+          </p>
+        )}
+      </section>
+
+      <div className="flex flex-wrap gap-3">
+        <Link to="/shares" className={button}>
+          <FolderOpen className="h-4 w-4" />
+          {t("sidebar.shares")}
+          <ArrowUpRight className="h-3.5 w-3.5 text-text-muted" />
+        </Link>
+        <Link to="/users" className={button}>
+          <Users className="h-4 w-4" />
+          {t("sidebar.users")}
+          <ArrowUpRight className="h-3.5 w-3.5 text-text-muted" />
+        </Link>
+      </div>
+
+      <section className="border-t border-border pt-5">
+        <button
+          onClick={() => {
+            setExplorerLoaded(true);
+            setExplorerOpen(!explorerOpen);
+          }}
+          aria-expanded={explorerOpen}
+          aria-controls="dashboard-explorer"
+          className="flex w-full items-center justify-between gap-3 rounded-lg py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-text"
+        >
+          <span>
+            <span className="flex items-center gap-2 text-base font-semibold">
+              <FolderOpen className="h-4 w-4 text-text-muted" />
+              {t("dashboard.storageExplorer")}
+            </span>
+            <span className="mt-1 block text-xs text-text-muted">
+              {t("dashboard.explorerCaption")}
+            </span>
+          </span>
+          <ChevronDown
+            className={`h-5 w-5 shrink-0 text-text-muted transition-transform ${explorerOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+        <div id="dashboard-explorer" hidden={!explorerOpen}>
+          {explorerLoaded && (
+            <div className="pt-4">
+              <FileManager />
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
