@@ -16,9 +16,10 @@ docker run -d \
 
 Open `http://localhost:8080/ui` in your browser. From the UI, you can connect to your Samba server using SSH credentials.
 
-### Astra Linux Special Edition (Parsec)
+### Experimental Astra Linux Special Edition variant
 
-For Astra Linux SE 1.8 hosts where Parsec blocks JVM JIT executable memory, use the dedicated image:
+The existing experimental image includes a JVM-specific MPROTECT relaxation. Compatibility
+with Astra Linux SE 1.8 and Parsec has not been verified on a target system:
 
 ```bash
 docker run -d \
@@ -37,10 +38,11 @@ The Astra image disables PaX MPROTECT only for the `java` executable inside the 
 - Zero-Agent architecture: connects to servers via SSH
 - Secure REST API
 
-## Environment Variables
+## Runtime and Environment Variables
+- The image packages the tested application JAR, including frontend assets.
+- The application runs as UID/GID `10001:10001` and uses SSH credentials entered in the UI.
 - `SERVER_PORT` (default: `8080`): The port the web application listens on.
-- `SPRING_SECURITY_USER_NAME` (default: `admin`): Web UI admin username.
-- `SPRING_SECURITY_USER_PASSWORD` (default: `admin`): Web UI admin password.
+- Docker is the supported deployment format. The Docker test sandbox is documented in the repository.
 
 ## Documentation and Source Code
 

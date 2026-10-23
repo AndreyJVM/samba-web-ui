@@ -1,13 +1,10 @@
 package mari.samba.infra;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-import java.time.Duration;
 import mari.samba.auth.ConnectionRequestDto;
-import mari.samba.config.ExecutionProperties;
-import mari.samba.config.ExecutionProperties.Mode;
+import mari.samba.core.SambaCommandException;
 import mari.samba.core.SshSessionExpiredException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,60 +12,52 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ExecutionSessionManagerTest {
-
-    private final LocalCommandExecutor local = mock(LocalCommandExecutor.class);
     private final SshSessionManager ssh = mock(SshSessionManager.class);
+    private final ExecutionSessionManager manager = new ExecutionSessionManager(ssh);
     private final ConnectionRequestDto request =
             new ConnectionRequestDto("server", 22, "admin", "password", "secret", null, null);
-
-    @Test
-    void localSessionAuthenticatesAndRoutesCommandsLocally() throws Exception {
-        ExecutionSessionManager manager = manager(Mode.LOCAL, "secret");
-        when(local.execute("local-session", "command")).thenReturn("local-output");
-
-        manager.createSession("local-session", request);
-
-        assertThat(manager.sessionMode("local-session")).isEqualTo(Mode.LOCAL);
-        assertThat(manager.execute("local-session", "command")).isEqualTo("local-output");
-        verify(local).authenticate(request);
-        verifyNoInteractions(ssh);
-    }
-
-    @Test
-    void remoteSessionUsesSshAndDisconnectsIt() throws Exception {
-        ExecutionSessionManager manager = manager(Mode.REMOTE, "");
-        when(ssh.execute("remote-session", "command")).thenReturn("remote-output");
-
-        manager.createSession("remote-session", request);
-        assertThat(manager.execute("remote-session", "command")).isEqualTo("remote-output");
-        manager.disconnect("remote-session");
-
-        verify(ssh).createSession("remote-session", request);
-        verify(ssh).disconnect("remote-session");
-        verifyNoInteractions(local);
-    }
-
-    @Test
-    void autoModeSelectsLocalOnlyWhenCredentialsAreConfigured() {
-        assertThat(manager(Mode.AUTO, "secret").effectiveMode()).isEqualTo(Mode.LOCAL);
-        assertThat(manager(Mode.AUTO, "").effectiveMode()).isEqualTo(Mode.REMOTE);
-    }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"synthetic-http-session-token"})
     void unknownSessionCannotExecuteCommands(String sessionId) {
-        ExecutionSessionManager manager = manager(Mode.LOCAL, "secret");
-
-        assertThatThrownBy(() -> manager.execute(sessionId, "command"))
-                .isInstanceOf(SshSessionExpiredException.class)
-                .hasMessage("Execution session not found or expired. Please log in again.");
-        verifyNoInteractions(local, ssh);
+        assertThatThrownBy(() -> manager.execute(sessionId, "command")).isInstanceOf(SshSessionExpiredException.class);
+        assertThatThrownBy(() -> manager.execute(sessionId, "command", "input"))
+                .isInstanceOf(SshSessionExpiredException.class);
+        assertThatThrownBy(() -> manager.executeCommand(sessionId, "command", null))
+                .isInstanceOf(SshSessionExpiredException.class);
+        verifyNoInteractions(ssh);
     }
 
-    private ExecutionSessionManager manager(Mode mode, String password) {
-        ExecutionProperties properties =
-                new ExecutionProperties(mode, "admin", password, Duration.ofSeconds(1), "/run/shareguard/helper.sock");
-        return new ExecutionSessionManager(properties, local, ssh);
+    @Test
+    void failedSshLoginDoesNotAllowCommands() throws Exception {
+        doThrow(new SambaCommandException("Connection rejected")).when(ssh).createSession("session", request);
+        assertThatThrownBy(() -> manager.createSession("session", request)).isInstanceOf(SambaCommandException.class);
+        assertThatThrownBy(() -> manager.execute("session", "command")).isInstanceOf(SshSessionExpiredException.class);
+        verify(ssh, never()).execute(anyString(), anyString());
+    }
+
+    @Test
+    void failedReplacementClosesOldConnectionAndRevokesAccess() throws Exception {
+        manager.createSession("session", request);
+        doThrow(new SambaCommandException("Connection rejected")).when(ssh).createSession("session", request);
+        assertThatThrownBy(() -> manager.createSession("session", request)).isInstanceOf(SambaCommandException.class);
+        var order = inOrder(ssh);
+        order.verify(ssh).createSession("session", request);
+        order.verify(ssh).disconnect("session");
+        order.verify(ssh).createSession("session", request);
+        assertThatThrownBy(() -> manager.execute("session", "command")).isInstanceOf(SshSessionExpiredException.class);
+        verify(ssh, never()).execute(anyString(), anyString());
+    }
+
+    @Test
+    void logoutClosesConnectionOnlyOnceAndRevokesAccess() throws Exception {
+        manager.createSession("session", request);
+        manager.disconnect("session");
+        manager.disconnect("session");
+        manager.disconnect(null);
+        verify(ssh).disconnect("session");
+        assertThatThrownBy(() -> manager.execute("session", "command")).isInstanceOf(SshSessionExpiredException.class);
+        verify(ssh, never()).execute(anyString(), anyString());
     }
 }

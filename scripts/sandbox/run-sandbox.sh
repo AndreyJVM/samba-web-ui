@@ -3,26 +3,26 @@
 # ==============================================================================
 # ShareGuard - Docker Compose Sandbox Runner with Clean Teardown
 # ==============================================================================
-# Этот скрипт:
-# 1. Предлагает выбор режима развёртывания (с тестами / без тестов)
-# 2. Собирает frontend на хосте (если dist/ отсутствует или устарел)
-# 3. Собирает backend JAR на хосте (используя локальный Maven-кэш без долгих загрузок)
-# 4. Собирает Docker образ web-приложения (--target local для мгновенной сборки)
-# 5. Запускает окружение (docker compose up -d)
-# 6. Ожидает готовности сервисов (healthcheck samba-node и web)
-# 7. Предоставляет интерактивное меню команд:
-#    - b / build / fast : быстрая частичная пересборка (обновление кода/кнопки без сброса данных)
-#    - bf / build-full  : полная пересборка с нуля (удаление контейнеров, томов и сборка)
+# This script:
+# 1. Offers deployment modes with or without tests
+# 2. Builds the current frontend on the host
+# 3. Builds the backend JAR using the local Maven cache
+# 4. Packages the web application image using --target local
+# 5. Starts the environment with docker compose up -d
+# 6. Waits for service readiness
+# 7. Provides an interactive command menu:
+#    - b / build / fast: rebuild without resetting data
+#    - bf / build-full: remove containers and volumes, then rebuild
 #    - restart / logs / status / stop
-# 8. При завершении (Enter, stop, q или Ctrl+C) полностью останавливает compose,
-#    удаляет контейнеры, сети, вольюмы (samba-shares, samba-config)
-#    и локальный образ web-приложения (shareguard-web:latest),
-#    гарантируя чистое состояние перед следующим запуском.
+# 8. On exit (Enter, stop, q or Ctrl+C), stops Compose,
+#    removes containers, networks and volumes (samba-shares, samba-config),
+#    and removes the local web image (shareguard-web:latest),
+#    leaving a clean environment for the next run.
 # ==============================================================================
 
 set -eo pipefail
 
-# Определение директории проекта (где лежит docker-compose.yml)
+# Locate the project directory containing docker-compose.yml
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
     PROJECT_ROOT="$SCRIPT_DIR"
@@ -33,14 +33,14 @@ elif [ -f "$SCRIPT_DIR/../../docker-compose.yml" ]; then
 else
     PROJECT_ROOT="$(pwd)"
     if [ ! -f "$PROJECT_ROOT/docker-compose.yml" ]; then
-        echo "Ошибка: не найден docker-compose.yml ни в $SCRIPT_DIR, ни в $PROJECT_ROOT" >&2
+        echo "Error: docker-compose.yml was not found in $SCRIPT_DIR or $PROJECT_ROOT" >&2
         exit 1
     fi
 fi
 
 cd "$PROJECT_ROOT"
 
-# Автоопределение Java 21 на хосте (если установлена и не переопределена)
+# Detect Java 21 on the host unless JAVA_HOME is already set
 if [ -z "$JAVA_HOME" ]; then
     if [ -d "/usr/lib/jvm/java-21-openjdk-amd64" ]; then
         export JAVA_HOME="/usr/lib/jvm/java-21-openjdk-amd64"
@@ -49,88 +49,88 @@ if [ -z "$JAVA_HOME" ]; then
     fi
 fi
 
-# Определение команды docker compose / docker-compose
+# Select docker compose or docker-compose
 if docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD="docker compose"
 elif command -v docker-compose >/dev/null 2>&1; then
     COMPOSE_CMD="docker-compose"
 else
-    echo "Ошибка: docker compose или docker-compose не найден в PATH!" >&2
+    echo "Error: docker compose or docker-compose was not found in PATH!" >&2
     exit 1
 fi
 
-# Проверка доступности Docker демона
+# Check Docker daemon availability
 if ! docker info >/dev/null 2>&1; then
-    echo "Ошибка: Docker демон не запущен или недоступен текущему пользователю." >&2
-    echo "Убедитесь, что служба Docker запущена (systemctl start docker / Docker Desktop)." >&2
+    echo "Error: the Docker daemon is stopped or inaccessible to the current user." >&2
+    echo "Make sure Docker is running (systemctl start docker / Docker Desktop)." >&2
     exit 1
 fi
 
 # ==============================================================================
-# Выбор режима развёртывания
+# Select deployment mode
 # ==============================================================================
 echo "=========================================================="
-echo "         ShareGuard - Запуск Docker Sandbox               "
+echo "         ShareGuard - Docker Sandbox"
 echo "=========================================================="
 echo ""
-echo "Выберите режим развёртывания:"
+echo "Select deployment mode:"
 echo ""
-echo "  1) Полный прогон (с чистого листа + тесты)"
-echo "     Полная сборка с запуском тестов Maven."
-echo "     Рекомендуется для CI и финального тестирования."
+echo "  1) Full run (clean environment with tests)"
+echo "     Full build with Maven tests."
+echo "     Recommended for final verification."
 echo ""
-echo "  2) Быстрый запуск (с чистого листа, без тестов)"
-echo "     Сборка без тестов (-DskipTests)."
-echo "     Быстрее для локальной разработки."
+echo "  2) Quick start (clean environment without tests)"
+echo "     Build without tests (-DskipTests)."
+echo "     Faster for local development."
 echo ""
 
 while true; do
-    read -r -p "Ваш выбор [1/2] (по умолчанию: 2): " DEPLOY_MODE
+    read -r -p "Your choice [1/2] (default: 2): " DEPLOY_MODE
     DEPLOY_MODE="${DEPLOY_MODE:-2}"
     case "$DEPLOY_MODE" in
         1)
             SKIP_TESTS="false"
             echo ""
-            echo ">>> Режим: ПОЛНЫЙ ПРОГОН (с тестами)"
+            echo ">>> Mode: FULL RUN (with tests)"
             break
             ;;
         2)
             SKIP_TESTS="true"
             echo ""
-            echo ">>> Режим: БЫСТРЫЙ ЗАПУСК (без тестов)"
+            echo ">>> Mode: QUICK START (without tests)"
             break
             ;;
         *)
-            echo "Неверный выбор. Введите 1 или 2."
+            echo "Invalid choice. Enter 1 or 2."
             ;;
     esac
 done
 
-echo "Рабочая директория: $PROJECT_ROOT"
+echo "Project directory: $PROJECT_ROOT"
 echo ""
 
-# Сборка фронтенда на хосте
+# Build the frontend on the host
 build_frontend() {
-    echo ">>> Сборка фронтенда на хосте..."
+    echo ">>> Building frontend on the host..."
     local ok=0
     if [ -x "$PROJECT_ROOT/frontend/node/npm" ]; then
         (cd "$PROJECT_ROOT/frontend" && ./node/npm run build) && ok=1
     elif command -v npm >/dev/null 2>&1; then
         (cd "$PROJECT_ROOT/frontend" && npm run build) && ok=1
     else
-        echo ">>> Запуск Maven для генерации фронтенда..."
+        echo ">>> Running Maven to build the frontend..."
         ./mvnw generate-resources -DskipTests && ok=1
     fi
     if [ "$ok" -ne 1 ]; then
-        echo "Ошибка: не удалось собрать frontend!" >&2
+        echo "Error: failed to build frontend!" >&2
         return 1
     fi
     return 0
 }
 
-# Сборка бэкенда (JAR) на хосте с использованием локального кэша Maven
+# Build the backend JAR on the host using the local Maven cache
 build_backend() {
-    echo ">>> Сборка backend JAR на хосте (быстро с локальным кэшем .m2)..."
+    echo ">>> Building backend JAR on the host using the local Maven cache..."
     local ok=0
     if [ "$SKIP_TESTS" = "true" ]; then
         ./mvnw package -DskipTests -Dmaven.test.skip=true -Dfrontend.skip=true && ok=1
@@ -138,32 +138,42 @@ build_backend() {
         ./mvnw package -Dfrontend.skip=true && ok=1
     fi
     if [ "$ok" -ne 1 ]; then
-        echo "Ошибка: не удалось собрать backend JAR!" >&2
+        echo "Error: failed to build backend JAR!" >&2
         return 1
     fi
     return 0
 }
 
-# Сборка Docker-образа web
+# Build the web Docker image
 build_docker_image() {
-    echo ">>> Сборка Docker-образа web (перенос JAR в alpine JRE)..."
-    if ! docker build --target local --network host -t shareguard-web:latest .; then
-        echo "Ошибка: не удалось собрать Docker-образ web!" >&2
+    echo ">>> Building web Docker image (copying JAR into Alpine JRE)..."
+    local jars=("$PROJECT_ROOT"/target/*.jar)
+    if [[ ${#jars[@]} -ne 1 || ! -f "${jars[0]}" ]]; then
+        echo "Error: target/ must contain exactly one application JAR." >&2
+        return 1
+    fi
+    if ! python3 "$PROJECT_ROOT/scripts/ci/verify-artifacts.py" "${jars[0]}"; then
+        echo "Error: the JAR does not contain the built frontend." >&2
+        return 1
+    fi
+    local jar_file="target/$(basename "${jars[0]}")"
+    if ! docker build --target local --build-arg "JAR_FILE=$jar_file" -t shareguard-web:latest .; then
+        echo "Error: failed to build web Docker image!" >&2
         return 1
     fi
     return 0
 }
 
-# Ожидание готовности samba-node
+# Wait for samba-node readiness
 wait_for_node() {
-    echo ">>> Ожидание готовности samba-node (проверка healthcheck)..."
+    echo ">>> Waiting for samba-node readiness (healthcheck)..."
     local MAX_WAIT=60
     local WAIT_COUNT=0
     while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
         NODE_STATUS=$(docker inspect --format='{{json .State.Health.Status}}' samba-node-sandbox 2>/dev/null || echo "\"starting\"")
         if [ "$NODE_STATUS" = "\"healthy\"" ]; then
             echo ""
-            echo ">>> samba-node-sandbox успешно запущен и готов к работе!"
+            echo ">>> samba-node-sandbox is running and ready!"
             return 0
         fi
         sleep 2
@@ -171,102 +181,102 @@ wait_for_node() {
         printf "."
     done
     echo ""
-    echo "Предупреждение: samba-node-sandbox не перешел в статус healthy за $MAX_WAIT сек."
+    echo "Warning: samba-node-sandbox did not become healthy within $MAX_WAIT seconds."
     return 0
 }
 
-# Информационный баннер подключения
+# Display connection information
 print_banner() {
     echo ""
     echo "=========================================================="
-    echo "  Docker Sandbox успешно запущен!                         "
+    echo "  Docker Sandbox started successfully!"
     echo "=========================================================="
     if [ "$SKIP_TESTS" = "true" ]; then
-        echo "  Режим:          Быстрый запуск (тесты пропущены)      "
+        echo "  Mode:           Quick start (tests skipped)"
     else
-        echo "  Режим:          Полный прогон (тесты выполнены)        "
+        echo "  Mode:           Full run (tests executed)"
     fi
     echo "  - Web UI:       http://localhost:8080/ui                "
     echo "  ------------------------------------------------------  "
-    echo "  Параметры для входа в Web UI:                           "
+    echo "  Web UI login settings:"
     echo "  - Host (IP):    samba-node                              "
     echo "  - SSH Port:     22                                      "
     echo "  - Username:     admin                                   "
     echo "  - Password:     admin                                   "
     echo "  ------------------------------------------------------  "
-    echo "  Прямой доступ с локального хоста (Windows/Mac/Linux):   "
+    echo "  Direct access from the host (Windows/Mac/Linux):"
     echo "  - SSH:          ssh admin@localhost -p 2222             "
     echo "  - Samba (SMB):  \\\\localhost:1445\\public              "
     echo "=========================================================="
     echo ""
 }
 
-# Справка по доступным командам
+# Display available commands
 print_help() {
-    echo "Доступные команды:"
-    echo "  build, b, fast        - Быстрая/частичная пересборка (обновить frontend/код без сброса samba-node и томов)"
-    echo "  build-full, bf        - Полная пересборка с нуля (удаление всех контейнеров, томов и сборка с --no-cache)"
-    echo "  restart, r            - Перезапустить контейнеры без пересборки"
-    echo "  logs, l               - Просмотр логов в реальном времени (выйти из логов: Ctrl+C)"
-    echo "  status, s, ps         - Показать статус контейнеров"
-    echo "  help, h               - Показать эту справку"
-    echo "  stop, q, exit, Enter  - Остановить и полностью очистить (контейнеры, вольюмы, сети, образ web)"
+    echo "Available commands:"
+    echo "  build, b, fast        - Rebuild frontend/code without resetting samba-node or volumes"
+    echo "  build-full, bf        - Remove containers and volumes, then rebuild"
+    echo "  restart, r            - Restart containers without rebuilding"
+    echo "  logs, l               - Follow logs (Ctrl+C to return)"
+    echo "  status, s, ps         - Show container status"
+    echo "  help, h               - Show this help"
+    echo "  stop, q, exit, Enter  - Stop and remove containers, volumes, networks and the web image"
 }
 
-# Быстрая / частичная пересборка (обновление кода/кнопки без потери данных)
+# Rebuild without resetting data
 rebuild_fast() {
     echo ""
     echo "=========================================================="
-    echo "  [БЫСТРАЯ ПЕРЕСБОРКА] Обновление изменений проекта...   "
+    echo "  [QUICK REBUILD] Updating the application..."
     echo "=========================================================="
     if ! build_frontend; then
-        echo ">>> Ошибка при сборке фронтенда. Пересборка отменена."
+        echo ">>> Frontend build failed. Rebuild canceled."
         return 1
     fi
     if ! build_backend; then
-        echo ">>> Ошибка при сборке бэкенда. Пересборка отменена."
+        echo ">>> Backend build failed. Rebuild canceled."
         return 1
     fi
     if ! build_docker_image; then
-        echo ">>> Ошибка при сборке Docker-образа! Контейнер не обновлен."
+        echo ">>> Docker image build failed. Container was not updated."
         return 1
     fi
 
-    echo ">>> Пересоздание контейнера web (samba-node и тома сохраняются)..."
+    echo ">>> Recreating web container (samba-node and volumes are preserved)..."
     $COMPOSE_CMD up -d --no-deps web
 
     echo ""
-    echo ">>> [ГОТОВО] Контейнер web успешно обновлен и запущен!"
-    echo ">>> Web UI доступен: http://localhost:8080/ui"
+    echo ">>> [DONE] Web container updated and started!"
+    echo ">>> Web UI available at: http://localhost:8080/ui"
     echo ""
 }
 
-# Полная пересборка с удалением всего
+# Full rebuild after removing sandbox resources
 rebuild_full() {
     echo ""
     echo "=========================================================="
-    echo "  [ПОЛНАЯ ПЕРЕСБОРКА] Очистка всех ресурсов и пересборка "
+    echo "  [FULL REBUILD] Removing resources and rebuilding"
     echo "=========================================================="
-    echo ">>> Остановка сервисов, удаление контейнеров, сетей, вольюмов и образов..."
+    echo ">>> Stopping services and removing containers, networks, volumes and images..."
     $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
     docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
     docker rmi -f shareguard-web:latest shareguard_web:latest >/dev/null 2>&1 || true
     rm -rf "$PROJECT_ROOT/frontend/dist"
 
     if ! build_frontend; then
-        echo ">>> Ошибка при сборке фронтенда. Полная пересборка прервана."
+        echo ">>> Frontend build failed. Full rebuild canceled."
         return 1
     fi
     if ! build_backend; then
-        echo ">>> Ошибка при сборке бэкенда. Полная пересборка прервана."
+        echo ">>> Backend build failed. Full rebuild canceled."
         return 1
     fi
     if ! build_docker_image; then
-        echo ">>> Ошибка при сборке Docker-образа!"
+        echo ">>> Docker image build failed!"
         return 1
     fi
 
-    echo ">>> Запуск всех служб ($COMPOSE_CMD up -d)..."
+    echo ">>> Starting all services ($COMPOSE_CMD up -d)..."
     $COMPOSE_CMD up -d
 
     wait_for_node
@@ -276,7 +286,7 @@ rebuild_full() {
 CLEANED_UP=0
 
 cleanup() {
-    # Предотвращаем повторный запуск очистки
+    # Prevent duplicate cleanup
     if [ "$CLEANED_UP" -eq 1 ]; then
         return
     fi
@@ -284,53 +294,51 @@ cleanup() {
 
     echo ""
     echo "=========================================================="
-    echo "  [ОЧИСТКА] Остановка контейнеров и удаление ресурсов...  "
+    echo "  [CLEANUP] Stopping containers and removing resources..."
     echo "=========================================================="
 
-    # Останавливаем сервисы, удаляем контейнеры, сети, вольюмы и локально собранный образ web
+    # Stop services and remove containers, networks, volumes and the local web image
     $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
 
-    # Дополнительная явная очистка именованных вольюмов Samba Sandbox
+    # Explicitly remove named Samba Sandbox volumes
     docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
 
-    # Дополнительное удаление образа веб-приложения по тегам/именам
+    # Remove the local web image by its known tags
     docker rmi -f shareguard-web:latest shareguard_web:latest >/dev/null 2>&1 || true
 
     echo "=========================================================="
-    echo "  [ГОТОВО] Контейнеры, вольюмы, сети и образ web удалены! "
-    echo "  Следующий запуск будет абсолютно чистым.                "
+    echo "  [DONE] Containers, volumes, networks and web image removed!"
+    echo "  The next run will start with a clean environment."
     echo "=========================================================="
 }
 
-# Перехватываем сигналы прерывания для гарантированной очистки
+# Handle interruption signals to ensure cleanup
 trap cleanup EXIT INT TERM
 
-# 1. Предварительная очистка от предыдущих незавершённых сессий (если были)
-echo ">>> Проверка и предварительная очистка старых контейнеров/волюмов/образа web..."
+# 1. Clean up resources from any previous incomplete session
+echo ">>> Checking and removing old sandbox containers, volumes and web image..."
 $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
 docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
 docker rmi -f shareguard-web:latest shareguard_web:latest >/dev/null 2>&1 || true
 
-# Проверка наличия собранного фронтенда
-if [ ! -d "$PROJECT_ROOT/frontend/dist" ] || [ -z "$(ls -A "$PROJECT_ROOT/frontend/dist" 2>/dev/null)" ]; then
-    build_frontend
-fi
+# An existing dist/ directory may not match the current sources.
+build_frontend
 
-# Сборка backend JAR на хосте
+# Build the backend JAR on the host
 build_backend
 
-# 2. Сборка Docker-образа web
+# 2. Build the web Docker image
 build_docker_image
 
-# 3. Запуск служб
-echo ">>> Запуск служб ($COMPOSE_CMD up -d)..."
+# 3. Start services
+echo ">>> Starting services ($COMPOSE_CMD up -d)..."
 $COMPOSE_CMD up -d
 
-# 4. Ожидание готовности контейнеров
+# 4. Wait for container readiness
 wait_for_node
 print_banner
 
-# 5. Интерактивный цикл ожидания команды
+# 5. Interactive command loop
 print_help
 echo ""
 
@@ -338,7 +346,7 @@ while true; do
     read -r -p "sandbox> " cmd || break
     case "$cmd" in
         stop|q|quit|exit|"")
-            echo "Получена команда на остановку..."
+            echo "Stop requested..."
             break
             ;;
         build|b|fast|rebuild)
@@ -348,9 +356,9 @@ while true; do
             rebuild_full || true
             ;;
         logs|l)
-            echo "Подключение к логам (для возврата в меню нажмите Ctrl+C)..."
+            echo "Following logs (press Ctrl+C to return to the menu)..."
             (
-                # В подоболочке перехватываем Ctrl+C чтобы не выходить из главного скрипта
+                # Handle Ctrl+C in the subshell without exiting the main script
                 trap 'exit 0' INT
                 $COMPOSE_CMD logs -f --tail=100
             )
@@ -360,14 +368,14 @@ while true; do
             $COMPOSE_CMD ps
             ;;
         restart|r)
-            echo "Перезапуск контейнеров..."
+            echo "Restarting containers..."
             $COMPOSE_CMD restart
             ;;
         help|h)
             print_help
             ;;
         *)
-            echo "Неизвестная команда: '$cmd'. Введите 'help' для списка доступных команд."
+            echo "Unknown command: '$cmd'. Enter 'help' for available commands."
             ;;
     esac
 done

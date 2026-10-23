@@ -1,42 +1,9 @@
-# ==========================================================================
-# Stage 1: Build Application JAR (Maven)
-# Built on JDK image (Debian Jammy) - paxctl is NOT needed here
-# because this stage is not included in the final image.
-# ==========================================================================
-FROM eclipse-temurin:21-jdk-jammy AS build
-WORKDIR /app
-
-# Copy Maven wrapper & project config
-COPY mvnw ./
-COPY .mvn .mvn
-COPY pom.xml ./
-RUN chmod +x mvnw
-
-# Copy source code and pre-built frontend assets
-COPY src ./src
-COPY frontend ./frontend
-
-# Build argument to skip tests (default: true for Docker images)
-ARG SKIP_TESTS=true
-
-# Build the JAR
-RUN --mount=type=cache,target=/root/.m2 \
-    if [ "$SKIP_TESTS" = "true" ]; then \
-        echo ">>> Building WITHOUT tests (-DskipTests)" && \
-        ./mvnw package -DskipTests -Dmaven.test.skip=true -Dfrontend.skip=true; \
-    else \
-        echo ">>> Building WITH tests" && \
-        ./mvnw package -Dfrontend.skip=true; \
-    fi
-
-
-# ==========================================================================
-# Stage 2: Production Container (Astra Linux / Parsec compatible)
-# --------------------------------------------------------------------------
-# ==========================================================================
+# Experimental runtime variant; compatibility requires testing on Astra itself.
 FROM eclipse-temurin:21-jre-alpine AS production
 WORKDIR /app
 
+# Preserve the existing JVM-specific MPROTECT relaxation. This is not proof of
+# compatibility with Astra/Parsec and must not be applied to the standard image.
 RUN apk add --no-cache paxctl \
     && JAVA_BIN="$(readlink -f "$(command -v java)")" \
     && paxctl -c "$JAVA_BIN" \
@@ -44,16 +11,8 @@ RUN apk add --no-cache paxctl \
     && paxctl -v "$JAVA_BIN" \
     && apk del paxctl
 
-# --------------------------------------------------------------------------
-# Copy compiled JAR from build stage
-# --------------------------------------------------------------------------
-COPY --from=build /app/target/*.jar /app/app.jar
-
-# --------------------------------------------------------------------------
-# MPROTECT is disabled only for the JVM in this Astra image to allow JIT.
-# This relaxes memory execution protection for the Java process.
-# The standard Docker image is unaffected by this change.
-# --------------------------------------------------------------------------
+ARG JAR_FILE=target/*.jar
+COPY --chmod=0644 ${JAR_FILE} /app/app.jar
+USER 10001:10001
 EXPOSE 8080
-
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

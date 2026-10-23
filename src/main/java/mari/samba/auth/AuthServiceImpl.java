@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import mari.samba.config.ExecutionProperties.Mode;
 import mari.samba.infra.ExecutionSessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +33,25 @@ public class AuthServiceImpl implements AuthService {
             throws Exception {
 
         if (bruteForceService.isBlocked(clientIp, request.getUsername())) {
-            log.warn("Blocked login attempt from IP {} due to too many failed attempts", clientIp);
+            log.warn("Blocked login attempt from IP {} due to too many failed attempts", logValue(clientIp));
             throw new SecurityException("Too many failed login attempts. IP temporarily blocked.");
         }
 
+        validateCredentials(request);
+        connectSsh(sessionId, request, clientIp);
+
+        List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        bruteForceService.resetFailedLogin(clientIp, request.getUsername());
+        log.info(
+                "User '{}' successfully authenticated for host '{}'",
+                logValue(request.getUsername()),
+                logValue(request.getHost()));
+    }
+
+    private static void validateCredentials(ConnectionRequestDto request) {
         if (!request.isKeyAuth()
                 && (request.getPassword() == null || request.getPassword().isBlank())) {
             throw new IllegalArgumentException("Password is required when not using key authentication.");
@@ -48,33 +62,27 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Private key is required when using key authentication.");
         }
 
-        if (sessionManager.effectiveMode() == Mode.REMOTE
-                && (request.getHost() == null || request.getHost().isBlank())) {
+        if (request.getHost() == null || request.getHost().isBlank()) {
             throw new IllegalArgumentException("Host is required for remote connections.");
         }
+    }
 
+    private void connectSsh(String sessionId, ConnectionRequestDto request, String clientIp) throws Exception {
         try {
             sessionManager.createSession(sessionId, request);
-
-            List<SimpleGrantedAuthority> authorities =
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), null, authorities);
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            bruteForceService.resetFailedLogin(clientIp, request.getUsername());
-            log.info("User '{}' successfully authenticated for host '{}'", request.getUsername(), request.getHost());
-
         } catch (Exception e) {
             bruteForceService.registerFailedLogin(clientIp, request.getUsername());
             log.warn(
-                    "Failed authentication attempt for user '{}' from IP {}: {}",
-                    request.getUsername(),
-                    clientIp,
-                    e.getMessage());
+                    "Failed authentication attempt for user '{}' from IP {} ({})",
+                    logValue(request.getUsername()),
+                    logValue(clientIp),
+                    e.getClass().getSimpleName());
             throw e;
         }
+    }
+
+    private static String logValue(String value) {
+        return value == null ? "" : value.replace('\r', '_').replace('\n', '_');
     }
 
     @Override

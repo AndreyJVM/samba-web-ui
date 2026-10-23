@@ -12,11 +12,9 @@ import mari.samba.auth.AuthApiController;
 import mari.samba.auth.AuthServiceImpl;
 import mari.samba.auth.BruteForceProtectionService;
 import mari.samba.auth.ConnectionRequestDto;
-import mari.samba.config.ExecutionProperties.Mode;
 import mari.samba.config.SecurityConfig;
 import mari.samba.core.SambaCommandException;
 import mari.samba.infra.ExecutionSessionManager;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -57,12 +55,6 @@ class HttpSecurityIntegrationTest {
 
     @MockitoBean
     private SambaShareService shares;
-
-    @BeforeEach
-    void setUpRemoteExecution() {
-        when(sessions.effectiveMode()).thenReturn(Mode.REMOTE);
-        when(sessions.sessionMode(anyString())).thenReturn(Mode.REMOTE);
-    }
 
     @Test
     void anonymousReadsRequireAuthenticationWithoutRedirect() throws Exception {
@@ -231,66 +223,24 @@ class HttpSecurityIntegrationTest {
         verifyNoInteractions(shares);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"LOCAL", "REMOTE"})
-    void anonymousClientCanDiscoverExecutionMode(String mode) throws Exception {
-        when(sessions.effectiveMode()).thenReturn(Mode.valueOf(mode));
-
+    @Test
+    void anonymousClientCanDiscoverRemoteEnvironment() throws Exception {
         mvc.perform(get("/api/auth/environment"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.mode").value(mode.toLowerCase(java.util.Locale.ROOT)));
-
-        verify(sessions, never()).createSession(anyString(), any(ConnectionRequestDto.class));
-        verifyNoInteractions(shares, bruteForce);
+                .andExpect(jsonPath("$.data.mode").value("remote"));
+        verifyNoInteractions(sessions, shares, bruteForce);
     }
 
     @Test
-    void localLoginWithoutHostPersistsAuthenticationAndAllowsCsrfProtectedWrite() throws Exception {
-        when(sessions.effectiveMode()).thenReturn(Mode.LOCAL);
-        when(sessions.sessionMode(anyString())).thenReturn(Mode.LOCAL);
-        MvcResult result = mvc.perform(
-                        withCsrf(post("/api/auth/login"))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
-                                {"username":"local-admin","password":"test-only"}
-                                """))
-                .andExpect(status().isOk())
-                .andReturn();
-        MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
-        assertNotNull(session);
-
-        mvc.perform(get("/api/auth/me").session(session))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.user").value("local-admin"))
-                .andExpect(jsonPath("$.data.host").value("Local server"));
-        Cookie token = csrfCookie(session);
-        mvc.perform(write("POST").session(session).cookie(token).header("X-XSRF-TOKEN", token.getValue()))
-                .andExpect(status().isOk());
-
-        verify(sessions).createSession(eq(session.getId()), argThat(request -> request.getHost() == null));
-        verify(shares).createShare(eq(session.getId()), any(SambaShareCreateDto.class));
-        verify(bruteForce).resetFailedLogin("127.0.0.1", "local-admin");
-    }
-
-    @Test
-    void localLoginWithoutPasswordRejectsRequestWithoutAuthenticating() throws Exception {
-        when(sessions.effectiveMode()).thenReturn(Mode.LOCAL);
-        MvcResult result = mvc.perform(
-                        withCsrf(post("/api/auth/login"))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(
-                                        """
-                                {"username":"local-admin"}
-                                """))
+    void loginWithoutHostDoesNotAuthenticateOrAllowProtectedRequests() throws Exception {
+        MvcResult result = mvc.perform(withCsrf(post("/api/auth/login"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"admin\",\"password\":\"test-only\"}"))
                 .andExpect(status().isBadRequest())
                 .andReturn();
-
-        mvc.perform(get("/api/shares")
-                        .session((MockHttpSession) result.getRequest().getSession(false)))
-                .andExpect(status().isUnauthorized());
-        verify(sessions, never()).createSession(anyString(), any(ConnectionRequestDto.class));
-        verifyNoInteractions(shares);
+        assertNull(result.getRequest().getSession(false));
+        mvc.perform(get("/api/shares")).andExpect(status().isUnauthorized());
+        verifyNoInteractions(sessions, shares, bruteForce);
     }
 
     private MockHttpSession login() throws Exception {

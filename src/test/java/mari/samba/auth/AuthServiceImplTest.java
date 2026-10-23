@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-import mari.samba.config.ExecutionProperties.Mode;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import mari.samba.core.SambaCommandException;
 import mari.samba.infra.ExecutionSessionManager;
 import org.junit.jupiter.api.AfterEach;
@@ -16,6 +18,7 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -71,12 +74,54 @@ class AuthServiceImplTest {
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void missingHostDoesNotCreateSession(String host) {
+        ConnectionRequestDto request = new ConnectionRequestDto(host, 22, "admin", "password", "test-only", null, null);
+        assertThatThrownBy(() -> service.login("session", request, "127.0.0.1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Host is required");
+        verifyNoInteractions(sessions);
+        verify(bruteForce, never()).resetFailedLogin(anyString(), anyString());
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void successfulSshConnectionIsRequiredBeforePublishingAuthentication(boolean keyAuth) throws Exception {
+        ConnectionRequestDto request = new ConnectionRequestDto(
+                "server",
+                22,
+                "admin",
+                keyAuth ? "key" : "password",
+                keyAuth ? null : "test-only",
+                keyAuth ? "synthetic-key" : null,
+                null);
+        doAnswer(invocation -> {
+                    assertThat(SecurityContextHolder.getContext().getAuthentication())
+                            .isNull();
+                    verify(bruteForce, never()).resetFailedLogin(anyString(), anyString());
+                    return null;
+                })
+                .when(sessions)
+                .createSession("session", request);
+
+        service.login("session", request, "127.0.0.1");
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication().isAuthenticated())
+                .isTrue();
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getName())
+                .isEqualTo("admin");
+        verify(sessions).createSession("session", request);
+        verify(bruteForce).resetFailedLogin("127.0.0.1", "admin");
+    }
+
     @Test
     void connectionFailureRegistersAttemptWithoutAuthenticating() throws Exception {
         ConnectionRequestDto request =
                 new ConnectionRequestDto("server", 22, "admin", "password", "test-only", null, null);
         SambaCommandException failure = new SambaCommandException("Connection rejected");
-        when(sessions.effectiveMode()).thenReturn(Mode.REMOTE);
         doThrow(failure).when(sessions).createSession("session", request);
 
         assertThatThrownBy(() -> service.login("session", request, "127.0.0.1")).isSameAs(failure);
@@ -84,6 +129,38 @@ class AuthServiceImplTest {
         verify(bruteForce).registerFailedLogin("127.0.0.1", "admin");
         verify(bruteForce, never()).resetFailedLogin(anyString(), anyString());
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void authenticationLogsCannotForgeEntriesOrExposeSshExceptionText(boolean failure) throws Exception {
+        Logger logger = (Logger) LoggerFactory.getLogger(AuthServiceImpl.class);
+        ListAppender<ILoggingEvent> events = new ListAppender<>();
+        events.start();
+        logger.addAppender(events);
+        String secret = "synthetic-secret-do-not-log";
+        ConnectionRequestDto request =
+                new ConnectionRequestDto("server\r\nforged", 22, "admin\r\nforged", "password", secret, null, null);
+        if (failure) {
+            doThrow(new SambaCommandException(secret + "\r\nforged"))
+                    .when(sessions)
+                    .createSession("session", request);
+        }
+        try {
+            if (failure) {
+                assertThatThrownBy(() -> service.login("session", request, "127.0.0.1\r\nforged"))
+                        .isInstanceOf(SambaCommandException.class);
+            } else {
+                service.login("session", request, "127.0.0.1\r\nforged");
+            }
+            assertThat(events.list).isNotEmpty().allSatisfy(event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain("\r", "\n", secret);
+                assertThat(event.getThrowableProxy()).isNull();
+            });
+        } finally {
+            logger.detachAppender(events);
+            events.stop();
+        }
     }
 
     @Test

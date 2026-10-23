@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.util.Map;
-import mari.samba.config.ExecutionProperties.Mode;
 import mari.samba.core.ApiResponse;
 import mari.samba.core.SambaCommandException;
 import mari.samba.infra.ExecutionSessionManager;
@@ -30,8 +29,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthApiController {
 
     private final AuthService authService;
-    private final ExecutionSessionManager sessionManager;
-    private final BruteForceProtectionService bruteForceService;
 
     /**
      * Constructs a new {@link AuthApiController}.
@@ -40,7 +37,7 @@ public class AuthApiController {
      * AuthServiceImpl}) if no such bean is provided by the Spring context, which is primarily useful
      * for targeted slice-tests.
      *
-     * @param sessionManager routes local and SSH execution sessions
+     * @param sessionManager manages SSH execution sessions
      * @param bruteForceService provides tracking and limiting for login attempts
      * @param authService the overarching authentication service (optional)
      */
@@ -48,15 +45,12 @@ public class AuthApiController {
             ExecutionSessionManager sessionManager,
             BruteForceProtectionService bruteForceService,
             @Autowired(required = false) AuthService authService) {
-        this.sessionManager = sessionManager;
-        this.bruteForceService = bruteForceService;
         this.authService = authService != null ? authService : new AuthServiceImpl(sessionManager, bruteForceService);
     }
 
     @GetMapping("/environment")
     public ApiResponse<AuthEnvironmentDto> getEnvironment() {
-        String mode = sessionManager.effectiveMode().name().toLowerCase();
-        return ApiResponse.ok(new AuthEnvironmentDto(mode));
+        return ApiResponse.ok(new AuthEnvironmentDto("remote"));
     }
 
     /**
@@ -96,9 +90,8 @@ public class AuthApiController {
                     HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                     SecurityContextHolder.getContext());
 
-            String hostDisplay = sessionManager.sessionMode(sessionId) == Mode.LOCAL
-                    ? "Local server"
-                    : request.getHost() + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : "");
+            String hostDisplay =
+                    request.getHost() + (request.getResolvedPort() != 22 ? ":" + request.getResolvedPort() : "");
             session.setAttribute("sambaHost", hostDisplay);
             session.setAttribute("sambaUser", request.getUsername());
 
