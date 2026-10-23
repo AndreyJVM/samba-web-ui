@@ -8,12 +8,12 @@ RUN printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d \
     && apt-get install --yes --no-install-recommends \
         samba smbclient openssh-server sudo supervisor winbind krb5-user procps \
     && rm -rf /var/lib/apt/lists/* /etc/ssh/ssh_host_* \
-    && mkdir -p /opt/shareguard-node /srv/samba /var/log/samba
+    && mkdir -p /opt/sambryx-node /srv/samba /var/log/samba
 
 COPY smb.conf /etc/samba/smb.conf
-COPY sshd_config supervisord.conf /opt/shareguard-node/
-COPY --chmod=0755 entrypoint.sh /opt/shareguard-node/entrypoint.sh
+COPY sshd_config supervisord.conf /opt/sambryx-node/
+COPY --chmod=0755 entrypoint.sh /opt/sambryx-node/entrypoint.sh
 COPY --chmod=0755 systemctl /usr/local/bin/systemctl
 
 EXPOSE 22 445
-ENTRYPOINT ["/opt/shareguard-node/entrypoint.sh"]
+ENTRYPOINT ["/opt/sambryx-node/entrypoint.sh"]

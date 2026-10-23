@@ -14,7 +14,7 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
- * Main Spring Security configuration class for ShareGuard.
+ * Main Spring Security configuration class for Sambryx.
  * Configures authentication, authorization rules, CSRF protection, and static resource access.
  */
 @Configuration

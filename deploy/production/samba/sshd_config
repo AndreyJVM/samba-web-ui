@@ -7,7 +7,7 @@ PubkeyAuthentication yes
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitEmptyPasswords no
-AuthorizedKeysFile /run/shareguard-authorized-keys
+AuthorizedKeysFile /run/sambryx-authorized-keys
 StrictModes yes
 UsePAM yes
 DisableForwarding yes

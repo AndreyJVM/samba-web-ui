@@ -11,13 +11,14 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ProductionComposeTest(unittest.TestCase):
-    def render(self, bundled=False, missing_image=False):
+    def render(self, bundled=False, missing_image=False, project_name="sambryx-production"):
         with tempfile.TemporaryDirectory() as directory:
             fixture = Path(directory) / "fixture"
             fixture.write_text("fixture-only")
             environment = {
                 **os.environ,
-                "SHAREGUARD_IMAGE": "shareguard-fixture:1.0.0",
+                "SAMBRYX_IMAGE": "sambryx-fixture:1.0.0",
+                "COMPOSE_PROJECT_NAME": project_name,
                 "TLS_CERT_FILE": str(fixture),
                 "TLS_KEY_FILE": str(fixture),
                 "SSH_AUTHORIZED_KEYS_FILE": str(fixture),
@@ -26,7 +27,7 @@ class ProductionComposeTest(unittest.TestCase):
                 "SAMBA_BIND_IP": "127.0.0.1", "SAMBA_PORT": "445",
             }
             if missing_image:
-                environment.pop("SHAREGUARD_IMAGE")
+                environment.pop("SAMBRYX_IMAGE")
             command = ["docker", "compose", "--env-file", "/dev/null",
                        "-f", str(ROOT / "docker-compose.production.yml")]
             if bundled:
@@ -35,7 +36,7 @@ class ProductionComposeTest(unittest.TestCase):
                                     env=environment, capture_output=True, text=True, cwd=ROOT)
             if missing_image:
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("SHAREGUARD_IMAGE", result.stderr)
+                self.assertIn("SAMBRYX_IMAGE", result.stderr)
                 return None
             self.assertEqual(result.returncode, 0, result.stderr)
             return json.loads(result.stdout)
@@ -75,6 +76,12 @@ class ProductionComposeTest(unittest.TestCase):
             model["services"]["web"]["networks"]))
         self.assertNotIn("AUTO_ADMIN_PASS", node.get("environment", {}))
         self.assertEqual([secret["source"] for secret in node["secrets"]], ["ssh_authorized_keys"])
+
+    def test_existing_project_keeps_its_persistent_volume_names(self):
+        model = self.render(bundled=True, project_name="shareguard-production")
+        self.assertEqual(model["name"], "shareguard-production")
+        for volume in ("node-identity", "samba-state", "samba-data", "samba-home", "samba-logs"):
+            self.assertEqual(model["volumes"][volume]["name"], "shareguard-production_" + volume)
 
     def test_application_image_is_mandatory(self):
         self.render(missing_image=True)

@@ -1,6 +1,6 @@
-# Архитектура ShareGuard
+# Архитектура Sambryx
 
-ShareGuard — веб-интерфейс для управления Samba на Linux. Backend предоставляет REST API, frontend работает как React SPA. Команды выполняются через SSH.
+Sambryx — веб-интерфейс для управления Samba на Linux. Backend предоставляет REST API, frontend работает как React SPA. Команды выполняются через SSH.
 
 ## Стек технологий
 
@@ -18,7 +18,7 @@ ShareGuard — веб-интерфейс для управления Samba на 
 ## Структура проекта
 
 ```text
-shareguard/
+sambryx/
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/                 # Страницы интерфейса
@@ -27,7 +27,7 @@ shareguard/
 │   │   └── App.tsx                # Маршрутизация SPA
 │   └── vite.config.ts            # Базовый путь /ui/ и dev-прокси API
 ├── src/main/java/mari/samba/
-│   ├── ShareGuardApplication.java # Точка входа Spring Boot
+│   ├── SambryxApplication.java # Точка входа Spring Boot
 │   ├── auth/                     # Вход, выход и защита от перебора
 │   ├── share/                    # Общие ресурсы Samba
 │   ├── user/                     # Пользователи Samba

@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>mari</groupId>
-    <artifactId>samba</artifactId>
+    <artifactId>sambryx</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>ShareGuard</name>
-    <description>ShareGuard - Modern Samba Server Management Web UI</description>
+    <name>Sambryx</name>
+    <description>Sambryx - Modern Samba Server Management Web UI</description>
 
     <properties>
         <java.version>21</java.version>
@@ -101,7 +101,7 @@
     </dependencies>
 
     <build>
-        <finalName>shareguard-${project.version}</finalName>
+        <finalName>sambryx-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

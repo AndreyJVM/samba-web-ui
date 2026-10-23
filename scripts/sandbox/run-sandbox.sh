@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# ShareGuard - Docker Compose Sandbox Runner with Clean Teardown
+# Sambryx - Docker Compose Sandbox Runner with Clean Teardown
 # ==============================================================================
 # This script:
 # 1. Offers deployment modes with or without tests
@@ -16,7 +16,7 @@
 #    - restart / logs / status / stop
 # 8. On exit (Enter, stop, q or Ctrl+C), stops Compose,
 #    removes containers, networks and volumes (samba-shares, samba-config),
-#    and removes the local web image (shareguard-web:latest),
+#    and removes the local web image (sambryx-web:latest),
 #    leaving a clean environment for the next run.
 # ==============================================================================
 
@@ -70,7 +70,7 @@ fi
 # Select deployment mode
 # ==============================================================================
 echo "=========================================================="
-echo "         ShareGuard - Docker Sandbox"
+echo "         Sambryx - Docker Sandbox"
 echo "=========================================================="
 echo ""
 echo "Select deployment mode:"
@@ -157,7 +157,7 @@ build_docker_image() {
         return 1
     fi
     local jar_file="target/$(basename "${jars[0]}")"
-    if ! docker build --target local --build-arg "JAR_FILE=$jar_file" -t shareguard-web:latest .; then
+    if ! docker build --target local --build-arg "JAR_FILE=$jar_file" -t sambryx-web:latest .; then
         echo "Error: failed to build web Docker image!" >&2
         return 1
     fi
@@ -260,7 +260,7 @@ rebuild_full() {
     echo ">>> Stopping services and removing containers, networks, volumes and images..."
     $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
     docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
-    docker rmi -f shareguard-web:latest shareguard_web:latest >/dev/null 2>&1 || true
+    docker rmi -f sambryx-web:latest sambryx_web:latest >/dev/null 2>&1 || true
     rm -rf "$PROJECT_ROOT/frontend/dist"
 
     if ! build_frontend; then
@@ -304,7 +304,7 @@ cleanup() {
     docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
 
     # Remove the local web image by its known tags
-    docker rmi -f shareguard-web:latest shareguard_web:latest >/dev/null 2>&1 || true
+    docker rmi -f sambryx-web:latest sambryx_web:latest >/dev/null 2>&1 || true
 
     echo "=========================================================="
     echo "  [DONE] Containers, volumes, networks and web image removed!"
@@ -319,7 +319,7 @@ trap cleanup EXIT INT TERM
 echo ">>> Checking and removing old sandbox containers, volumes and web image..."
 $COMPOSE_CMD down -v --rmi local --remove-orphans >/dev/null 2>&1 || true
 docker volume rm -f samba_sandbox_shares samba_sandbox_config >/dev/null 2>&1 || true
-docker rmi -f shareguard-web:latest shareguard_web:latest >/dev/null 2>&1 || true
+docker rmi -f sambryx-web:latest sambryx_web:latest >/dev/null 2>&1 || true
 
 # An existing dist/ directory may not match the current sources.
 build_frontend

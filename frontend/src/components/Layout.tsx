@@ -155,11 +155,11 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             <>
               <Link to="/shares" className="flex items-center gap-2.5 text-base tracking-tight group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground rounded">
                 <img
-                  src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`}
-                  alt="ShareGuard"
+                  src={`${import.meta.env.BASE_URL}sambryx/logo-mark.svg`}
+                  alt="Sambryx"
                   className="h-7 w-auto shrink-0 transition-transform group-hover:scale-105"
                 />
-                <span className="font-normal text-foreground">Share<span className="font-bold">Guard</span></span>
+                <span className="font-normal text-foreground">Sambryx</span>
               </Link>
               <div className="flex items-center gap-0.5">
                 <button
@@ -192,8 +192,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               title={t("sidebar.expand")}
             >
               <img
-                src={`${import.meta.env.BASE_URL}shareguard/logo-mark.svg`}
-                alt="ShareGuard"
+                src={`${import.meta.env.BASE_URL}sambryx/logo-mark.svg`}
+                alt="Sambryx"
                 className="h-7 w-auto shrink-0 group-hover:hidden transition-all"
               />
               <PanelLeftOpen className="w-6 h-6 hidden group-hover:block text-foreground" />
@@ -377,7 +377,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           <div className="flex items-center gap-3 shrink-0">
             {/* GitHub Project & Issues Link */}
             <a
-              href="https://github.com/AndreyJVM/shareguard"
+              href="https://github.com/AndreyJVM/sambryx"
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-text-muted hover:text-foreground hover:bg-surface-2 rounded-lg border border-border transition-colors shadow-2xs group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground"

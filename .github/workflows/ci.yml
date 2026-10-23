@@ -70,13 +70,13 @@ jobs:
             exit 1
           fi
           python3 scripts/ci/verify-artifacts.py "${jars[0]}"
-          docker build --build-arg "JAR_FILE=${jars[0]}" --tag shareguard-ci:standard .
-          bash scripts/ci/smoke-docker.sh shareguard-ci:standard "${jars[0]}"
+          docker build --build-arg "JAR_FILE=${jars[0]}" --tag sambryx-ci:standard .
+          bash scripts/ci/smoke-docker.sh sambryx-ci:standard "${jars[0]}"
 
       - name: Upload Built JAR Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: shareguard-jar
+          name: sambryx-jar
           path: target/*.jar
           retention-days: 7
 
@@ -92,20 +92,20 @@ jobs:
       - name: Download tested application JAR
         uses: actions/download-artifact@v4
         with:
-          name: shareguard-jar
+          name: sambryx-jar
           path: target
 
       - name: Build application runtime
-        run: docker build --tag shareguard-ci:production .
+        run: docker build --tag sambryx-ci:production .
 
       - name: Pull TLS proxy image
         run: docker pull nginx:1.30.6-alpine
 
       - name: Build standalone Samba and SSH node
-        run: docker build --tag shareguard-samba-node:ubuntu24.04 deploy/production/samba
+        run: docker build --tag sambryx-samba-node:ubuntu24.04 deploy/production/samba
 
       - name: Verify TLS, SSH, SMB and persistence
-        run: python3 scripts/ci/smoke-production.py shareguard-ci:production
+        run: python3 scripts/ci/smoke-production.py sambryx-ci:production
 
   github-release:
     name: Publish GitHub Release
@@ -117,7 +117,7 @@ jobs:
       - name: Download Built JAR
         uses: actions/download-artifact@v4
         with:
-          name: shareguard-jar
+          name: sambryx-jar
           path: release-artifacts
 
       - name: Generate Changelog & Publish GitHub Release
@@ -145,7 +145,7 @@ jobs:
       - name: Download tested application JAR
         uses: actions/download-artifact@v4
         with:
-          name: shareguard-jar
+          name: sambryx-jar
           path: target
 
       - name: Verify downloaded application artifact
@@ -171,7 +171,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: andreyvorobevaqa/shareguard
+          images: andreyvorobevaqa/sambryx
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -198,7 +198,7 @@ jobs:
         id: meta-astra
         uses: docker/metadata-action@v5
         with:
-          images: andreyvorobevaqa/shareguard
+          images: andreyvorobevaqa/sambryx
           tags: |
             type=semver,pattern={{version}},prefix=astra-
             type=semver,pattern={{major}}.{{minor}},prefix=astra-
@@ -236,11 +236,3 @@ jobs:
           while IFS= read -r tag; do
             if [[ -n "$tag" ]]; then docker push "$tag"; fi
           done <<< "$ASTRA_TAGS"
-
-      - name: Update Docker Hub Description
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: andreyvorobevaqa/shareguard
-          readme-filepath: ./DOCKERHUB.md

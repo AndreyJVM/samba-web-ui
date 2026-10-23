@@ -8,12 +8,12 @@
 
 services:
   web:
-    image: shareguard-web:latest
+    image: sambryx-web:latest
     build:
       context: .
       dockerfile: Dockerfile
       target: local
-    container_name: shareguard
+    container_name: sambryx
     restart: unless-stopped
     ports:
       # Web UI Port

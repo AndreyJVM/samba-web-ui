@@ -26,7 +26,7 @@ class Fixture:
     def __init__(self, image, directory):
         self.directory = Path(directory)
         self.environment = {
-            **os.environ, "SHAREGUARD_IMAGE": image,
+            **os.environ, "SAMBRYX_IMAGE": image,
             "TLS_CERT_FILE": str(self.directory / "certificate.pem"),
             "TLS_KEY_FILE": str(self.directory / "tls.key"),
             "SSH_AUTHORIZED_KEYS_FILE": str(self.directory / "management.pub"),
@@ -155,7 +155,7 @@ def main():
     parser.add_argument("image", help="Locally built application image; the Samba and nginx images must also be available")
     arguments = parser.parse_args()
     check(os.getuid() != 0, "Run the smoke test as a non-root Docker user")
-    with tempfile.TemporaryDirectory(prefix="shareguard-production-smoke-") as directory:
+    with tempfile.TemporaryDirectory(prefix="sambryx-production-smoke-") as directory:
         fixture = Fixture(arguments.image, directory)
         try:
             fixture.prepare()
