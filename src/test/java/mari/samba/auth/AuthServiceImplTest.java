@@ -90,14 +90,7 @@ class AuthServiceImplTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void successfulSshConnectionIsRequiredBeforePublishingAuthentication(boolean keyAuth) throws Exception {
-        ConnectionRequestDto request = new ConnectionRequestDto(
-                "server",
-                22,
-                "admin",
-                keyAuth ? "key" : "password",
-                keyAuth ? null : "test-only",
-                keyAuth ? "synthetic-key" : null,
-                null);
+        ConnectionRequestDto request = connectionRequest(keyAuth);
         doAnswer(invocation -> {
                     assertThat(SecurityContextHolder.getContext().getAuthentication())
                             .isNull();
@@ -117,10 +110,10 @@ class AuthServiceImplTest {
         verify(bruteForce).resetFailedLogin("127.0.0.1", "admin");
     }
 
-    @Test
-    void connectionFailureRegistersAttemptWithoutAuthenticating() throws Exception {
-        ConnectionRequestDto request =
-                new ConnectionRequestDto("server", 22, "admin", "password", "test-only", null, null);
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void connectionFailureRegistersAttemptWithoutAuthenticating(boolean keyAuth) throws Exception {
+        ConnectionRequestDto request = connectionRequest(keyAuth);
         SambaCommandException failure = new SambaCommandException("Connection rejected");
         doThrow(failure).when(sessions).createSession("session", request);
 
@@ -171,5 +164,16 @@ class AuthServiceImplTest {
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verifyNoInteractions(sessions, bruteForce);
+    }
+
+    private ConnectionRequestDto connectionRequest(boolean keyAuth) {
+        return new ConnectionRequestDto(
+                "server",
+                22,
+                "admin",
+                keyAuth ? "key" : "password",
+                keyAuth ? null : "test-only",
+                keyAuth ? "synthetic-key" : null,
+                keyAuth ? "synthetic-passphrase" : null);
     }
 }
