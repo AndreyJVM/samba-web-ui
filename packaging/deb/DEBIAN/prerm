@@ -1,6 +1,0 @@
-#!/bin/sh
-set -eu
-
-if [ "${1:-}" = "remove" ] && [ -d /run/systemd/system ]; then
-    systemctl disable --now shareguard.service shareguard-helper.service >/dev/null || true
-fi

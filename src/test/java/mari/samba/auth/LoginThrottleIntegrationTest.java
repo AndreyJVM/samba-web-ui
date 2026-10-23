@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import jakarta.servlet.http.Cookie;
-import mari.samba.config.ExecutionProperties.Mode;
 import mari.samba.config.SambaProperties;
 import mari.samba.config.SecurityConfig;
 import mari.samba.core.SambaCommandException;
@@ -47,7 +46,6 @@ class LoginThrottleIntegrationTest {
 
     @BeforeEach
     void rejectConnections() throws Exception {
-        when(sessions.effectiveMode()).thenReturn(Mode.REMOTE);
         doThrow(new SambaCommandException("Rejected fixture credentials"))
                 .when(sessions)
                 .createSession(anyString(), any(ConnectionRequestDto.class));

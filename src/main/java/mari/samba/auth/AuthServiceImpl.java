@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import mari.samba.config.ExecutionProperties.Mode;
 import mari.samba.infra.ExecutionSessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,8 +47,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Private key is required when using key authentication.");
         }
 
-        if (sessionManager.effectiveMode() == Mode.REMOTE
-                && (request.getHost() == null || request.getHost().isBlank())) {
+        if (request.getHost() == null || request.getHost().isBlank()) {
             throw new IllegalArgumentException("Host is required for remote connections.");
         }
 

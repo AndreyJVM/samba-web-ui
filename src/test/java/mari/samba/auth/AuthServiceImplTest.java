@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-import mari.samba.config.ExecutionProperties.Mode;
 import mari.samba.core.SambaCommandException;
 import mari.samba.infra.ExecutionSessionManager;
 import org.junit.jupiter.api.AfterEach;
@@ -71,12 +70,24 @@ class AuthServiceImplTest {
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void missingHostDoesNotCreateSession(String host) {
+        ConnectionRequestDto request = new ConnectionRequestDto(host, 22, "admin", "password", "test-only", null, null);
+        assertThatThrownBy(() -> service.login("session", request, "127.0.0.1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Host is required");
+        verifyNoInteractions(sessions);
+        verify(bruteForce, never()).resetFailedLogin(anyString(), anyString());
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
     @Test
     void connectionFailureRegistersAttemptWithoutAuthenticating() throws Exception {
         ConnectionRequestDto request =
                 new ConnectionRequestDto("server", 22, "admin", "password", "test-only", null, null);
         SambaCommandException failure = new SambaCommandException("Connection rejected");
-        when(sessions.effectiveMode()).thenReturn(Mode.REMOTE);
         doThrow(failure).when(sessions).createSession("session", request);
 
         assertThatThrownBy(() -> service.login("session", request, "127.0.0.1")).isSameAs(failure);

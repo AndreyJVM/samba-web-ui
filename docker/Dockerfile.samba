@@ -1,9 +1,9 @@
 FROM ubuntu:22.04
 
-# Отключаем интерактивные запросы apt
+# Disable interactive apt prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Устанавливаем SSH сервер, Samba и утилиты
+# Install SSH server, Samba and utilities
 RUN apt-get update && apt-get install -y \
     openssh-server \
     sudo \
@@ -11,37 +11,37 @@ RUN apt-get update && apt-get install -y \
     vim \
     && rm -rf /var/lib/apt/lists/*
 
-# Настраиваем SSH для возможности логина пользователя и root
+# Configure SSH to allow user and root login
 RUN mkdir /var/run/sshd && \
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-# Копируем конфигурационные файлы и скрипты в образ
+# Copy configuration files and scripts into the image
 COPY scripts/sandbox/systemctl-stub.sh /usr/bin/systemctl
 COPY scripts/sandbox/entrypoint.sh /entrypoint.sh
 COPY config/smb-base.conf /tmp/smb-base.conf
 COPY scripts/setup-samba-server.sh /setup-samba-server.sh
 COPY scripts/sandbox/setup-test-data.sh /setup-test-data.sh
 
-# Настраиваем права доступа для скриптов
+# Set script permissions
 RUN chmod +x /usr/bin/systemctl /entrypoint.sh /setup-samba-server.sh /setup-test-data.sh
 
-# Запускаем скрипт начальной установки Samba-пользователя (admin) в неинтерактивном режиме
+# Initialize the Samba admin user non-interactively
 ENV AUTO_ADMIN_USER=admin
 ENV AUTO_ADMIN_PASS=admin
 RUN /setup-samba-server.sh
 
-# Подготавливаем структуру директорий и базовую конфигурацию Samba
+# Prepare directories and the base Samba configuration
 RUN mkdir -p /srv/samba/public && \
     chown -R admin:admin /srv/samba/public && \
     chmod -R 0777 /srv/samba/public && \
     mv /etc/samba/smb.conf /etc/samba/smb.conf.bak && \
     cp /tmp/smb-base.conf /etc/samba/smb.conf
 
-# Генерируем тестовые данные для песочницы разработчиков
+# Generate test data for the developer sandbox
 RUN /setup-test-data.sh
 
-# Открываем порты SSH (22) и Samba (139, 445)
+# Expose SSH (22) and Samba (139, 445) ports
 EXPOSE 22 139 445
 
 CMD ["/entrypoint.sh"]

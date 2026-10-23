@@ -1,6 +1,6 @@
 # Архитектура ShareGuard
 
-ShareGuard — веб-интерфейс для управления Samba на Linux. Backend предоставляет REST API, frontend работает как React SPA. Команды выполняются через SSH или локально, если ShareGuard установлен непосредственно на Samba-сервере.
+ShareGuard — веб-интерфейс для управления Samba на Linux. Backend предоставляет REST API, frontend работает как React SPA. Команды выполняются через SSH.
 
 ## Стек технологий
 
@@ -9,7 +9,7 @@ ShareGuard — веб-интерфейс для управления Samba на 
 | Backend | Java 21, Spring Boot 3.4.0, Spring Web и Bean Validation |
 | Безопасность HTTP | Spring Security, серверная сессия, CSRF-токен для SPA |
 | Frontend | React 18, TypeScript, Vite, React Router, Tailwind CSS |
-| Выполнение команд | CommandExecutor; JSch/SshSessionManager для SSH; LocalCommandExecutor и системный helper для локального режима |
+| Выполнение команд | CommandExecutor и JSch/SshSessionManager для SSH |
 | Проверки backend | JUnit, Spring Boot Test, Spring Security Test, Mockito |
 | Сборка и документация | Maven Wrapper, Spotless, GitHub Actions, MkDocs Material |
 
@@ -49,7 +49,6 @@ shareguard/
 │   └── docs.yml                  # Публикация документации
 ├── docker/                       # Файлы контейнерного стенда и образов
 ├── scripts/sandbox/              # Запуск локального стенда
-├── packaging/                    # Привилегированный helper и сборка Debian-пакета
 ├── docs/                         # Исходники документации
 ├── Dockerfile
 └── pom.xml
@@ -63,9 +62,8 @@ shareguard/
 2. Spring Security проверяет доступ. Публичные пути определены в SecurityConfig. CSRF проверяется и для `POST /api/auth/login`, и для `POST /api/auth/logout`: публичный доступ к endpoint не отменяет проверку токена.
 
 3. Контроллер вызывает сервис своей функциональной области.
-4. Сервис использует CommandExecutor. ExecutionSessionManager направляет вызов в SshSessionManager или LocalCommandExecutor в соответствии с режимом сессии. LinuxCommands централизует формирование команд и проверку аргументов.
-5. В локальном режиме LocalCommandPolicy преобразует только известные формы команд в типизированные операции. PrivilegedHelperClient передаёт их через Unix-сокет системной службе shareguard-helper. Helper проверяет UID клиента и параметры операции, после чего запускает разрешённую системную утилиту без shell.
-6. Результат возвращается через API. Общие ответы и обработка исключений находятся в пакете core.
+4. Сервис использует CommandExecutor. ExecutionSessionManager проверяет наличие сессии и направляет вызов в SshSessionManager. LinuxCommands централизует формирование команд и проверку аргументов.
+5. Результат возвращается через API. Общие ответы и обработка исключений находятся в пакете core.
 
 Лимит попыток входа использует `HttpServletRequest.getRemoteAddr()`. Контроллер не разбирает
 `X-Forwarded-For` и `Forwarded`. За обратным прокси без настройки определения адреса клиента
@@ -74,14 +72,11 @@ shareguard/
 присланные клиентом forwarded-заголовки. Не включайте доверие ко всем прокси.
 См. [настройку прокси в Spring Boot](https://docs.spring.io/spring-boot/3.5/how-to/webserver.html#howto.webserver.use-behind-a-proxy-server).
 
-`ExecutionSessionCleanupListener` закрывает связанное SSH-подключение и удаляет режим
-выполнения при уничтожении HTTP-сессии, включая истечение срока действия и явную
+`ExecutionSessionCleanupListener` закрывает связанное SSH-подключение и удаляет запись
+подключения при уничтожении HTTP-сессии, включая истечение срока действия и явную
 инвалидацию. Повторное отключение уже удалённой сессии не вызывает повторный вызов SSH.
 
-В локальном пакете веб-приложение работает от пользователя `shareguard`, а helper — от `root`.
-HTTP по умолчанию доступен только на `127.0.0.1`. Границы файловых операций повторно проверяются в
-helper после разрешения символических ссылок; итоговый путь должен оставаться внутри разрешённых
-корней. Доверие к SSH-хосту и обработка секретов остаются отдельными границами безопасности.
+Доверие к SSH-хосту и обработка секретов остаются отдельными границами безопасности.
 
 ## Работа с конфигурацией Samba
 
@@ -103,4 +98,8 @@ WebMvcConfig обслуживает /ui/** и возвращает index.html д
 
 Backend содержит тесты контроллеров, сервисов и инфраструктуры. Наличие этих тестов не означает полного покрытия поведения приложения. В frontend предусмотрены команды build и lint; отдельной команды UI-тестов в package.json нет.
 
-CI в .github/workflows/ci.yml использует JDK 21, проверяет Spotless и выполняет Maven clean package. Публикация GitHub Release и Docker-образов выполняется по тегам v*.*.*. Инструкции запуска и требования к окружению приведены в README.md.
+CI в .github/workflows/ci.yml использует JDK 21, проверяет Spotless и выполняет Maven clean package.
+Собранный JAR с frontend используется в Docker. CI проверяет содержимое артефакта и запускает
+обычный Docker-образ для проверки UI и API. При выпуске образы также проверяются до push.
+Публикация GitHub Release и Docker-образов выполняется по тегам v*.*.*.
+Подробности приведены в [руководстве по сборке и поставкам](distribution.md).

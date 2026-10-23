@@ -1,10 +1,8 @@
 package mari.samba.infra;
 
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import mari.samba.auth.ConnectionRequestDto;
-import mari.samba.config.ExecutionProperties;
-import mari.samba.config.ExecutionProperties.Mode;
 import mari.samba.core.SambaCommandException;
 import mari.samba.core.SshSessionExpiredException;
 import org.springframework.context.annotation.Primary;
@@ -14,42 +12,23 @@ import org.springframework.stereotype.Component;
 @Primary
 public class ExecutionSessionManager implements CommandExecutor {
 
-    private final Map<String, Mode> sessionModes = new ConcurrentHashMap<>();
-    private final ExecutionProperties properties;
-    private final LocalCommandExecutor localExecutor;
+    private final Set<String> sessions = ConcurrentHashMap.newKeySet();
     private final SshSessionManager sshExecutor;
 
-    public ExecutionSessionManager(
-            ExecutionProperties properties, LocalCommandExecutor localExecutor, SshSessionManager sshExecutor) {
-        this.properties = properties;
-        this.localExecutor = localExecutor;
+    public ExecutionSessionManager(SshSessionManager sshExecutor) {
         this.sshExecutor = sshExecutor;
     }
 
     public void createSession(String sessionId, ConnectionRequestDto request) throws Exception {
         disconnect(sessionId);
-        Mode mode = effectiveMode();
-        if (mode == Mode.LOCAL) {
-            localExecutor.authenticate(request);
-        } else {
-            sshExecutor.createSession(sessionId, request);
-        }
-        sessionModes.put(sessionId, mode);
+        sshExecutor.createSession(sessionId, request);
+        sessions.add(sessionId);
     }
 
     public void disconnect(String sessionId) {
-        Mode mode = sessionModes.remove(sessionId);
-        if (mode == Mode.REMOTE) {
+        if (sessionId != null && sessions.remove(sessionId)) {
             sshExecutor.disconnect(sessionId);
         }
-    }
-
-    public Mode effectiveMode() {
-        return properties.effectiveMode();
-    }
-
-    public Mode sessionMode(String sessionId) {
-        return sessionModes.getOrDefault(sessionId, effectiveMode());
     }
 
     @Override
@@ -69,10 +48,9 @@ public class ExecutionSessionManager implements CommandExecutor {
     }
 
     private CommandExecutor executorFor(String sessionId) {
-        Mode mode = sessionId == null ? null : sessionModes.get(sessionId);
-        if (mode == null) {
+        if (sessionId == null || !sessions.contains(sessionId)) {
             throw new SshSessionExpiredException("Execution session not found or expired. Please log in again.");
         }
-        return mode == Mode.LOCAL ? localExecutor : sshExecutor;
+        return sshExecutor;
     }
 }

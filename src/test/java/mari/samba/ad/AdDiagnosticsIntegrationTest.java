@@ -11,17 +11,18 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Duration;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.Session;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import mari.samba.config.ExecutionProperties;
+import java.util.concurrent.atomic.AtomicReference;
 import mari.samba.core.GlobalExceptionHandler;
 import mari.samba.infra.CommandResult;
-import mari.samba.infra.LocalCommandExecutor;
-import mari.samba.infra.LocalCommandPolicy;
-import mari.samba.infra.PrivilegedCommand;
-import mari.samba.infra.PrivilegedHelperClient;
-import mari.samba.infra.PrivilegedOperation;
+import mari.samba.infra.LinuxCommands;
+import mari.samba.infra.SshSessionManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,17 +37,20 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class AdDiagnosticsIntegrationTest {
 
     private static final String SECRET = "synthetic-ad-password-for-regression";
-    private final PrivilegedHelperClient helper = mock(PrivilegedHelperClient.class);
-    private final List<PrivilegedCommand> commands = new ArrayList<>();
+    private final Session ssh = mock(Session.class);
+    private final List<String> commands = new ArrayList<>();
     private final Logger logger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
     private final ListAppender<ILoggingEvent> events = new ListAppender<>();
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
-        ExecutionProperties properties = new ExecutionProperties(
-                ExecutionProperties.Mode.LOCAL, "admin", "local-fixture", Duration.ofSeconds(1), "/unused/helper.sock");
-        LocalCommandExecutor executor = new LocalCommandExecutor(properties, new LocalCommandPolicy(), helper);
+        SshSessionManager executor = new SshSessionManager(null) {
+            @Override
+            public Session getSession(String sessionId) {
+                return ssh;
+            }
+        };
         mvc = MockMvcBuilders.standaloneSetup(new AdApiController(new AdIntegrationService(executor)))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -62,12 +66,12 @@ class AdDiagnosticsIntegrationTest {
 
     @ParameterizedTest
     @CsvSource({"join, true", "join, false", "leave, true", "leave, false"})
-    void helperFailureDoesNotExposeOutputOrContinueWorkflow(String action, boolean secretInStderr) throws Exception {
+    void sshFailureDoesNotExposeOutputOrContinueWorkflow(String action, boolean secretInStderr) throws Exception {
         respondToDomainCommand(new CommandResult(7, secretInStderr ? "" : SECRET, secretInStderr ? SECRET : ""));
 
         String body = request(action, 500);
 
-        assertThat(body).contains("Local command failed with code 7.");
+        assertThat(body).contains("SSH command failed with code 7.");
         assertSafeDiagnostics(body);
         assertStoppedAfterDomainCommand(action);
     }
@@ -92,28 +96,44 @@ class AdDiagnosticsIntegrationTest {
 
         assertThat(body).contains("\"isJoined\":true");
         assertThat(commands)
-                .extracting(PrivilegedCommand::operation)
                 .containsExactly(
-                        PrivilegedOperation.WRITE_KRB5_CONFIG,
-                        PrivilegedOperation.NET_ADS,
-                        PrivilegedOperation.SYSTEMD,
-                        PrivilegedOperation.NET_ADS);
-        assertThat(commands.get(2).arguments()).containsExactly("restart", "winbind");
-        assertThat(commands.get(3).arguments()).containsExactly("testjoin");
+                        LinuxCommands.writeKrb5Conf(),
+                        LinuxCommands.netAdsJoin("Administrator", SECRET),
+                        LinuxCommands.systemctl("restart", "winbind"),
+                        LinuxCommands.netAdsTestJoin());
         assertSafeDiagnostics(body);
     }
 
-    private void respondToDomainCommand(CommandResult result) {
-        when(helper.execute(any())).thenAnswer(invocation -> {
-            PrivilegedCommand command = invocation.getArgument(0);
-            commands.add(command);
-            if (command.operation() == PrivilegedOperation.NET_ADS) {
-                if (command.arguments().equals(List.of("testjoin"))) {
+    private void respondToDomainCommand(CommandResult result) throws Exception {
+        when(ssh.openChannel("exec")).thenAnswer(invocation -> {
+            ChannelExec channel = mock(ChannelExec.class);
+            AtomicReference<String> command = new AtomicReference<>();
+            org.mockito.Mockito.doAnswer(call -> {
+                        String value = call.getArgument(0);
+                        command.set(value);
+                        commands.add(value);
+                        return null;
+                    })
+                    .when(channel)
+                    .setCommand(any(String.class));
+            java.util.function.Supplier<CommandResult> response = () -> {
+                if (LinuxCommands.netAdsTestJoin().equals(command.get())) {
                     return new CommandResult(0, "Join is OK", "");
                 }
-                return result;
-            }
-            return new CommandResult(0, "", "");
+                if (command.get().startsWith("sudo net ads ")) return result;
+                return new CommandResult(0, "", "");
+            };
+            when(channel.getInputStream())
+                    .thenAnswer(call ->
+                            new ByteArrayInputStream(response.get().stdout().getBytes(StandardCharsets.UTF_8)));
+            when(channel.getErrStream())
+                    .thenAnswer(call ->
+                            new ByteArrayInputStream(response.get().stderr().getBytes(StandardCharsets.UTF_8)));
+            when(channel.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+            when(channel.isClosed()).thenReturn(true);
+            when(channel.isConnected()).thenReturn(true);
+            when(channel.getExitStatus()).thenAnswer(call -> response.get().exitCode());
+            return channel;
         });
     }
 
@@ -130,15 +150,12 @@ class AdDiagnosticsIntegrationTest {
     }
 
     private void assertStoppedAfterDomainCommand(String action) {
+        String domain = action.equals("join")
+                ? LinuxCommands.netAdsJoin("Administrator", SECRET)
+                : LinuxCommands.netAdsLeave("Administrator", SECRET);
         assertThat(commands)
-                .extracting(PrivilegedCommand::operation)
                 .containsExactlyElementsOf(
-                        action.equals("join")
-                                ? List.of(PrivilegedOperation.WRITE_KRB5_CONFIG, PrivilegedOperation.NET_ADS)
-                                : List.of(PrivilegedOperation.NET_ADS));
-        PrivilegedCommand domainCommand = commands.getLast();
-        assertThat(domainCommand.arguments()).containsExactly(action, "Administrator");
-        assertThat(domainCommand.inputData()).isEqualTo(SECRET);
+                        action.equals("join") ? List.of(LinuxCommands.writeKrb5Conf(), domain) : List.of(domain));
     }
 
     private void assertSafeDiagnostics(String body) {

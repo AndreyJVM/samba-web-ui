@@ -1,54 +1,14 @@
-# ==========================================
-# Fast Local / Sandbox Stage (using pre-built JAR)
-# Used by scripts/sandbox/run-sandbox.sh for instant builds
-# ==========================================
-FROM eclipse-temurin:21-jre-alpine AS local
+# Package the tested application JAR, including frontend assets.
+# Build the JAR first: ./mvnw clean package
+FROM eclipse-temurin:21-jre-alpine AS runtime
 WORKDIR /app
-COPY target/*.jar /app/app.jar
+ARG JAR_FILE=target/*.jar
+COPY --chmod=0644 ${JAR_FILE} /app/app.jar
+USER 10001:10001
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
 
-# ==========================================
-# Stage 1: Build Application JAR (Maven)
-# Used for standalone / CI builds when JAR is not pre-built
-# ==========================================
-FROM eclipse-temurin:21-jdk-jammy AS build
-WORKDIR /app
+# Preserve the target used by the local sandbox.
+FROM runtime AS local
 
-# Copy Maven wrapper & project config
-COPY mvnw ./
-COPY .mvn .mvn
-COPY pom.xml ./
-RUN chmod +x mvnw
-
-# Copy source code and pre-built frontend assets
-COPY src ./src
-COPY frontend ./frontend
-
-# Build argument to skip tests (default: true for Docker images)
-ARG SKIP_TESTS=true
-
-# Build the JAR
-RUN --mount=type=cache,target=/root/.m2 \
-    if [ "$SKIP_TESTS" = "true" ]; then \
-        echo ">>> Сборка БЕЗ тестов (-DskipTests)" && \
-        ./mvnw package -DskipTests -Dmaven.test.skip=true -Dfrontend.skip=true; \
-    else \
-        echo ">>> Сборка С тестами" && \
-        ./mvnw package -Dfrontend.skip=true; \
-    fi
-
-# ==========================================
-# Stage 2: Production Container (Web UI Only)
-# Default target for standard multi-stage docker build
-# ==========================================
-FROM eclipse-temurin:21-jre-alpine AS production
-WORKDIR /app
-
-# Copy Spring Boot App from Builder
-COPY --from=build /app/target/*.jar /app/app.jar
-
-# Expose Web Interface port
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+FROM runtime AS production

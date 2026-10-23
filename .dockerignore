@@ -1,19 +1,5 @@
-# Prohibit everything, allow only what copies the Dockerfile
+# Runtime images consume only the already built application artifact.
 *
-
-!mvnw
-!.mvn
-!pom.xml
-!src
-!frontend
+!target/
+target/*
 !target/*.jar
-
-# Do not copy local artifacts inside frontend
-frontend/node_modules
-frontend/node
-frontend/*.tsbuildinfo
-!docker
-!scripts
-!scripts/
-!config
-!config/

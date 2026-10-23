@@ -1,12 +1,8 @@
 import { getErrorMessage } from "../lib/errors";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Lock, Key, ArrowRight, AlertTriangle, SlidersHorizontal } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { api } from "../lib/api";
-
-interface AuthEnvironment {
-  mode: "local" | "remote";
-}
 
 export default function LoginPage() {
   const [host, setHost] = useState("");
@@ -18,15 +14,6 @@ export default function LoginPage() {
   const [useKeyAuth, setUseKeyAuth] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [executionMode, setExecutionMode] = useState<AuthEnvironment["mode"]>("remote");
-  const isLocal = executionMode === "local";
-
-  useEffect(() => {
-    api.get<AuthEnvironment>("/api/auth/environment")
-      .then((environment) => setExecutionMode(environment.mode))
-      .catch(() => setExecutionMode("remote"));
-  }, []);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -47,12 +34,12 @@ export default function LoginPage() {
       }
 
       await api.post("/api/auth/login", {
-        host: isLocal ? undefined : finalHost,
-        port: isLocal ? undefined : finalPort,
+        host: finalHost,
+        port: finalPort,
         username,
-        authType: !isLocal && useKeyAuth ? "key" : "password",
-        password: !isLocal && useKeyAuth ? undefined : password,
-        privateKey: !isLocal && useKeyAuth ? privateKey : undefined,
+        authType: useKeyAuth ? "key" : "password",
+        password: useKeyAuth ? undefined : password,
+        privateKey: useKeyAuth ? privateKey : undefined,
       });
       // Simple redirect since auth state isn't managed globally here
       window.location.href = "/ui/";
@@ -90,7 +77,7 @@ export default function LoginPage() {
             <span className="font-extrabold text-foreground">Guard</span>
           </h1>
           <p className="text-text-muted mt-1 text-xs sm:text-sm">
-            {isLocal ? "Локальное управление сервером Samba" : "Управление сервером Samba по SSH"}
+            Управление сервером Samba по SSH
           </p>
         </div>
 
@@ -108,77 +95,75 @@ export default function LoginPage() {
             )}
 
             {/* Main scenario: 1. Server Host with prominent port toggle pill */}
-            {!isLocal && (
-              <div className="space-y-2">
-                <div className="space-y-1.5">
+            <div className="space-y-2">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="login-host"
+                    className="block text-xs font-semibold text-text-muted uppercase tracking-wider"
+                  >
+                    Хост / IP
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPort(!showPort)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground ${
+                      showPort
+                        ? "bg-accent/25 border-accent/60 text-accent-text font-semibold"
+                        : "bg-surface-2 border-border-strong text-foreground hover:bg-surface hover:border-foreground/30"
+                    }`}
+                    title={showPort ? "Скрыть настройку порта" : "Изменить порт подключения (по умолчанию 22)"}
+                    aria-expanded={showPort}
+                  >
+                    <SlidersHorizontal className="w-3 h-3 shrink-0 opacity-70" />
+                    <span>{showPort ? "Скрыть порт" : `Порт: ${port || "22"}`}</span>
+                  </button>
+                </div>
+                <Input
+                  id="login-host"
+                  name="host"
+                  autoComplete="host"
+                  required
+                  value={host}
+                  onChange={e => setHost(e.target.value)}
+                  placeholder="192.168.1.100"
+                  className="bg-surface-2 border-border-strong text-foreground focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-accent-text/30 text-sm h-10 rounded-lg transition-colors"
+                />
+              </div>
+
+              {/* Separate Port setting (revealed on click) */}
+              {showPort && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
                   <div className="flex items-center justify-between">
                     <label
-                      htmlFor="login-host"
+                      htmlFor="login-port"
                       className="block text-xs font-semibold text-text-muted uppercase tracking-wider"
                     >
-                      Хост / IP
+                      Порт SSH
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowPort(!showPort)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors shadow-2xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground ${
-                        showPort
-                          ? "bg-accent/25 border-accent/60 text-accent-text font-semibold"
-                          : "bg-surface-2 border-border-strong text-foreground hover:bg-surface hover:border-foreground/30"
-                      }`}
-                      title={showPort ? "Скрыть настройку порта" : "Изменить порт подключения (по умолчанию 22)"}
-                      aria-expanded={showPort}
-                    >
-                      <SlidersHorizontal className="w-3 h-3 shrink-0 opacity-70" />
-                      <span>{showPort ? "Скрыть порт" : `Порт: ${port || "22"}`}</span>
-                    </button>
+                    {port !== "22" && (
+                      <button
+                        type="button"
+                        onClick={() => setPort("22")}
+                        className="text-[11px] font-medium text-text-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
+                      >
+                        Сбросить на 22
+                      </button>
+                    )}
                   </div>
                   <Input
-                    id="login-host"
-                    name="host"
-                    autoComplete="host"
+                    id="login-port"
+                    name="port"
                     required
-                    value={host}
-                    onChange={e => setHost(e.target.value)}
-                    placeholder="192.168.1.100"
+                    value={port}
+                    onChange={e => setPort(e.target.value)}
+                    type="number"
+                    placeholder="22"
                     className="bg-surface-2 border-border-strong text-foreground focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-accent-text/30 text-sm h-10 rounded-lg transition-colors"
                   />
                 </div>
-
-                {/* Separate Port setting (revealed on click) */}
-                {showPort && (
-                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="login-port"
-                        className="block text-xs font-semibold text-text-muted uppercase tracking-wider"
-                      >
-                        Порт SSH
-                      </label>
-                      {port !== "22" && (
-                        <button
-                          type="button"
-                          onClick={() => setPort("22")}
-                          className="text-[11px] font-medium text-text-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
-                        >
-                          Сбросить на 22
-                        </button>
-                      )}
-                    </div>
-                    <Input
-                      id="login-port"
-                      name="port"
-                      required
-                      value={port}
-                      onChange={e => setPort(e.target.value)}
-                      type="number"
-                      placeholder="22"
-                      className="bg-surface-2 border-border-strong text-foreground focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-accent-text/30 text-sm h-10 rounded-lg transition-colors"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Main scenario: 2. Login (Username) */}
             <div className="space-y-1.5">
@@ -201,7 +186,7 @@ export default function LoginPage() {
             </div>
 
             {/* Main scenario: 3. Password OR Key input */}
-            {isLocal || !useKeyAuth ? (
+            {!useKeyAuth ? (
               <div className="space-y-1.5">
                 <label
                   htmlFor="login-password"
@@ -267,46 +252,44 @@ export default function LoginPage() {
             </button>
 
             {/* Alternate SSH auth method visually separated under the submit button */}
-            {!isLocal && (
-              <div className="pt-4 border-t border-border mt-5 space-y-2">
-                <span className="block text-[11px] font-medium text-text-muted text-center">
-                  Способ аутентификации
-                </span>
-                <div
-                  className="flex bg-surface-2 p-1 rounded-lg border border-border"
-                  role="tablist"
-                  aria-label="Способ аутентификации"
+            <div className="pt-4 border-t border-border mt-5 space-y-2">
+              <span className="block text-[11px] font-medium text-text-muted text-center">
+                Способ аутентификации
+              </span>
+              <div
+                className="flex bg-surface-2 p-1 rounded-lg border border-border"
+                role="tablist"
+                aria-label="Способ аутентификации"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  onClick={() => setUseKeyAuth(false)}
+                  aria-selected={!useKeyAuth}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
+                    !useKeyAuth
+                      ? 'bg-surface text-foreground shadow-xs font-semibold'
+                      : 'text-text-muted hover:text-foreground'
+                  }`}
                 >
-                  <button
-                    type="button"
-                    role="tab"
-                    onClick={() => setUseKeyAuth(false)}
-                    aria-selected={!useKeyAuth}
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      !useKeyAuth
-                        ? 'bg-surface text-foreground shadow-xs font-semibold'
-                        : 'text-text-muted hover:text-foreground'
-                    }`}
-                  >
-                    Пароль
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    onClick={() => setUseKeyAuth(true)}
-                    aria-selected={useKeyAuth}
-                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5 ${
-                      useKeyAuth
-                        ? 'bg-surface text-foreground shadow-xs font-semibold'
-                        : 'text-text-muted hover:text-foreground'
-                    }`}
-                  >
-                    <Key className="w-3.5 h-3.5" />
-                    <span>SSH-ключ</span>
-                  </button>
-                </div>
+                  Пароль
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  onClick={() => setUseKeyAuth(true)}
+                  aria-selected={useKeyAuth}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                    useKeyAuth
+                      ? 'bg-surface text-foreground shadow-xs font-semibold'
+                      : 'text-text-muted hover:text-foreground'
+                  }`}
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>SSH-ключ</span>
+                </button>
               </div>
-            )}
+            </div>
           </form>
         </div>
 

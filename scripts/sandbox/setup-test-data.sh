@@ -5,7 +5,7 @@ echo "========================================================"
 echo "       Samba Sandbox - Initializing Test Data           "
 echo "========================================================"
 
-echo ">>> [1/3] Создание тестовых групп..."
+echo ">>> [1/3] Creating test groups..."
 
 create_group_if_not_exists() {
     local g=$1
@@ -14,28 +14,28 @@ create_group_if_not_exists() {
     fi
 }
 
-# Создаем POSIX группы и группы с префиксом smb_ для отображения в Web UI
+# Create POSIX groups and smb_ groups displayed in the Web UI
 for base_group in developers qa hr finance managers interns; do
     create_group_if_not_exists "$base_group"
     create_group_if_not_exists "smb_$base_group"
 done
 
-echo ">>> [2/3] Создание тестовых пользователей..."
+echo ">>> [2/3] Creating test users..."
 TEST_PASS="test"
 
 setup_user() {
     local username=$1
     local group=$2
     
-    # Создаем системного пользователя без интерактивного shell если не существует
+    # Create the system account with a non-interactive shell if needed
     if ! id "$username" >/dev/null 2>&1; then
         useradd -m -s /usr/sbin/nologin -g "$group" "$username"
     fi
     
-    # Добавляем в обе группы (POSIX и Web UI)
+    # Add the account to both POSIX and Web UI groups
     usermod -aG "$group,smb_$group" "$username"
     
-    # Устанавливаем пароль для Samba
+    # Set the Samba password
     (echo "$TEST_PASS"; echo "$TEST_PASS") | smbpasswd -s -a "$username" 2>/dev/null || (echo "$TEST_PASS"; echo "$TEST_PASS") | smbpasswd -s "$username"
     smbpasswd -e "$username" 2>/dev/null || true
 }
@@ -49,12 +49,12 @@ setup_user "fin1" "finance"
 setup_user "boss" "managers"
 setup_user "intern1" "interns"
 
-# Пользователь admin добавляется во все группы для полного доступа
+# Add admin to all groups for full access
 for g in developers smb_developers qa smb_qa hr smb_hr finance smb_finance managers smb_managers interns smb_interns; do
     usermod -aG "$g" admin 2>/dev/null || true
 done
 
-echo ">>> [3/3] Создание директорий и генерация тестовых файлов..."
+echo ">>> [3/3] Creating directories and generating test files..."
 mkdir -p /srv/samba/public
 mkdir -p /srv/samba/developers
 mkdir -p /srv/samba/qa
@@ -62,7 +62,7 @@ mkdir -p /srv/samba/hr
 mkdir -p /srv/samba/finance
 mkdir -p /srv/samba/management
 
-# Устанавливаем владельца и группу. Флаг 2 (SetGID) гарантирует наследование группы.
+# Set ownership and groups. SetGID (2) enables group inheritance.
 chown root:developers /srv/samba/developers
 chmod 2775 /srv/samba/developers
 
@@ -81,7 +81,7 @@ chmod 2770 /srv/samba/management
 chown admin:admin /srv/samba/public
 chmod 0777 /srv/samba/public
 
-# --- Генерация тестовых документов ---
+# --- Generate test documents ---
 
 # 1. Public Share
 echo "Welcome to ShareGuard Public Storage. All users have access here." > /srv/samba/public/welcome_readme.txt
@@ -120,7 +120,7 @@ echo "Executive Board Strategy 2030." > "/srv/samba/management/Company_Strategy_
 echo "Minutes of the Board of Directors Meeting." > "/srv/samba/management/Board_Meeting_Notes.docx"
 echo "Strategic Partnership and Non-Disclosure Agreement." > "/srv/samba/management/Partnership_Agreement.pdf"
 
-# Назначаем права на созданные файлы
+# Set permissions on the generated files
 chmod 0664 /srv/samba/public/*
 chown -R admin:admin /srv/samba/public/*
 
@@ -140,10 +140,10 @@ chmod 0660 /srv/samba/management/*
 chown -R root:managers /srv/samba/management/*
 
 echo "========================================================"
-echo " Тестовые пользователи, группы и файлы успешно созданы! "
-echo " Группы: developers, qa, hr, finance, managers, interns "
-echo " Префиксы Web UI: smb_developers, smb_qa, smb_hr, ...   "
-echo " Mock-документы: pdf, docx, xlsx, pptx, csv, java, js   "
-echo " Пользователи: dev1, dev2, qa1, qa2, hr1, fin1, boss, intern1"
-echo " Пароль для всех тестовых аккаунтов: test              "
+echo " Test users, groups and files created successfully!"
+echo " Groups: developers, qa, hr, finance, managers, interns"
+echo " Web UI prefixes: smb_developers, smb_qa, smb_hr, ..."
+echo " Mock documents: pdf, docx, xlsx, pptx, csv, java, js"
+echo " Users: dev1, dev2, qa1, qa2, hr1, fin1, boss, intern1"
+echo " Password for all test accounts: test"
 echo "========================================================"

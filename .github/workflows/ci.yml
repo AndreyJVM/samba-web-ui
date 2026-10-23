@@ -32,10 +32,10 @@ jobs:
         run: |
           while IFS= read -r -d '' script; do
             bash -n "$script"
-          done < <(git ls-files -z -- '*.sh' packaging/deb/DEBIAN/postinst packaging/deb/DEBIAN/prerm packaging/deb/DEBIAN/postrm)
+          done < <(git ls-files -z -- '*.sh')
 
-      - name: Test Python helper
-        run: python3 -B -m unittest discover -s packaging/helper -p 'test_*.py' -v
+      - name: Test artifact verification guards
+        run: python3 -B -m unittest discover -s scripts/ci -p 'test_*.py' -v
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -61,36 +61,23 @@ jobs:
         working-directory: frontend
         run: ./node/npm run test
 
-      - name: Build DEB package
+      - name: Build and smoke-test standard runtime image
         shell: bash
         run: |
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            version="${GITHUB_REF_NAME#v}"
-          else
-            version="0.0.1~ci.${GITHUB_RUN_NUMBER}"
-          fi
-          dpkg --validate-version "$version"
           jars=(target/*.jar)
           if [[ ${#jars[@]} -ne 1 || ! -f "${jars[0]}" ]]; then
             echo "Expected exactly one application JAR in target/" >&2
             exit 1
           fi
-          SHAREGUARD_VERSION="$version" bash packaging/deb/build-deb.sh "${jars[0]}" dist
-          dpkg-deb --info "dist/shareguard_${version}_all.deb"
+          python3 scripts/ci/verify-artifacts.py "${jars[0]}"
+          docker build --build-arg "JAR_FILE=${jars[0]}" --tag shareguard-ci:standard .
+          bash scripts/ci/smoke-docker.sh shareguard-ci:standard "${jars[0]}"
 
       - name: Upload Built JAR Artifact
         uses: actions/upload-artifact@v4
         with:
           name: shareguard-jar
           path: target/*.jar
-          retention-days: 7
-
-      - name: Upload Built DEB Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: shareguard-deb
-          path: dist/*.deb
-          if-no-files-found: error
           retention-days: 7
 
   github-release:
@@ -106,12 +93,6 @@ jobs:
           name: shareguard-jar
           path: release-artifacts
 
-      - name: Download Built DEB
-        uses: actions/download-artifact@v4
-        with:
-          name: shareguard-deb
-          path: release-artifacts
-
       - name: Generate Changelog & Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -120,7 +101,6 @@ jobs:
           generate_release_notes: true
           files: |
             release-artifacts/*.jar
-            release-artifacts/*.deb
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -134,6 +114,22 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Download tested application JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: shareguard-jar
+          path: target
+
+      - name: Verify downloaded application artifact
+        shell: bash
+        run: |
+          jars=(target/*.jar)
+          if [[ ${#jars[@]} -ne 1 || ! -f "${jars[0]}" ]]; then
+            echo "Expected exactly one tested application JAR" >&2
+            exit 1
+          fi
+          python3 scripts/ci/verify-artifacts.py "${jars[0]}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -154,15 +150,22 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=true
 
-      - name: Build and push Standard Docker image
+      - name: Package Standard Docker image
+        id: build-standard
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
+          load: true
+          push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Smoke-test Standard Docker image before publishing
+        env:
+          IMAGE_ID: ${{ steps.build-standard.outputs.imageid }}
+        run: bash scripts/ci/smoke-docker.sh "$IMAGE_ID" target/*.jar
 
       - name: Extract Astra Docker metadata
         id: meta-astra
@@ -174,16 +177,38 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},prefix=astra-
             type=raw,value=astra-latest,enable=true
 
-      - name: Build and push Astra-compatible Docker image
+      - name: Package experimental Astra Docker image
+        id: build-astra
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/Dockerfile.astra
-          push: true
+          load: true
+          push: false
           tags: ${{ steps.meta-astra.outputs.tags }}
           labels: ${{ steps.meta-astra.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Smoke-test experimental image on Ubuntu runner
+        env:
+          IMAGE_ID: ${{ steps.build-astra.outputs.imageid }}
+        run: bash scripts/ci/smoke-docker.sh "$IMAGE_ID" target/*.jar
+
+      - name: Publish smoke-tested Docker images
+        env:
+          STANDARD_TAGS: ${{ steps.meta.outputs.tags }}
+          ASTRA_TAGS: ${{ steps.meta-astra.outputs.tags }}
+        shell: bash
+        run: |
+          test -n "$STANDARD_TAGS"
+          test -n "$ASTRA_TAGS"
+          while IFS= read -r tag; do
+            if [[ -n "$tag" ]]; then docker push "$tag"; fi
+          done <<< "$STANDARD_TAGS"
+          while IFS= read -r tag; do
+            if [[ -n "$tag" ]]; then docker push "$tag"; fi
+          done <<< "$ASTRA_TAGS"
 
       - name: Update Docker Hub Description
         uses: peter-evans/dockerhub-description@v4
