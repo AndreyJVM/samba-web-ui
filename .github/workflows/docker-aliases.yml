@@ -1,0 +1,72 @@
+name: Repair Docker Release Aliases
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Existing stable version without v, such as 0.11.0
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-release-alias-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RELEASE_VERSION: ${{ inputs.release_version }}
+      IMAGE: andreyvorobevaqa/sambryx
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate stable release version
+        shell: bash
+        run: |
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Verify published source images against the release JAR
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release download "v$RELEASE_VERSION" --pattern '*.jar' --dir release-artifacts
+          jars=(release-artifacts/*.jar)
+          [[ ${#jars[@]} -eq 1 && -f "${jars[0]}" ]]
+          standard=$(docker buildx imagetools inspect "$IMAGE:$RELEASE_VERSION" --format '{{.Manifest.Digest}}')
+          astra=$(docker buildx imagetools inspect "$IMAGE:astra-$RELEASE_VERSION" --format '{{.Manifest.Digest}}')
+          [[ "$standard" =~ ^sha256:[a-f0-9]{64}$ && "$astra" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "$standard" != "$astra" ]]
+          for digest in "$standard" "$astra"; do
+            docker pull "$IMAGE@$digest"
+            bash scripts/ci/smoke-docker.sh "$IMAGE@$digest" "${jars[0]}"
+          done
+          echo "standard=$standard" >> "$GITHUB_OUTPUT"
+          echo "astra=$astra" >> "$GITHUB_OUTPUT"
+
+      - name: Restore and verify aliases without changing versioned tags
+        env:
+          STANDARD_DIGEST: ${{ steps.source.outputs.standard }}
+          ASTRA_DIGEST: ${{ steps.source.outputs.astra }}
+        shell: bash
+        run: |
+          docker buildx imagetools create --prefer-index=false --tag "$IMAGE:latest" "$IMAGE@$STANDARD_DIGEST"
+          docker buildx imagetools create --prefer-index=false --tag "$IMAGE:astra-latest" "$IMAGE@$ASTRA_DIGEST"
+          [[ $(docker buildx imagetools inspect "$IMAGE:latest" --format '{{.Manifest.Digest}}') == "$STANDARD_DIGEST" ]]
+          [[ $(docker buildx imagetools inspect "$IMAGE:astra-latest" --format '{{.Manifest.Digest}}') == "$ASTRA_DIGEST" ]]
+          [[ $(docker buildx imagetools inspect "$IMAGE:$RELEASE_VERSION" --format '{{.Manifest.Digest}}') == "$STANDARD_DIGEST" ]]
+          [[ $(docker buildx imagetools inspect "$IMAGE:astra-$RELEASE_VERSION" --format '{{.Manifest.Digest}}') == "$ASTRA_DIGEST" ]]
