@@ -15,6 +15,7 @@ import mari.samba.auth.ConnectionRequestDto;
 import mari.samba.config.SecurityConfig;
 import mari.samba.core.SambaCommandException;
 import mari.samba.infra.ExecutionSessionManager;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -25,6 +26,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -55,6 +57,30 @@ class HttpSecurityIntegrationTest {
 
     @MockitoBean
     private SambaShareService shares;
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"bad/host, 22, qa-user", "samba-node, 65536, qa-user", "samba-node, 22, '   '"})
+    void invalidSshCoordinatesAreRejectedBeforeConnecting(String host, int port, String username) throws Exception {
+        MvcResult result = mvc.perform(withCsrf(post("/api/auth/login"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                                """
+                                {"host":"%s","port":%d,"username":"%s","password":"synthetic"}
+                                """
+                                        .formatted(host, port, username)))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        assertNull(result.getRequest().getSession(false));
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        mvc.perform(get("/api/shares")).andExpect(status().isUnauthorized());
+        verifyNoInteractions(sessions, bruteForce, shares);
+    }
 
     @Test
     void anonymousReadsRequireAuthenticationWithoutRedirect() throws Exception {

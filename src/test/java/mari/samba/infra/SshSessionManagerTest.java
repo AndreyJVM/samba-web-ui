@@ -2,21 +2,22 @@ package mari.samba.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import mari.samba.auth.ConnectionRequestDto;
 import mari.samba.config.SambaProperties;
 import mari.samba.core.SambaCommandException;
 import mari.samba.core.SshSessionExpiredException;
@@ -82,6 +83,59 @@ class SshSessionManagerTest {
                 .satisfies(this::assertSafeException);
 
         assertSafeLogs();
+    }
+
+    @Test
+    void channelConnectFailureClosesStreamsAndDoesNotExposeSensitiveDetails() throws Exception {
+        InputStream stdout = mock(InputStream.class);
+        InputStream stderr = mock(InputStream.class);
+        when(channel.getInputStream()).thenReturn(stdout);
+        when(channel.getErrStream()).thenReturn(stderr);
+        String originalMessage = "synthetic-connect-failure " + COMMAND;
+        doThrow(new JSchException(originalMessage)).when(channel).connect(anyInt());
+
+        assertThatThrownBy(() -> manager(Duration.ofSeconds(30)).execute("session", COMMAND, SECRET))
+                .isInstanceOf(SambaCommandException.class)
+                .hasMessage("SSH command execution failed.")
+                .hasNoCause()
+                .satisfies(this::assertSafeException);
+
+        assertSafeLogs();
+        assertThat(events.list).allSatisfy(event -> assertThat(event.getFormattedMessage())
+                .doesNotContain(originalMessage, "synthetic-connect-failure"));
+        verify(stdout).close();
+        verify(stderr).close();
+        verify(channel).disconnect();
+        verify(channel, never()).getOutputStream();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"execute", "executeWithInput", "executeCommand", "executeCommandWithInput"})
+    void disconnectedSessionRejectsCommandsBeforeOpeningChannel(String variant) throws Exception {
+        SshSessionManager manager = new SshSessionManager(null);
+        try (var jsch =
+                mockConstruction(JSch.class, (mock, context) -> when(mock.getSession("admin", "fixture.test", 22))
+                        .thenReturn(session))) {
+            manager.createSession(
+                    "session", new ConnectionRequestDto("fixture.test", 22, "admin", "password", SECRET, null, null));
+            when(session.isConnected()).thenReturn(false);
+
+            assertThatThrownBy(() -> {
+                        switch (variant) {
+                            case "execute" -> manager.execute("session", COMMAND);
+                            case "executeWithInput" -> manager.execute("session", COMMAND, SECRET);
+                            case "executeCommand" -> manager.executeCommand("session", COMMAND);
+                            case "executeCommandWithInput" -> manager.executeCommand("session", COMMAND, SECRET);
+                            default -> throw new IllegalArgumentException(variant);
+                        }
+                    })
+                    .isInstanceOf(SshSessionExpiredException.class);
+            when(session.isConnected()).thenReturn(true);
+            assertThatThrownBy(() -> manager.getSession("session")).isInstanceOf(SshSessionExpiredException.class);
+            verify(session, never()).openChannel(anyString());
+        } finally {
+            manager.disconnect("session");
+        }
     }
 
     @Test

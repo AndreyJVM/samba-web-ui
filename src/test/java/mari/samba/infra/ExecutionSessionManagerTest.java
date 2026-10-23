@@ -21,11 +21,7 @@ class ExecutionSessionManagerTest {
     @NullAndEmptySource
     @ValueSource(strings = {"synthetic-http-session-token"})
     void unknownSessionCannotExecuteCommands(String sessionId) {
-        assertThatThrownBy(() -> manager.execute(sessionId, "command")).isInstanceOf(SshSessionExpiredException.class);
-        assertThatThrownBy(() -> manager.execute(sessionId, "command", "input"))
-                .isInstanceOf(SshSessionExpiredException.class);
-        assertThatThrownBy(() -> manager.executeCommand(sessionId, "command", null))
-                .isInstanceOf(SshSessionExpiredException.class);
+        assertCommandsRejected(sessionId);
         verifyNoInteractions(ssh);
     }
 
@@ -33,8 +29,8 @@ class ExecutionSessionManagerTest {
     void failedSshLoginDoesNotAllowCommands() throws Exception {
         doThrow(new SambaCommandException("Connection rejected")).when(ssh).createSession("session", request);
         assertThatThrownBy(() -> manager.createSession("session", request)).isInstanceOf(SambaCommandException.class);
-        assertThatThrownBy(() -> manager.execute("session", "command")).isInstanceOf(SshSessionExpiredException.class);
-        verify(ssh, never()).execute(anyString(), anyString());
+        assertCommandsRejected("session");
+        verifyNoCommandExecution();
     }
 
     @Test
@@ -46,8 +42,8 @@ class ExecutionSessionManagerTest {
         order.verify(ssh).createSession("session", request);
         order.verify(ssh).disconnect("session");
         order.verify(ssh).createSession("session", request);
-        assertThatThrownBy(() -> manager.execute("session", "command")).isInstanceOf(SshSessionExpiredException.class);
-        verify(ssh, never()).execute(anyString(), anyString());
+        assertCommandsRejected("session");
+        verifyNoCommandExecution();
     }
 
     @Test
@@ -57,7 +53,24 @@ class ExecutionSessionManagerTest {
         manager.disconnect("session");
         manager.disconnect(null);
         verify(ssh).disconnect("session");
-        assertThatThrownBy(() -> manager.execute("session", "command")).isInstanceOf(SshSessionExpiredException.class);
+        assertCommandsRejected("session");
+        verifyNoCommandExecution();
+    }
+
+    private void assertCommandsRejected(String sessionId) {
+        assertThatThrownBy(() -> manager.execute(sessionId, "command")).isInstanceOf(SshSessionExpiredException.class);
+        assertThatThrownBy(() -> manager.execute(sessionId, "command", "input"))
+                .isInstanceOf(SshSessionExpiredException.class);
+        assertThatThrownBy(() -> manager.executeCommand(sessionId, "command"))
+                .isInstanceOf(SshSessionExpiredException.class);
+        assertThatThrownBy(() -> manager.executeCommand(sessionId, "command", "input"))
+                .isInstanceOf(SshSessionExpiredException.class);
+    }
+
+    private void verifyNoCommandExecution() {
         verify(ssh, never()).execute(anyString(), anyString());
+        verify(ssh, never()).execute(anyString(), anyString(), any());
+        verify(ssh, never()).executeCommand(anyString(), anyString());
+        verify(ssh, never()).executeCommand(anyString(), anyString(), any());
     }
 }

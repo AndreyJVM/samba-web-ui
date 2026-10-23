@@ -1,6 +1,5 @@
 package mari.samba.auth;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -8,13 +7,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import mari.samba.infra.ExecutionSessionManager;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @WebMvcTest(AuthApiController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -39,67 +43,42 @@ class AuthApiControllerTest {
                 .andExpect(jsonPath("$.data.mode").value("remote"));
     }
 
-    @Test
-    void testConnect_Success() throws Exception {
-        ConnectionRequestDto dto =
-                new ConnectionRequestDto("192.168.1.100", 22, "root", "password", "Secret@123", null, null);
-
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-
-        verify(sessionManager).createSession(anyString(), any(ConnectionRequestDto.class));
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
-    @Test
-    void testConnect_DockerHostname_Success() throws Exception {
-        ConnectionRequestDto dto = new ConnectionRequestDto("samba-node", 22, "admin", "password", "admin", null, null);
+    @ParameterizedTest
+    @CsvSource({"192.168.1.100, root", "samba-node, admin"})
+    void validHostAuthenticates(String host, String username) throws Exception {
+        ConnectionRequestDto dto = new ConnectionRequestDto(host, 22, username, "password", "synthetic", null, null);
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+        mockMvc.perform(loginRequest(dto))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        verify(sessionManager).createSession(anyString(), any(ConnectionRequestDto.class));
+        verify(sessionManager).createSession(anyString(), eq(dto));
     }
 
     @Test
     void loginWithoutHostIsRejectedBeforeOpeningConnection() throws Exception {
         ConnectionRequestDto dto = new ConnectionRequestDto(null, 22, "admin", "password", "secret", null, null);
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(loginRequest(dto)).andExpect(status().isBadRequest());
         verifyNoInteractions(sessionManager);
     }
 
-    @Test
-    void testConnect_MissingPasswordForPasswordAuth_ShouldReturnBadRequest() throws Exception {
-        ConnectionRequestDto dto = new ConnectionRequestDto("192.168.1.100", 22, "root", "password", null, null, null);
+    @ParameterizedTest
+    @CsvSource({
+        "password, Password is required when not using key authentication.",
+        "key, Private key is required when using key authentication."
+    })
+    void missingCredentialIsRejected(String authType, String message) throws Exception {
+        ConnectionRequestDto dto = new ConnectionRequestDto("192.168.1.100", 22, "root", authType, null, null, null);
 
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+        mockMvc.perform(loginRequest(dto))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").isNotEmpty());
-
-        verifyNoInteractions(sessionManager);
-    }
-
-    @Test
-    void testConnect_MissingPrivateKeyForKeyAuth_ShouldReturnBadRequest() throws Exception {
-        ConnectionRequestDto dto = new ConnectionRequestDto("192.168.1.100", 22, "root", "key", null, null, null);
-
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Private key is required when using key authentication."));
+                .andExpect(jsonPath("$.message").value(message));
 
         verifyNoInteractions(sessionManager);
     }
@@ -123,5 +102,11 @@ class AuthApiControllerTest {
                 .andExpect(jsonPath("$.message").isString());
 
         verify(sessionManager).disconnect(anyString());
+    }
+
+    private MockHttpServletRequestBuilder loginRequest(ConnectionRequestDto dto) throws Exception {
+        return post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto));
     }
 }
