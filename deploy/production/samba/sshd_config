@@ -1,0 +1,17 @@
+Port 22
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+PermitRootLogin prohibit-password
+AllowUsers root
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+AuthorizedKeysFile /run/shareguard-authorized-keys
+StrictModes yes
+UsePAM yes
+DisableForwarding yes
+PermitTTY no
+X11Forwarding no
+PrintMotd no
+Subsystem sftp internal-sftp

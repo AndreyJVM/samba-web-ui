@@ -1,0 +1,79 @@
+name: shareguard-production
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  web:
+    image: ${SHAREGUARD_IMAGE:?Set SHAREGUARD_IMAGE to a versioned release image}
+    user: "10001:10001"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 768m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    environment:
+      SERVER_PORT: "8080"
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      SERVER_SERVLET_SESSION_COOKIE_SECURE: "true"
+      SERVER_SERVLET_SESSION_COOKIE_HTTP_ONLY: "true"
+      SERVER_SERVLET_SESSION_COOKIE_SAME_SITE: lax
+    networks: [proxy, ssh-egress]
+    healthcheck:
+      test: [CMD, wget, --quiet, --spider, "http://127.0.0.1:8080/api/auth/environment"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    logging: *logging
+
+  nginx:
+    image: nginx:1.30.6-alpine
+    user: "${PROXY_UID:-1000}:${PROXY_GID:-1000}"
+    entrypoint: [nginx, -g, "daemon off;"]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 128m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,mode=1777
+    ports:
+      - "${HTTPS_BIND_IP:-127.0.0.1}:${HTTPS_PORT:-8443}:8443"
+    volumes:
+      - type: bind
+        source: ./deploy/production/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets: [tls_certificate, tls_private_key]
+    networks: [proxy, https-edge]
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, --quiet, --spider, --no-check-certificate, "https://127.0.0.1:8443/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+
+networks:
+  proxy:
+    internal: true
+  ssh-egress: {}
+  https-edge: {}
+
+secrets:
+  tls_certificate:
+    file: ${TLS_CERT_FILE:?Set TLS_CERT_FILE to your full certificate chain}
+  tls_private_key:
+    file: ${TLS_KEY_FILE:?Set TLS_KEY_FILE to your TLS private key}

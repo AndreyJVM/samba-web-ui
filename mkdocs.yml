@@ -50,4 +50,5 @@ nav:
   - Рекомендации ФСТЭК: fstec.md
   - Архитектура: architecture.md
   - Сборка и поставки: distribution.md
+  - Production Compose: production.md
   - Статический анализ: static-analysis.md

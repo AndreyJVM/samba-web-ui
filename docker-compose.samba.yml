@@ -1,0 +1,57 @@
+services:
+  web:
+    environment:
+      SAMBA_SECURITY_ALLOWED_ROOTS: /srv/samba
+    networks: [management]
+    depends_on:
+      samba-node:
+        condition: service_healthy
+
+  samba-node:
+    image: shareguard-samba-node:ubuntu24.04
+    build:
+      context: ./deploy/production/samba
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    mem_limit: 512m
+    tmpfs:
+      - /run:rw,nosuid,size=32m,mode=0755
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    ports:
+      - "${SAMBA_BIND_IP:-127.0.0.1}:${SAMBA_PORT:-445}:445"
+    volumes:
+      - node-identity:/etc
+      - samba-data:/srv/samba
+      - samba-state:/var/lib/samba
+      - samba-home:/home
+      - samba-logs:/var/log/samba
+    secrets: [ssh_authorized_keys]
+    networks: [management, smb-edge]
+    healthcheck:
+      test: [CMD-SHELL, "testparm -s >/dev/null 2>&1 && systemctl is-active smbd >/dev/null && systemctl is-active sshd >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  management:
+    internal: true
+  smb-edge: {}
+
+volumes:
+  node-identity: {}
+  samba-data: {}
+  samba-state: {}
+  samba-home: {}
+  samba-logs: {}
+
+secrets:
+  ssh_authorized_keys:
+    file: ${SSH_AUTHORIZED_KEYS_FILE:?Set SSH_AUTHORIZED_KEYS_FILE to the management public key file}
